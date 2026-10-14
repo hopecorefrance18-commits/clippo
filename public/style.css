@@ -156,3 +156,26 @@ select { background: var(--ink-2); color: var(--paper); border: 0; border-radius
   -webkit-text-fill-color: transparent;
   color: transparent;
 }
+/* --- Adaptation téléphone --- */
+html { -webkit-text-size-adjust: 100%; }
+button, label, a { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+
+@media (max-width: 700px) {
+  .top { flex-direction: column; align-items: flex-start; gap: 12px; padding: 14px 16px; }
+  .logo img { height: 44px; }
+
+  /* menu des onglets : défile sur le côté au lieu de dépasser */
+  .tabs { width: 100%; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab { flex-shrink: 0; white-space: nowrap; padding: 10px 14px; font-size: .9rem; }
+
+  main { padding: 24px 16px 24px; }
+  .sub { font-size: 1rem; margin-bottom: 20px; }
+  .card { padding: 16px; }
+  .row { flex-direction: column; align-items: stretch; }
+  .select, select { width: 100%; }
+  .drop { padding: 32px 16px; }
+  .upd-empty { padding: 18px; }
+  .foot { padding: 16px 16px 28px; }
+  .blob { filter: blur(50px); }
+}
