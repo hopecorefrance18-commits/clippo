@@ -191,3 +191,7 @@ button, label, a { -webkit-tap-highlight-color: transparent; touch-action: manip
 .fancy-row span { font-size: 1.15rem; word-break: break-word; }
 .copy-btn { flex-shrink: 0; border: 0; cursor: pointer; background: var(--sun); color: var(--ink); font: 700 .85rem "DM Sans", sans-serif; padding: 8px 14px; border-radius: 10px; }
 .copy-btn.done { background: var(--aqua); }
+.link-row { display: flex; gap: 12px; flex-wrap: wrap; }
+.link-row input { flex: 1 1 260px; width: auto; }
+.link-row .primary { margin-left: 0; }
+.or { text-align: center; color: var(--muted); font-size: .9rem; }
