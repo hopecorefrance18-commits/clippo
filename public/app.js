@@ -11,79 +11,95 @@ document.querySelectorAll(".tab").forEach((btn) => {
   });
 });
 
-// ---------- Téléchargeur ----------
-const QUALITIES = {
-  mp4: [["1080", "1080p (Full HD)"], ["720", "720p (HD)"], ["480", "480p"], ["360", "360p"]],
-  mp3: [["320", "320 kbps (max)"], ["192", "192 kbps"], ["128", "128 kbps"]],
-};
-let type = "mp4";
-const urlInput = $("url"), qualitySel = $("quality"), status = $("status"), dlBtn = $("dlBtn");
+// ---------- Extraire le MP3 (dans le navigateur) ----------
+const mp3Drop = $("mp3Drop"), mp3File = $("mp3File"), mp3Status = $("mp3Status");
+const mp3Quality = $("mp3Quality"), mp3Result = $("mp3Result"), mp3Player = $("mp3Player"), mp3Save = $("mp3Save");
+let lameReady;
 
-function fillQualities() {
-  qualitySel.innerHTML = QUALITIES[type].map(([v, l], i) => `<option value="${v}" ${i === 1 ? "selected" : ""}>${l}</option>`).join("");
+function setMp3Status(msg, isError = false) {
+  mp3Status.textContent = msg;
+  mp3Status.classList.toggle("error", isError);
 }
-fillQualities();
 
-document.querySelectorAll(".seg-btn").forEach((b) =>
-  b.addEventListener("click", () => {
-    type = b.dataset.type;
-    document.querySelectorAll(".seg-btn").forEach((x) => {
-      x.classList.toggle("active", x === b);
-      x.setAttribute("aria-checked", x === b);
+function loadLame() {
+  if (window.lamejs) return Promise.resolve();
+  if (!lameReady) {
+    lameReady = new Promise((resolve, reject) => {
+      const s = document.createElement("script");
+      s.src = "https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js";
+      s.onload = resolve;
+      s.onerror = () => { lameReady = null; reject(new Error("Impossible de charger l'encodeur MP3. Vérifie ta connexion.")); };
+      document.head.appendChild(s);
     });
-    fillQualities();
-  })
-);
-
-function setStatus(msg, isError = false) {
-  status.textContent = msg;
-  status.classList.toggle("error", isError);
+  }
+  return lameReady;
 }
 
-// Aperçu (titre + miniature) quand un lien est collé
-let infoTimer;
-urlInput.addEventListener("input", () => {
-  clearTimeout(infoTimer);
-  $("preview").hidden = true;
-  const url = urlInput.value.trim();
-  if (!url) return setStatus("");
-  infoTimer = setTimeout(async () => {
-    try {
-      const r = await fetch(`/api/info?url=${encodeURIComponent(url)}`);
-      const d = await r.json();
-      if (!r.ok) return setStatus(d.error, true);
-      $("thumb").src = d.thumbnail || "";
-      $("vtitle").textContent = d.title;
-      $("vmeta").textContent = [d.uploader, d.duration ? Math.round(d.duration) + " s" : ""].filter(Boolean).join(" • ");
-      $("preview").hidden = false;
-      setStatus("");
-    } catch { setStatus("Impossible de joindre le serveur.", true); }
-  }, 500);
-});
-
-dlBtn.addEventListener("click", async () => {
-  const url = urlInput.value.trim();
-  if (!url) return setStatus("Colle d'abord un lien YouTube ou TikTok.", true);
-  dlBtn.disabled = true; dlBtn.classList.add("loading");
-  setStatus("Préparation du fichier… ça peut prendre un moment.");
-  try {
-    const r = await fetch(`/api/download?url=${encodeURIComponent(url)}&type=${type}&quality=${qualitySel.value}`);
-    if (!r.ok) throw new Error((await r.json()).error || "Erreur");
-    const blob = await r.blob();
-    const name = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(r.headers.get("Content-Disposition") || "")?.[1];
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = name ? decodeURIComponent(name) : `clippo.${type}`;
-    a.click();
-    URL.revokeObjectURL(a.href);
-    setStatus("Téléchargé !");
-  } catch (e) {
-    setStatus(e.message, true);
-  } finally {
-    dlBtn.disabled = false; dlBtn.classList.remove("loading");
+function toInt16(f32) {
+  const out = new Int16Array(f32.length);
+  for (let i = 0; i < f32.length; i++) {
+    const s = Math.max(-1, Math.min(1, f32[i]));
+    out[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
   }
-});
+  return out;
+}
 
+async function extractMp3(file) {
+  if (file.size > 500 * 1024 * 1024) {
+    return setMp3Status("Fichier trop lourd (500 Mo maximum).", true);
+  }
+  mp3Result.hidden = true;
+  setMp3Status("Lecture du fichier…");
+  try {
+    await loadLame();
+    const data = await file.arrayBuffer();
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    let audio;
+    try {
+      audio = await ctx.decodeAudioData(data);
+    } catch {
+      throw new Error("Impossible de lire le son de ce fichier. Essaie un MP4, WEBM ou MP3.");
+    } finally {
+      ctx.close();
+    }
+
+    const kbps = parseInt(mp3Quality.value, 10);
+    const channels = Math.min(audio.numberOfChannels, 2);
+    const encoder = new lamejs.Mp3Encoder(channels, audio.sampleRate, kbps);
+    const left = toInt16(audio.getChannelData(0));
+    const right = channels === 2 ? toInt16(audio.getChannelData(1)) : null;
+
+    const block = 1152 * 20;
+    const parts = [];
+    for (let i = 0, n = 0; i < left.length; i += block, n++) {
+      const l = left.subarray(i, i + block);
+      const buf = right ? encoder.encodeBuffer(l, right.subarray(i, i + block)) : encoder.encodeBuffer(l);
+      if (buf.length) parts.push(buf);
+      if (n % 25 === 0) {
+        setMp3Status(`Conversion en cours… ${Math.round((i / left.length) * 100)}%`);
+        await new Promise((r) => setTimeout(r)); // laisse la page respirer
+      }
+    }
+    const end = encoder.flush();
+    if (end.length) parts.push(end);
+
+    const blob = new Blob(parts, { type: "audio/mpeg" });
+    const url = URL.createObjectURL(blob);
+    mp3Player.src = url;
+    mp3Save.href = url;
+    mp3Save.download = file.name.replace(/\.[^.]+$/, "") + ".mp3";
+    mp3Result.hidden = false;
+    setMp3Status("Terminé ! Ton MP3 est prêt.");
+  } catch (e) {
+    console.error(e);
+    setMp3Status(e.message || "La conversion a échoué.", true);
+  }
+}
+
+mp3File.addEventListener("change", () => mp3File.files[0] && extractMp3(mp3File.files[0]));
+["dragenter", "dragover"].forEach((ev) => mp3Drop.addEventListener(ev, (e) => { e.preventDefault(); mp3Drop.classList.add("over"); }));
+["dragleave", "drop"].forEach((ev) => mp3Drop.addEventListener(ev, (e) => { e.preventDefault(); mp3Drop.classList.remove("over"); }));
+mp3Drop.addEventListener("drop", (e) => e.dataTransfer.files[0] && extractMp3(e.dataTransfer.files[0]));
 // ---------- Détourage d'image (dans le navigateur) ----------
 const drop = $("drop"), fileInput = $("file"), cutStatus = $("cutStatus");
 let removeBackground;
