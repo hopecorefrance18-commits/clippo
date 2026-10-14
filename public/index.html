@@ -80,6 +80,45 @@
       </div>
     </section>
 
+        <!-- Onglet : convertir une image -->
+    <section id="convert" class="panel">
+      <h1>Change le format de ton image.</h1>
+      <p class="sub">PNG, JPG ou WEBP. Tout se fait sur ton appareil.</p>
+
+      <div class="card">
+        <div class="row">
+          <label class="select">
+            <span>Format de sortie</span>
+            <select id="cvFormat">
+              <option value="image/png">PNG</option>
+              <option value="image/jpeg">JPG</option>
+              <option value="image/webp">WEBP</option>
+            </select>
+          </label>
+          <label class="select">
+            <span>Qualité (JPG et WEBP)</span>
+            <select id="cvQuality">
+              <option value="0.92">Haute</option>
+              <option value="0.75" selected>Moyenne</option>
+              <option value="0.55">Légère (petit fichier)</option>
+            </select>
+          </label>
+        </div>
+
+        <label id="cvDrop" class="drop">
+          <input id="cvFile" type="file" accept="image/*" hidden>
+          <strong>Dépose ton image ici</strong>
+          <span>ou clique pour la choisir</span>
+        </label>
+
+        <div id="cvResult" class="cv-result" hidden>
+          <img id="cvPreview" alt="Image convertie">
+          <a id="cvSave" class="primary" href="#" download="clippo.png">Télécharger</a>
+        </div>
+        <p id="cvStatus" class="status" role="status"></p>
+      </div>
+    </section>
+
     <!-- Onglet 3 : mises à jour -->
     <section id="updates" class="panel">
       <div class="timeline">
