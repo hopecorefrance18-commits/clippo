@@ -147,21 +147,8 @@ select { background: var(--ink-2); color: var(--paper); border: 0; border-radius
 .foot a { color: var(--aqua); font-weight: 700; text-decoration: none; }
 .foot a:hover { text-decoration: underline; }
 
-.logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
-.logo img { width: 44px; height: 44px; border-radius: 12px; }
-.logo span {
-  font-family: "Fredoka", sans-serif;
-  font-weight: 700;
-  font-style: italic;
-  font-size: clamp(2.6rem, 5vw, 3.6rem);
-  line-height: 1.1;
-  padding-right: .1em;
-  background: linear-gradient(90deg, var(--pink), var(--sun), var(--aqua));
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  color: transparent;
-}
+.logo { display: flex; align-items: center; }
+.logo img { height: 60px; width: auto; display: block; }
   background-clip: text;
   -webkit-text-fill-color: transparent;
   color: transparent;
