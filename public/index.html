@@ -27,31 +27,32 @@
   </header>
 
   <main>
-    <!-- Onglet 1 : téléchargement -->
-    <section id="download" class="panel active">
-      <h1>Colle un lien, récupère ta vidéo.</h1>
-      <p class="sub">YouTube et TikTok, en MP4 ou en MP3.</p>
+        <!-- Onglet 1 : extraire le MP3 -->
+    <section id="mp3" class="panel active">
+      <h1>Une vidéo, juste le son.</h1>
+      <p class="sub">Dépose une vidéo, Clippo en extrait le MP3. Tout se fait sur ton appareil.</p>
 
       <div class="card">
-        <input id="url" type="url" placeholder="https://www.youtube.com/watch?v=… ou https://www.tiktok.com/…" autocomplete="off">
+        <label class="select">
+          <span>Qualité du MP3 (à choisir avant de déposer la vidéo)</span>
+          <select id="mp3Quality">
+            <option value="320">320 kbps (max)</option>
+            <option value="192" selected>192 kbps</option>
+            <option value="128">128 kbps</option>
+          </select>
+        </label>
 
-        <div class="row">
-          <div class="seg" role="radiogroup" aria-label="Format">
-            <button class="seg-btn active" data-type="mp4" role="radio" aria-checked="true">MP4 vidéo</button>
-            <button class="seg-btn" data-type="mp3" role="radio" aria-checked="false">MP3 audio</button>
-          </div>
-          <label class="select">
-            <span>Qualité</span>
-            <select id="quality"></select>
-          </label>
-          <button id="dlBtn" class="primary">Download</button>
-        </div>
+        <label id="mp3Drop" class="drop">
+          <input id="mp3File" type="file" accept="video/*,audio/*" hidden>
+          <strong>Dépose ta vidéo ici</strong>
+          <span>ou clique pour la choisir (MP4, WEBM, MOV…)</span>
+        </label>
 
-        <div id="preview" class="preview" hidden>
-          <img id="thumb" alt="">
-          <div><strong id="vtitle"></strong><span id="vmeta"></span></div>
+        <div id="mp3Result" class="mp3-result" hidden>
+          <audio id="mp3Player" controls></audio>
+          <a id="mp3Save" class="primary" href="#" download="clippo.mp3">Télécharger le MP3</a>
         </div>
-        <p id="status" class="status" role="status"></p>
+        <p id="mp3Status" class="status" role="status"></p>
       </div>
     </section>
 
