@@ -79,7 +79,7 @@ app.get("/api/download", (req, res) => {
   }
   args.push("--print", "title", "--no-simulate", "--", url);
 
-  execFile(YTDLP, args, { timeout: 5 * 60 * 1000, maxBuffer: 10 * 1024 * 1024 }, (err, stdout) => {
+   execFile(YTDLP, args, { timeout: 5 * 60 * 1000, maxBuffer: 10 * 1024 * 1024 }, (err, stdout, stderr) => {
     running--;
     const file = fs.readdirSync(TMP).find((f) => f.startsWith(id + "."));
     if (err || !file) {
