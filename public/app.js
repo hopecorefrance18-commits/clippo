@@ -45,8 +45,10 @@ function toInt16(f32) {
 }
 
 async function extractMp3(file) {
-  if (file.size > 500 * 1024 * 1024) {
-    return setMp3Status("Fichier trop lourd (500 Mo maximum).", true);
+   const maxMo = window.matchMedia("(max-width: 700px)").matches ? 150 : 500;
+  if (file.size > maxMo * 1024 * 1024) {
+    return setMp3Status(`Fichier trop lourd (${maxMo} Mo maximum sur cet appareil).`, true);
+  }
   }
   mp3Result.hidden = true;
   setMp3Status("Lecture du fichier…");
