@@ -150,6 +150,9 @@ select { background: var(--ink-2); color: var(--paper); border: 0; border-radius
 .logo { display: flex; align-items: center; }
 .logo img { height: 60px; width: auto; display: block; }
   background-clip: text;
+.mp3-result { display: grid; gap: 14px; }
+.mp3-result audio { width: 100%; }
+.mp3-result .primary { margin-left: 0; justify-self: start; }
   -webkit-text-fill-color: transparent;
   color: transparent;
 }
