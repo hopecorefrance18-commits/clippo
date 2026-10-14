@@ -45,10 +45,9 @@ function toInt16(f32) {
 }
 
 async function extractMp3(file) {
-   const maxMo = window.matchMedia("(max-width: 700px)").matches ? 150 : 500;
+  const maxMo = window.matchMedia("(max-width: 700px)").matches ? 150 : 500;
   if (file.size > maxMo * 1024 * 1024) {
     return setMp3Status(`Fichier trop lourd (${maxMo} Mo maximum sur cet appareil).`, true);
-  }
   }
   mp3Result.hidden = true;
   setMp3Status("Lecture du fichier…");
@@ -102,6 +101,8 @@ mp3File.addEventListener("change", () => mp3File.files[0] && extractMp3(mp3File.
 ["dragenter", "dragover"].forEach((ev) => mp3Drop.addEventListener(ev, (e) => { e.preventDefault(); mp3Drop.classList.add("over"); }));
 ["dragleave", "drop"].forEach((ev) => mp3Drop.addEventListener(ev, (e) => { e.preventDefault(); mp3Drop.classList.remove("over"); }));
 mp3Drop.addEventListener("drop", (e) => e.dataTransfer.files[0] && extractMp3(e.dataTransfer.files[0]));
+
+
 // ---------- Détourage d'image (dans le navigateur) ----------
 const drop = $("drop"), fileInput = $("file"), cutStatus = $("cutStatus");
 let removeBackground;
@@ -133,7 +134,6 @@ fileInput.addEventListener("change", () => handleFile(fileInput.files[0]));
 ["dragenter", "dragover"].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add("over"); }));
 ["dragleave", "drop"].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.remove("over"); }));
 drop.addEventListener("drop", (e) => handleFile(e.dataTransfer.files[0]));
-
 
 // ---------- Convertir une image (dans le navigateur) ----------
 const cvDrop = $("cvDrop"), cvFile = $("cvFile"), cvFormat = $("cvFormat"), cvQuality = $("cvQuality");
