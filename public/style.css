@@ -179,3 +179,15 @@ button, label, a { -webkit-tap-highlight-color: transparent; touch-action: manip
   .foot { padding: 16px 16px 28px; }
   .blob { filter: blur(50px); }
 }
+.fancy-in {
+  width: 100%; min-height: 90px; padding: 16px 18px; border-radius: 14px; border: 2px solid transparent;
+  background: var(--ink-2); color: var(--paper); font: 500 1.1rem "DM Sans", sans-serif; resize: vertical;
+}
+.fancy-in:focus { outline: none; border-color: var(--aqua); }
+.fancy-list { display: grid; gap: 10px; }
+.fancy-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; background: var(--ink-2); padding: 12px 14px; border-radius: 14px; }
+.fancy-row div { min-width: 0; }
+.fancy-row small { display: block; color: var(--muted); font-size: .75rem; margin-bottom: 2px; }
+.fancy-row span { font-size: 1.15rem; word-break: break-word; }
+.copy-btn { flex-shrink: 0; border: 0; cursor: pointer; background: var(--sun); color: var(--ink); font: 700 .85rem "DM Sans", sans-serif; padding: 8px 14px; border-radius: 10px; }
+.copy-btn.done { background: var(--aqua); }
