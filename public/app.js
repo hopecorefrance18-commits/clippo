@@ -395,3 +395,66 @@ pStyle.addEventListener("change", renderPseudos);
 pNum.addEventListener("change", renderPseudos);
 pBase.addEventListener("input", renderPseudos);
 renderPseudos();
+
+// ---------- Émojis et symboles ----------
+const EM_DATA = [
+  { n: "Visages", s: "😀 😃 😄 😁 😆 😅 😂 🤣 🥲 😊 😇 🙂 🙃 😉 😍 🥰 😘 😋 😛 😜 🤪 😎 🤩 🥳 😏 😒 😔 😢 😭 😤 😠 😡 🤬 🤯 😱 😨 🥶 🥵 🤔 🤫 🤭 😴 🤤 😈 👿 💀 ☠️ 👻 👽 🤖 💩 🙄 😬 🫠 🥹" },
+  { n: "Cœurs", s: "❤️ 🧡 💛 💚 💙 💜 🖤 🤍 🤎 💖 💗 💓 💞 💕 💘 💝 💔 ❣️ 💌 💋 🫶 ♡ ♥ ❥ ❦ ❧ ☙" },
+  { n: "Mains", s: "👍 👎 👏 🙌 🫶 🤝 🙏 ✌️ 🤞 🤟 🤘 👌 🤌 👈 👉 👆 👇 ☝️ ✋ 🖐️ 👋 💪 🫡 🤙 ✍️" },
+  { n: "Animaux", s: "🐶 🐱 🐭 🐹 🐰 🦊 🐻 🐼 🐨 🐯 🦁 🐮 🐷 🐸 🐵 🐔 🐧 🐦 🦄 🐺 🦇 🐲 🐍 🐢 🐙 🦋 🐝 🐞 🦈 🐬 🐳" },
+  { n: "Nourriture", s: "🍕 🍔 🍟 🌭 🌮 🌯 🍣 🍜 🍩 🍪 🎂 🍰 🍫 🍬 🍭 🍿 🥐 🥖 🧀 🍓 🍒 🍑 🍉 🍌 🍎 🍋 🥑 ☕ 🧋 🍺" },
+  { n: "Gaming et fun", s: "🎮 🕹️ 👾 🎧 🎵 🎶 🎤 🎬 📸 🎯 🎲 🏆 🥇 🔥 ⚡ 💥 ✨ 🌟 💫 🚀 💎 👑 🎁 🎉 🎊 🪩" },
+  { n: "Nature et ciel", s: "🌙 ☀️ ⭐ 🌈 ☁️ ❄️ 🌊 🌸 🌺 🌹 🌻 🍀 🌿 🍂 🔮 🌌 ☄️" },
+  { n: "Étoiles et fleurs", s: "★ ☆ ✦ ✧ ✩ ✪ ✫ ✬ ✭ ✮ ✯ ✰ ⋆ ✶ ✷ ✸ ✹ ❂ ✺ ❋ ✿ ❀ ❁ ✾ ❃ ꕤ ･ﾟ ｡ ˚ ° ·" },
+  { n: "Flèches", s: "→ ← ↑ ↓ ↗ ↘ ↙ ↖ ↔ ↕ ⇒ ⇐ ⇑ ⇓ ➜ ➤ ➔ ➡ ⬅ ⬆ ⬇ ↩ ↪ ⟲ ⟳ ❯ ❮ » «" },
+  { n: "Cadres et formes", s: "꧁ ꧂ ༺ ༻ ☾ ☽ 〔 〕 【 】 『 』 「 」 ❝ ❞ ❛ ❜ ═ ─ ━ ┈ ┄ ╌ ┅ ⋯ ░ ▒ ▓ ● ○ ◆ ◇ ■ □ ▲ △ ▼ ▽ ◉ ◈" },
+  { n: "Divers", s: "♪ ♫ ♬ ☮ ☯ ☢ ☣ ☠ ⚔ ⚜ ☂ ☃ ✈ ☎ ✉ ✂ ✔ ✘ ✖ ™ © ® ∞ ≈ ≠ ± × ÷ † ‡ № ℓ ❖ ☑ ☒ ⚠ ♻ ♨ ♠ ♣ ♦" },
+];
+
+const emBox = $("emBox"), emGrid = $("emGrid"), emTabs = $("emTabs"), emStatus = $("emStatus");
+
+function emMessage(msg, isError = false) {
+  emStatus.textContent = msg;
+  emStatus.classList.toggle("error", isError);
+}
+
+function emInsert(ch) {
+  const start = emBox.selectionStart ?? emBox.value.length;
+  const end = emBox.selectionEnd ?? start;
+  emBox.value = emBox.value.slice(0, start) + ch + emBox.value.slice(end);
+  const pos = start + ch.length;
+  emBox.setSelectionRange(pos, pos);
+}
+
+function showEmCategory(i) {
+  emTabs.querySelectorAll(".chip").forEach((c, k) => c.classList.toggle("active", k === i));
+  emGrid.innerHTML = "";
+  EM_DATA[i].s.split(" ").filter(Boolean).forEach((ch) => {
+    const b = document.createElement("button");
+    b.className = "em-cell";
+    b.textContent = ch;
+    b.setAttribute("aria-label", "Ajouter " + ch);
+    b.addEventListener("click", () => emInsert(ch));
+    emGrid.appendChild(b);
+  });
+}
+
+EM_DATA.forEach((cat, i) => {
+  const c = document.createElement("button");
+  c.className = "chip";
+  c.textContent = cat.n;
+  c.addEventListener("click", () => showEmCategory(i));
+  emTabs.appendChild(c);
+});
+showEmCategory(0);
+
+$("emCopy").addEventListener("click", async () => {
+  if (!emBox.value) return emMessage("Ta sélection est vide.", true);
+  try {
+    await copyText(emBox.value);
+    emMessage("Copié !");
+  } catch {
+    emMessage("Impossible de copier automatiquement : sélectionne le texte et fais Ctrl + C.", true);
+  }
+});
+$("emClear").addEventListener("click", () => { emBox.value = ""; emMessage(""); });
