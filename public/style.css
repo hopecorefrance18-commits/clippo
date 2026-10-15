@@ -216,3 +216,20 @@ button, label, a { -webkit-tap-highlight-color: transparent; touch-action: manip
 .ghost-btn { border: 2px solid rgba(255,255,255,.25); background: transparent; color: var(--paper); font: 700 .95rem "DM Sans", sans-serif; padding: 12px 20px; border-radius: 14px; cursor: pointer; }
 .ghost-btn:hover { border-color: var(--aqua); }
 #emCopy { margin-left: 0; }
+.home-section { margin-top: 36px; }
+.home-section h2 { font: 800 1.5rem "Bricolage Grotesque", sans-serif; margin-bottom: 14px; }
+.tool-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
+.tool-card {
+  text-align: left; cursor: pointer; color: var(--paper); font: 400 .95rem "DM Sans", sans-serif;
+  background: rgba(21, 17, 46, .72); backdrop-filter: blur(14px);
+  border: 1px solid rgba(255,255,255,.12); border-radius: var(--radius); padding: 16px;
+  transition: transform .15s, border-color .15s;
+}
+.tool-card:hover { transform: translateY(-3px); border-color: var(--aqua); }
+.tool-card strong { display: block; font: 800 1.05rem "Bricolage Grotesque", sans-serif; margin-bottom: 4px; }
+.tool-card span { color: var(--muted); }
+.alert {
+  display: flex; gap: 12px; align-items: flex-start; padding: 16px 18px; border-radius: var(--radius);
+  background: rgba(255, 61, 129, .14); border: 1px solid rgba(255, 61, 129, .55);
+}
+.alert.calm { background: rgba(21, 17, 46, .72); border: 1px dashed rgba(255,255,255,.2); color: var(--muted); }
