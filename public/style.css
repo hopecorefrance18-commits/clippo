@@ -202,3 +202,17 @@ button, label, a { -webkit-tap-highlight-color: transparent; touch-action: manip
 .check { display: flex; align-items: center; gap: 8px; color: var(--muted); padding-bottom: 12px; cursor: pointer; }
 .check input { width: 18px; height: 18px; accent-color: var(--pink); }
 #pGo { margin-left: 0; justify-self: start; }
+.chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.chip { border: 0; cursor: pointer; background: var(--ink-2); color: var(--muted); font: 500 .9rem "DM Sans", sans-serif; padding: 8px 14px; border-radius: 999px; }
+.chip:hover { color: var(--paper); }
+.chip.active { background: var(--sun); color: var(--ink); font-weight: 700; }
+.em-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(46px, 1fr)); gap: 6px; max-height: 340px; overflow-y: auto; padding: 2px; }
+.em-cell {
+  border: 0; cursor: pointer; background: var(--ink-2); color: var(--paper); line-height: 1; padding: 10px 0; border-radius: 10px;
+  font-size: 1.5rem; font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", "DM Sans", sans-serif;
+  transition: transform .1s, background .1s;
+}
+.em-cell:hover { background: rgba(255,255,255,.14); transform: scale(1.08); }
+.ghost-btn { border: 2px solid rgba(255,255,255,.25); background: transparent; color: var(--paper); font: 700 .95rem "DM Sans", sans-serif; padding: 12px 20px; border-radius: 14px; cursor: pointer; }
+.ghost-btn:hover { border-color: var(--aqua); }
+#emCopy { margin-left: 0; }
