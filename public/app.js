@@ -304,3 +304,94 @@ function renderFancy() {
 }
 fancyInput.addEventListener("input", renderFancy);
 renderFancy();
+
+// ---------- Générateur de pseudos ----------
+const NAME_WORDS = {
+  gaming: {
+    pre: ["Shadow", "Dark", "Toxic", "Turbo", "Ultra", "Neo", "Ghost", "Savage", "Hyper", "Silent", "Rapid", "Iron", "Frost", "Cyber"],
+    noun: ["Wolf", "Sniper", "Ninja", "Viper", "Reaper", "Falcon", "Titan", "Phantom", "Dragon", "Hunter", "Blade", "Storm", "Rider", "Striker"],
+  },
+  mignon: {
+    pre: ["Petit", "Mini", "Choco", "Mochi", "Kawaii", "Doudou", "Sucre", "Bebe", "Miel", "Nuage", "Pop", "Happy"],
+    noun: ["Panda", "Chaton", "Lapin", "Biscuit", "Cookie", "Nounours", "Cerise", "Bonbon", "Mimi", "Poussin", "Chouchou", "Pepite"],
+  },
+  mystere: {
+    pre: ["Ombre", "Nuit", "Lune", "Brume", "Silence", "Eclipse", "Minuit", "Etoile", "Fantome", "Reve", "Nova", "Void"],
+    noun: ["Corbeau", "Loup", "Mirage", "Voyageur", "Secret", "Echo", "Spectre", "Oracle", "Nomade", "Enigme", "Rodeur", "Zenith"],
+  },
+  drole: {
+    pre: ["Super", "Captain", "Sir", "Monsieur", "Professeur", "Mega", "Gros", "Tonton", "Docteur", "Maitre"],
+    noun: ["Baguette", "Patate", "Croissant", "Fromage", "Nouille", "Raclette", "Pantoufle", "Moustache", "Tacos", "Frite", "Burger", "Pizza"],
+  },
+};
+
+function pick(list) { return list[Math.floor(Math.random() * list.length)]; }
+function cleanWord(s) {
+  return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^A-Za-z0-9]/g, "");
+}
+function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+function makeName(style, base, withNum) {
+  const w = NAME_WORDS[style];
+  const pre = cleanWord(pick(w.pre)), noun = cleanWord(pick(w.noun));
+  const b = cleanWord(base);
+  const options = b
+    ? [
+        () => cap(b) + noun,
+        () => pre + cap(b),
+        () => b.toLowerCase() + "_" + noun.toLowerCase(),
+        () => pre.toLowerCase() + "." + b.toLowerCase(),
+        () => cap(b) + "_" + pre,
+      ]
+    : [
+        () => pre + noun,
+        () => noun + "_" + pre,
+        () => (pre + "." + noun).toLowerCase(),
+        () => noun.toLowerCase() + "_" + pre.toLowerCase(),
+        () => pre.toLowerCase() + noun,
+      ];
+  if (style === "gaming") options.push(() => "xX" + (b ? cap(b) : noun) + "Xx");
+  let name = pick(options)();
+  if (withNum) name += String(Math.floor(Math.random() * 90) + 10);
+  return name.slice(0, 24);
+}
+
+function makeNames(style, base, withNum, count = 10) {
+  const seen = new Set();
+  for (let tries = 0; seen.size < count && tries < 200; tries++) seen.add(makeName(style, base, withNum));
+  return [...seen];
+}
+
+const pStyle = $("pStyle"), pBase = $("pBase"), pNum = $("pNum"), pGo = $("pGo"), pList = $("pList");
+
+function renderPseudos() {
+  pList.innerHTML = "";
+  makeNames(pStyle.value, pBase.value.trim(), pNum.checked).forEach((name) => {
+    const row = document.createElement("div");
+    row.className = "fancy-row";
+    const box = document.createElement("div");
+    const out = document.createElement("span");
+    out.textContent = name;
+    box.appendChild(out);
+    const btn = document.createElement("button");
+    btn.className = "copy-btn";
+    btn.textContent = "Copier";
+    btn.addEventListener("click", async () => {
+      try {
+        await copyText(name);
+        btn.textContent = "Copié !";
+        btn.classList.add("done");
+      } catch {
+        btn.textContent = "Erreur";
+      }
+      setTimeout(() => { btn.textContent = "Copier"; btn.classList.remove("done"); }, 1500);
+    });
+    row.append(box, btn);
+    pList.appendChild(row);
+  });
+}
+pGo.addEventListener("click", renderPseudos);
+pStyle.addEventListener("change", renderPseudos);
+pNum.addEventListener("change", renderPseudos);
+pBase.addEventListener("input", renderPseudos);
+renderPseudos();
