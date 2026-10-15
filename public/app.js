@@ -458,3 +458,11 @@ $("emCopy").addEventListener("click", async () => {
   }
 });
 $("emClear").addEventListener("click", () => { emBox.value = ""; emMessage(""); });
+
+// ---------- Accueil : les cartes ouvrent l'onglet correspondant ----------
+document.querySelectorAll("[data-go]").forEach((card) => {
+  card.addEventListener("click", () => {
+    document.querySelector(`.tab[data-tab="${card.dataset.go}"]`)?.click();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  });
+});
