@@ -135,6 +135,33 @@
       </div>
     </section>
 
+        <!-- Onglet : générateur de pseudos -->
+    <section id="pseudo" class="panel">
+      <h1>Trouve ton prochain pseudo.</h1>
+      <p class="sub">Choisis un style, ajoute un mot de départ si tu veux, et copie celui que tu préfères.</p>
+
+      <div class="card">
+        <div class="row">
+          <label class="select">
+            <span>Style</span>
+            <select id="pStyle">
+              <option value="gaming">Gaming</option>
+              <option value="mignon">Mignon</option>
+              <option value="mystere">Mystérieux</option>
+              <option value="drole">Drôle</option>
+            </select>
+          </label>
+          <label class="select grow">
+            <span>Mot de départ (facultatif)</span>
+            <input id="pBase" class="text-in" type="text" maxlength="12" placeholder="ex : ton prénom" autocomplete="off">
+          </label>
+          <label class="check"><input id="pNum" type="checkbox"> Ajouter des chiffres</label>
+        </div>
+        <button id="pGo" class="primary">Générer d'autres pseudos</button>
+        <div id="pList" class="fancy-list"></div>
+      </div>
+    </section>
+
     <!-- Onglet 3 : mises à jour -->
     <section id="updates" class="panel">
       <div class="timeline">
