@@ -266,6 +266,37 @@
         <p id="qrStatus" class="status" role="status"></p>
       </div>
     </section>
+        <!-- Onglet : roue de la chance -->
+    <section id="wheel" class="panel">
+      <h1>Laisse la roue décider.</h1>
+      <p class="sub">Écris une option par ligne (noms, idées, lots…), puis fais tourner la roue.</p>
+
+      <div class="card">
+        <div class="wheel-layout">
+          <div class="wheel-wrap">
+            <canvas id="wheelCanvas" width="600" height="600"></canvas>
+          </div>
+          <div class="wheel-side">
+            <label class="select">
+              <span>Options (une par ligne, 40 maximum)</span>
+              <textarea id="wheelInput" class="fancy-in" rows="8">Alice
+Bob
+Chloé
+David
+Emma
+Hugo</textarea>
+            </label>
+            <button id="wheelSpin" class="primary">Tourner !</button>
+            <div id="wheelResult" class="wheel-result" hidden>
+              <small>Résultat</small>
+              <strong id="wheelWinner"></strong>
+              <button id="wheelRemove" class="ghost-btn">Retirer de la liste</button>
+            </div>
+            <p id="wheelStatus" class="status" role="status"></p>
+          </div>
+        </div>
+      </div>
+    </section>
    
 
   <footer class="foot">
