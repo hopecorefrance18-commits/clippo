@@ -220,12 +220,52 @@
 
         </section>       
 
-    <!-- Onglet : QR code -->
-    <section id="qr" class="panel">
-      
-    </section>
+        </section>
 
-  </main>
+     <!-- Onglet : QR code -->
+    <section id="qr" class="panel">
+      <h1>Un lien, un QR code.</h1>
+      <p class="sub">Colle un lien ou un texte (par exemple ton Discord) et télécharge ton QR code.</p>
+
+      <div class="card">
+        <input id="qrText" type="text" class="text-in qr-in" placeholder="https://discord.gg/ton-lien" autocomplete="off">
+
+        <div class="row">
+          <label class="select">
+            <span>Taille</span>
+            <select id="qrSize">
+              <option value="256">Petit</option>
+              <option value="512" selected>Moyen</option>
+              <option value="1024">Grand</option>
+            </select>
+          </label>
+          <label class="select">
+            <span>Qualité de lecture</span>
+            <select id="qrLevel">
+              <option value="L">Normale (QR plus simple)</option>
+              <option value="M" selected>Bonne</option>
+              <option value="Q">Haute</option>
+              <option value="H">Maximale</option>
+            </select>
+          </label>
+          <label class="select">
+            <span>Couleur du code</span>
+            <input id="qrFg" type="color" class="color-in" value="#15112e">
+          </label>
+          <label class="select">
+            <span>Couleur du fond</span>
+            <input id="qrBg" type="color" class="color-in" value="#ffffff">
+          </label>
+        </div>
+
+        <div id="qrBox" class="qr-box" hidden>
+          <canvas id="qrCanvas" width="10" height="10"></canvas>
+          <a id="qrSave" class="primary" href="#" download="clippo-qr.png">Télécharger le PNG</a>
+        </div>
+        <p id="qrStatus" class="status" role="status"></p>
+      </div>
+    </section>
+   
 
   <footer class="foot">
 
