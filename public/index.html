@@ -299,6 +299,50 @@ Hugo</textarea>
         </div>
       </div>
     </section>
+        <!-- Onglet : Pomodoro -->
+    <section id="pomodoro" class="panel">
+      <h1>Concentre-toi, par étapes.</h1>
+      <p class="sub">La technique Pomodoro : 25 minutes de travail, 5 minutes de pause, et une longue pause toutes les 4 sessions.</p>
+
+      <div class="card">
+        <div class="chips" id="pdModes">
+          <button class="chip active" data-mode="focus">Concentration</button>
+          <button class="chip" data-mode="short">Pause courte</button>
+          <button class="chip" data-mode="long">Pause longue</button>
+        </div>
+
+        <div class="pd-clock">
+          <svg viewBox="0 0 200 200" class="pd-ring" aria-hidden="true">
+            <circle cx="100" cy="100" r="90" class="pd-track"></circle>
+            <circle id="pdRing" cx="100" cy="100" r="90" class="pd-progress"></circle>
+          </svg>
+          <div class="pd-center">
+            <div id="pdTime" class="pd-time">25:00</div>
+            <div id="pdPhase" class="pd-phase">Session 1 sur 4</div>
+          </div>
+        </div>
+
+        <div id="pdDots" class="pd-dots" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+
+        <input id="pdTask" type="text" class="text-in" maxlength="60" placeholder="Sur quoi tu travailles ? (facultatif)">
+
+        <div class="row pd-actions">
+          <button id="pdStart" class="primary">Démarrer</button>
+          <button id="pdReset" class="ghost-btn">Réinitialiser</button>
+          <button id="pdSkip" class="ghost-btn">Passer</button>
+        </div>
+        <p id="pdMsg" class="status" role="status"></p>
+
+        <div class="row pd-settings">
+          <label class="select"><span>Concentration (min)</span><input id="pdFocus" type="number" min="1" max="180" value="25" class="text-in"></label>
+          <label class="select"><span>Pause courte (min)</span><input id="pdShort" type="number" min="1" max="180" value="5" class="text-in"></label>
+          <label class="select"><span>Pause longue (min)</span><input id="pdLong" type="number" min="1" max="180" value="15" class="text-in"></label>
+          <label class="check"><input id="pdAuto" type="checkbox" checked> Enchaîner automatiquement</label>
+          <label class="check"><input id="pdSound" type="checkbox" checked> Son à la fin</label>
+        </div>
+        <p id="pdToday" class="status" role="status"></p>
+      </div>
+    </section>
    
 
   <footer class="foot">
