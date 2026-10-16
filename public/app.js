@@ -696,3 +696,149 @@ wheelRemove.addEventListener("click", () => {
   drawWheel();
 });
 drawWheel();
+
+// ---------- Pomodoro ----------
+const pdTime = $("pdTime"), pdPhase = $("pdPhase"), pdRing = $("pdRing"), pdStart = $("pdStart");
+const pdReset = $("pdReset"), pdSkip = $("pdSkip"), pdTask = $("pdTask"), pdToday = $("pdToday"), pdMsg = $("pdMsg");
+const pdFocus = $("pdFocus"), pdShort = $("pdShort"), pdLong = $("pdLong"), pdAuto = $("pdAuto"), pdSound = $("pdSound");
+const pdDots = $("pdDots"), pdClock = document.querySelector(".pd-clock");
+const PD_CIRC = 2 * Math.PI * 90;
+const PD_NAMES = { focus: "Concentration", short: "Pause courte", long: "Pause longue" };
+const PD_DEFAULTS = { focus: 25, short: 5, long: 15 };
+const pd = { mode: "focus", total: 1, left: 1, running: false, endAt: 0, done: 0, today: 0, timer: null };
+let pdWorker = null;
+
+function pdMinutes(mode) {
+  const input = { focus: pdFocus, short: pdShort, long: pdLong }[mode];
+  const v = parseInt(input.value, 10);
+  return Math.min(180, v >= 1 ? v : PD_DEFAULTS[mode]);
+}
+function pdFmt(ms) {
+  const s = Math.max(0, Math.ceil(ms / 1000));
+  return String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0");
+}
+function pdLoadToday() {
+  try {
+    const d = JSON.parse(localStorage.getItem("clippo_pomodoro") || "{}");
+    return d.day === new Date().toDateString() ? d.count || 0 : 0;
+  } catch { return 0; }
+}
+function pdSaveToday() {
+  try { localStorage.setItem("clippo_pomodoro", JSON.stringify({ day: new Date().toDateString(), count: pd.today })); } catch { /* stockage indisponible */ }
+}
+
+function pdRender() {
+  pdTime.textContent = pdFmt(pd.left);
+  pdRing.style.strokeDashoffset = String(PD_CIRC * (1 - pd.left / pd.total));
+  pdClock.classList.remove("short", "long");
+  if (pd.mode !== "focus") pdClock.classList.add(pd.mode);
+  document.querySelectorAll("#pdModes .chip").forEach((c) => c.classList.toggle("active", c.dataset.mode === pd.mode));
+
+  const task = pdTask.value.trim();
+  pdPhase.textContent = pd.mode === "focus"
+    ? `Session ${(pd.done % 4) + 1} sur 4` + (task ? " · " + task : "")
+    : PD_NAMES[pd.mode];
+  const filled = pd.mode === "long" ? 4 : pd.done % 4;
+  Array.from(pdDots.children).forEach((d, i) => d.classList.toggle("on", i < filled));
+
+  pdStart.textContent = pd.running ? "Pause" : pd.left < pd.total ? "Reprendre" : "Démarrer";
+  pdToday.textContent = `Sessions terminées aujourd'hui : ${pd.today}`;
+  document.title = pd.running ? `${pdFmt(pd.left)} · ${PD_NAMES[pd.mode]}` : "Clippo";
+}
+
+function pdStartTicker() {
+  try {
+    if (!pdWorker) { // un worker n'est pas ralenti quand l'onglet est en arrière-plan
+      const src = "let t=null;onmessage=function(e){clearInterval(t);if(e.data==='start')t=setInterval(function(){postMessage(1)},250);};";
+      pdWorker = new Worker(URL.createObjectURL(new Blob([src], { type: "text/javascript" })));
+      pdWorker.onmessage = pdTick;
+    }
+    pdWorker.postMessage("start");
+  } catch {
+    pd.timer = setInterval(pdTick, 250);
+  }
+}
+function pdStopTicker() {
+  if (pdWorker) pdWorker.postMessage("stop");
+  clearInterval(pd.timer);
+}
+
+function pdSetMode(mode) {
+  pdStopTicker();
+  pd.running = false;
+  pd.mode = mode;
+  pd.total = pd.left = pdMinutes(mode) * 60000;
+  pdRender();
+}
+
+function pdBeep() {
+  if (!pdSound.checked) return;
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    [0, 0.25, 0.5].forEach((delay) => {
+      const osc = ctx.createOscillator(), gain = ctx.createGain();
+      osc.frequency.value = 880;
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      const t0 = ctx.currentTime + delay;
+      gain.gain.setValueAtTime(0.0001, t0);
+      gain.gain.exponentialRampToValueAtTime(0.3, t0 + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.2);
+      osc.start(t0);
+      osc.stop(t0 + 0.22);
+    });
+    setTimeout(() => ctx.close(), 1500);
+  } catch { /* pas de son possible */ }
+}
+
+function pdNextMode(finishedFocus) {
+  if (!finishedFocus) return "focus";
+  return pd.done % 4 === 0 ? "long" : "short";
+}
+
+function pdFinish() {
+  const wasFocus = pd.mode === "focus";
+  if (wasFocus) { pd.done++; pd.today++; pdSaveToday(); }
+  pdBeep();
+  const next = pdNextMode(wasFocus);
+  pdSetMode(next);
+  if (pdAuto.checked) pdToggle();
+  pdMsg.textContent = wasFocus
+    ? `Bravo, session terminée ! ${PD_NAMES[next]} : ${pdMinutes(next)} min.`
+    : "Pause terminée, on reprend !";
+}
+
+function pdTick() {
+  if (!pd.running) return;
+  pd.left = pd.endAt - Date.now();
+  if (pd.left <= 0) return pdFinish();
+  pdRender();
+}
+
+function pdToggle() {
+  if (pd.running) {
+    pd.left = Math.max(0, pd.endAt - Date.now());
+    pd.running = false;
+    pdStopTicker();
+  } else {
+    pdMsg.textContent = "";
+    pd.endAt = Date.now() + pd.left;
+    pd.running = true;
+    pdStartTicker();
+  }
+  pdRender();
+}
+
+pdStart.addEventListener("click", pdToggle);
+pdReset.addEventListener("click", () => { pdMsg.textContent = ""; pdSetMode(pd.mode); });
+pdSkip.addEventListener("click", () => {
+  pdMsg.textContent = "";
+  pdSetMode(pd.mode === "focus" ? "short" : "focus"); // passer ne compte pas comme une session
+});
+document.querySelectorAll("#pdModes .chip").forEach((c) => c.addEventListener("click", () => { pdMsg.textContent = ""; pdSetMode(c.dataset.mode); }));
+[pdFocus, pdShort, pdLong].forEach((el) => el.addEventListener("change", () => { if (!pd.running) pdSetMode(pd.mode); }));
+pdTask.addEventListener("input", pdRender);
+
+pdRing.style.strokeDasharray = String(PD_CIRC);
+pd.today = pdLoadToday();
+pdSetMode("focus");
