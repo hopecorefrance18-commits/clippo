@@ -233,3 +233,8 @@ button, label, a { -webkit-tap-highlight-color: transparent; touch-action: manip
   background: rgba(255, 61, 129, .14); border: 1px solid rgba(255, 61, 129, .55);
 }
 .alert.calm { background: rgba(21, 17, 46, .72); border: 1px dashed rgba(255,255,255,.2); color: var(--muted); }
+.qr-in { width: 100%; }
+.color-in { width: 64px; height: 44px; padding: 3px; border: 0; border-radius: 10px; background: var(--ink-2); cursor: pointer; }
+.qr-box { display: grid; gap: 14px; justify-items: start; }
+.qr-box canvas { width: min(100%, 320px); height: auto; image-rendering: pixelated; border-radius: 12px; background: #fff; }
+.qr-box .primary { margin-left: 0; }
