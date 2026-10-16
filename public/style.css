@@ -255,3 +255,22 @@ button, label, a { -webkit-tap-highlight-color: transparent; touch-action: manip
   .wheel-layout { grid-template-columns: 1fr; }
   .wheel-wrap { max-width: 420px; margin: 0 auto; }
 }
+.pd-clock { position: relative; width: min(100%, 300px); margin: 0 auto; }
+.pd-ring { width: 100%; display: block; transform: rotate(-90deg); }
+.pd-track { fill: none; stroke: var(--ink-2); stroke-width: 12; }
+.pd-progress { fill: none; stroke: var(--pink); stroke-width: 12; stroke-linecap: round; transition: stroke-dashoffset .25s linear, stroke .3s; }
+.pd-clock.short .pd-progress { stroke: var(--aqua); }
+.pd-clock.long .pd-progress { stroke: var(--sun); }
+.pd-center { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; gap: 4px; }
+.pd-time { font: 800 clamp(2.6rem, 9vw, 3.6rem) "Bricolage Grotesque", sans-serif; font-variant-numeric: tabular-nums; line-height: 1; }
+.pd-phase { color: var(--muted); font-size: .95rem; max-width: 170px; margin: 0 auto; }
+.pd-dots { display: flex; gap: 10px; justify-content: center; }
+.pd-dots span { width: 12px; height: 12px; border-radius: 50%; background: var(--ink-2); transition: background .3s; }
+.pd-dots span.on { background: var(--sun); }
+#pdTask { width: 100%; text-align: center; }
+.pd-actions { justify-content: center; align-items: center; }
+#pdStart { margin-left: 0; }
+.pd-settings { align-items: center; }
+.pd-settings .select { width: 140px; }
+#pdMsg, #pdToday { text-align: center; }
+#pdToday { color: var(--muted); }
