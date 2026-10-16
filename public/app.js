@@ -466,3 +466,96 @@ document.querySelectorAll("[data-go]").forEach((card) => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   });
 });
+
+// ---------- QR code ----------
+const qrText = $("qrText"), qrLevel = $("qrLevel"), qrSize = $("qrSize"), qrFg = $("qrFg"), qrBg = $("qrBg");
+const qrBox = $("qrBox"), qrCanvas = $("qrCanvas"), qrSave = $("qrSave"), qrStatus = $("qrStatus");
+let qrLibReady;
+
+function qrMessage(msg, isError = false) {
+  qrStatus.textContent = msg;
+  qrStatus.classList.toggle("error", isError);
+}
+
+function loadQrLib() {
+  if (window.QRCodeLib) return Promise.resolve();
+  if (!qrLibReady) {
+    qrLibReady = new Promise((resolve, reject) => {
+      const s = document.createElement("script");
+      s.src = "qrcode.js";
+      s.onload = resolve;
+      s.onerror = () => { qrLibReady = null; reject(new Error("Le fichier qrcode.js est introuvable sur le site.")); };
+      document.head.appendChild(s);
+    });
+  }
+  return qrLibReady;
+}
+
+function makeQr(text, level) {
+  const { QRCode, QRErrorCorrectLevel } = window.QRCodeLib;
+  const bytes = unescape(encodeURIComponent(text)); // accents et émojis en UTF-8
+  for (let version = 1; version <= 40; version++) {
+    try {
+      const qr = new QRCode(version, QRErrorCorrectLevel[level]);
+      qr.addData(bytes);
+      qr.make();
+      return qr;
+    } catch (e) { /* trop petit : on essaie la version suivante */ }
+  }
+  throw new Error("Texte trop long");
+}
+
+function luminance(hex) {
+  const v = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255)
+    .map((c) => (c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)));
+  return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2];
+}
+
+async function renderQr() {
+  const text = qrText.value.trim();
+  if (!text) {
+    qrBox.hidden = true;
+    return qrMessage("");
+  }
+  try {
+    await loadQrLib();
+  } catch (e) {
+    return qrMessage(e.message, true);
+  }
+  let qr;
+  try {
+    qr = makeQr(text, qrLevel.value);
+  } catch {
+    qrBox.hidden = true;
+    return qrMessage("Texte trop long pour un QR code. Raccourcis-le.", true);
+  }
+
+  const n = qr.getModuleCount(), margin = 4;
+  const cell = Math.max(2, Math.floor(parseInt(qrSize.value, 10) / (n + margin * 2)));
+  const size = cell * (n + margin * 2);
+  qrCanvas.width = size;
+  qrCanvas.height = size;
+  const ctx = qrCanvas.getContext("2d");
+  ctx.fillStyle = qrBg.value;
+  ctx.fillRect(0, 0, size, size);
+  ctx.fillStyle = qrFg.value;
+  for (let r = 0; r < n; r++) {
+    for (let c = 0; c < n; c++) {
+      if (qr.isDark(r, c)) ctx.fillRect((c + margin) * cell, (r + margin) * cell, cell, cell);
+    }
+  }
+  qrSave.href = qrCanvas.toDataURL("image/png");
+  qrBox.hidden = false;
+
+  const l1 = luminance(qrFg.value), l2 = luminance(qrBg.value);
+  const contrast = (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+  if (contrast < 3) {
+    qrMessage("Contraste trop faible : ce QR code risque de ne pas se scanner.", true);
+  } else if (l1 > l2) {
+    qrMessage("Garde le code plus foncé que le fond, sinon certains téléphones ne le lisent pas.", true);
+  } else {
+    qrMessage(`QR code prêt (${size} × ${size} px).`);
+  }
+}
+
+[qrText, qrLevel, qrSize, qrFg, qrBg].forEach((el) => el.addEventListener("input", renderQr));
