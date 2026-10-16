@@ -238,3 +238,20 @@ button, label, a { -webkit-tap-highlight-color: transparent; touch-action: manip
 .qr-box { display: grid; gap: 14px; justify-items: start; }
 .qr-box canvas { width: min(100%, 320px); height: auto; image-rendering: pixelated; border-radius: 12px; background: #fff; }
 .qr-box .primary { margin-left: 0; }
+.wheel-layout { display: grid; grid-template-columns: minmax(0, 420px) 1fr; gap: 24px; align-items: start; }
+.wheel-wrap { position: relative; width: 100%; padding-top: 14px; }
+.wheel-wrap canvas { width: 100%; height: auto; display: block; }
+.wheel-wrap::after {
+  content: ""; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+  border-left: 14px solid transparent; border-right: 14px solid transparent; border-top: 28px solid var(--paper);
+  filter: drop-shadow(0 2px 2px rgba(0,0,0,.4));
+}
+.wheel-side { display: grid; gap: 14px; }
+#wheelSpin { margin-left: 0; justify-self: start; }
+.wheel-result { background: var(--ink-2); border-radius: 14px; padding: 14px 16px; display: grid; gap: 8px; justify-items: start; }
+.wheel-result small { color: var(--muted); }
+.wheel-result strong { font: 800 1.6rem "Bricolage Grotesque", sans-serif; word-break: break-word; }
+@media (max-width: 800px) {
+  .wheel-layout { grid-template-columns: 1fr; }
+  .wheel-wrap { max-width: 420px; margin: 0 auto; }
+}
