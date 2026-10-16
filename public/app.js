@@ -559,3 +559,140 @@ async function renderQr() {
 }
 
 [qrText, qrLevel, qrSize, qrFg, qrBg].forEach((el) => el.addEventListener("input", renderQr));
+
+// ---------- Roue de la chance ----------
+const wheelInput = $("wheelInput"), wheelCanvas = $("wheelCanvas"), wheelSpin = $("wheelSpin");
+const wheelResult = $("wheelResult"), wheelWinner = $("wheelWinner"), wheelRemove = $("wheelRemove"), wheelStatus = $("wheelStatus");
+const WHEEL_COLORS = [
+  ["#ff3d81", "#15112e"], ["#2ee6d6", "#15112e"], ["#ffd84d", "#15112e"],
+  ["#8b5cf6", "#ffffff"], ["#ff8a4c", "#15112e"], ["#4da3ff", "#15112e"],
+];
+const TWO_PI = Math.PI * 2;
+let wheelRot = 0, wheelSpinning = false, wheelLast = "";
+
+function wheelMessage(msg, isError = false) {
+  wheelStatus.textContent = msg;
+  wheelStatus.classList.toggle("error", isError);
+}
+
+function wheelOptions() {
+  return wheelInput.value.split("\n").map((s) => s.trim()).filter(Boolean).slice(0, 40);
+}
+
+function wheelColor(i, n) {
+  let k = i % WHEEL_COLORS.length;
+  if (i === n - 1 && k === 0 && n > 1) k = 2; // évite deux couleurs identiques côte à côte
+  return WHEEL_COLORS[k];
+}
+
+function drawWheel() {
+  const ctx = wheelCanvas.getContext("2d");
+  const size = wheelCanvas.width, c = size / 2, r = c - 8;
+  ctx.clearRect(0, 0, size, size);
+  const opts = wheelOptions();
+
+  if (opts.length < 2) {
+    ctx.beginPath();
+    ctx.arc(c, c, r, 0, TWO_PI);
+    ctx.fillStyle = "#211b45";
+    ctx.fill();
+    ctx.fillStyle = "#b9b2de";
+    ctx.font = '700 26px "DM Sans", sans-serif';
+    ctx.textAlign = "center";
+    ctx.fillText("Ajoute au moins 2 options", c, c);
+    return;
+  }
+
+  const seg = TWO_PI / opts.length;
+  opts.forEach((label, i) => {
+    const [bg, fg] = wheelColor(i, opts.length);
+    const a0 = wheelRot + i * seg;
+    ctx.beginPath();
+    ctx.moveTo(c, c);
+    ctx.arc(c, c, r, a0, a0 + seg);
+    ctx.closePath();
+    ctx.fillStyle = bg;
+    ctx.fill();
+    ctx.strokeStyle = "rgba(21,17,46,.6)";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.save();
+    ctx.translate(c, c);
+    ctx.rotate(a0 + seg / 2);
+    ctx.textAlign = "right";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = fg;
+    const fontSize = Math.max(12, Math.min(28, Math.floor(r * seg * 0.45)));
+    ctx.font = `700 ${fontSize}px "DM Sans", sans-serif`;
+    const maxW = r - 70;
+    let chars = Array.from(label);
+    if (ctx.measureText(label).width > maxW) {
+      while (chars.length > 1 && ctx.measureText(chars.join("") + "…").width > maxW) chars.pop();
+      chars = Array.from(chars.join("").trimEnd() + "…");
+    }
+    ctx.fillText(chars.join(""), r - 18, 0);
+    ctx.restore();
+  });
+
+  ctx.beginPath();
+  ctx.arc(c, c, 26, 0, TWO_PI);
+  ctx.fillStyle = "#15112e";
+  ctx.fill();
+  ctx.strokeStyle = "#f6f3ff";
+  ctx.lineWidth = 4;
+  ctx.stroke();
+}
+
+function spinWheel() {
+  if (wheelSpinning) return;
+  const opts = wheelOptions();
+  if (opts.length < 2) return wheelMessage("Ajoute au moins 2 options (une par ligne).", true);
+
+  wheelSpinning = true;
+  wheelSpin.disabled = true;
+  wheelInput.disabled = true;
+  wheelResult.hidden = true;
+  wheelMessage("");
+
+  const n = opts.length, seg = TWO_PI / n;
+  const buf = new Uint32Array(1);
+  crypto.getRandomValues(buf);
+  const winner = buf[0] % n; // tirage au sort, décidé avant l'animation
+  const jitter = (Math.random() - 0.5) * seg * 0.7;
+  const target = -Math.PI / 2 - (winner + 0.5) * seg + jitter; // le gagnant finit sous la flèche (en haut)
+  const delta = (((target - wheelRot) % TWO_PI) + TWO_PI) % TWO_PI;
+  const start = wheelRot;
+  const end = start + TWO_PI * (5 + Math.floor(Math.random() * 3)) + delta;
+  const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const duration = reduce ? 1200 : 5000 + Math.random() * 1500;
+  const t0 = performance.now();
+
+  function frame(now) {
+    const p = Math.min(1, (now - t0) / duration);
+    wheelRot = start + (end - start) * (1 - Math.pow(1 - p, 4));
+    drawWheel();
+    if (p < 1) return requestAnimationFrame(frame);
+    wheelRot = end % TWO_PI;
+    drawWheel();
+    wheelLast = opts[winner];
+    wheelWinner.textContent = "🎉 " + wheelLast;
+    wheelResult.hidden = false;
+    wheelSpinning = false;
+    wheelSpin.disabled = false;
+    wheelInput.disabled = false;
+  }
+  requestAnimationFrame(frame);
+}
+
+wheelSpin.addEventListener("click", spinWheel);
+wheelInput.addEventListener("input", () => { if (!wheelSpinning) { wheelResult.hidden = true; drawWheel(); } });
+wheelRemove.addEventListener("click", () => {
+  const lines = wheelInput.value.split("\n");
+  const idx = lines.findIndex((l) => l.trim() === wheelLast);
+  if (idx >= 0) lines.splice(idx, 1);
+  wheelInput.value = lines.join("\n");
+  wheelResult.hidden = true;
+  drawWheel();
+});
+drawWheel();
