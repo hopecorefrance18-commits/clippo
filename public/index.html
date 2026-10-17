@@ -20,19 +20,35 @@
 
   <header class="top">
     <a class="logo" href="./"><img src="logo.png" alt="Clippo"></a>
-    <nav class="tabs" role="tablist">
-      <button class="tab active" role="tab" data-tab="home" aria-selected="true">Accueil</button>
-      <button class="tab" role="tab" data-tab="mp3" aria-selected="false">Extraire le MP3</button>
-      <button class="tab" role="tab" data-tab="cutout" aria-selected="false">Détourer une image</button>
-      <button class="tab" role="tab" data-tab="convert" aria-selected="false">Convertir une image</button>
-      <button class="tab" role="tab" data-tab="fancy" aria-selected="false">Texte stylé</button>
-      <button class="tab" role="tab" data-tab="pseudo" aria-selected="false">Pseudos</button>
-      <button class="tab" role="tab" data-tab="emoji" aria-selected="false">Émojis</button>
-      <button class="tab" role="tab" data-tab="qr" aria-selected="false">QR code</button>
-            <button class="tab" role="tab" data-tab="grades" aria-selected="false">Moyenne</button>
-      <button class="tab" role="tab" data-tab="wheel" aria-selected="false">Roue</button>
-      <button class="tab" role="tab" data-tab="pomodoro" aria-selected="false">Pomodoro</button>
-    </nav>
+        <div class="navs">
+      <nav class="cats" aria-label="Catégories">
+        <button class="cat active" data-tab="home" aria-current="page">Accueil</button>
+        <button class="cat" data-cat="edu">Éducatif</button>
+        <button class="cat" data-cat="media">Médias</button>
+        <button class="cat" data-cat="creators">Créateurs</button>
+        <button class="cat" data-cat="practical">Pratique</button>
+      </nav>
+      <nav class="subs" aria-label="Outils">
+        <div class="subgroup" data-cat="edu" hidden>
+          <button class="tab" data-tab="grades">Moyenne</button>
+          <button class="tab" data-tab="pomodoro">Pomodoro</button>
+        </div>
+        <div class="subgroup" data-cat="media" hidden>
+          <button class="tab" data-tab="mp3">Extraire le MP3</button>
+          <button class="tab" data-tab="cutout">Détourer une image</button>
+          <button class="tab" data-tab="convert">Convertir une image</button>
+        </div>
+        <div class="subgroup" data-cat="creators" hidden>
+          <button class="tab" data-tab="fancy">Texte stylé</button>
+          <button class="tab" data-tab="pseudo">Pseudos</button>
+          <button class="tab" data-tab="emoji">Émojis</button>
+        </div>
+        <div class="subgroup" data-cat="practical" hidden>
+          <button class="tab" data-tab="qr">QR code</button>
+          <button class="tab" data-tab="wheel">Roue</button>
+        </div>
+      </nav>
+    </div>
   </header>
 
   <main>
