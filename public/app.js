@@ -809,3 +809,101 @@ pdTask.addEventListener("input", pdRender);
 pdRing.style.strokeDasharray = String(PD_CIRC);
 pd.today = pdLoadToday();
 pdSetMode("focus");
+
+// ---------- Calculateur de moyenne ----------
+const grRows = $("grRows"), grAvg = $("grAvg"), grInfo = $("grInfo"), grNeed = $("grNeed");
+const grTarget = $("grTarget"), grNextCoef = $("grNextCoef"), grNextOn = $("grNextOn");
+
+function grNum(v) {
+  const n = parseFloat(String(v).replace(",", ".").trim());
+  return Number.isFinite(n) ? n : NaN;
+}
+function grFmt(n) {
+  return (Math.round(n * 100) / 100).toLocaleString("fr-FR", { maximumFractionDigits: 2 });
+}
+function grMention(avg) {
+  if (avg >= 16) return "Très bien";
+  if (avg >= 14) return "Bien";
+  if (avg >= 12) return "Assez bien";
+  if (avg >= 10) return "Passable";
+  return "Sous la moyenne";
+}
+
+function grCompute() {
+  let sum = 0, coefs = 0, used = 0, problems = 0;
+  grRows.querySelectorAll(".gr-row").forEach((row) => {
+    const inputs = row.querySelectorAll("input");
+    const filled = inputs[1].value.trim() !== "";
+    const note = grNum(inputs[1].value), on = grNum(inputs[2].value), coef = grNum(inputs[3].value);
+    const bad = filled && !(note >= 0 && on > 0 && coef > 0 && note <= on);
+    row.classList.toggle("bad", bad);
+    if (!filled) return;
+    if (bad) { problems++; return; }
+    sum += (note / on) * 20 * coef; // chaque note est ramenée sur 20
+    coefs += coef;
+    used++;
+  });
+  return { sum, coefs, used, problems };
+}
+
+function grRender() {
+  const { sum, coefs, used, problems } = grCompute();
+  if (!used) {
+    grAvg.textContent = "–";
+    grInfo.textContent = problems ? "Vérifie les lignes en rouge." : "Entre au moins une note.";
+  } else {
+    const avg = sum / coefs;
+    grAvg.textContent = grFmt(avg) + " / 20";
+    grInfo.textContent = `Repère (mentions du bac) : ${grMention(avg)}` + (problems ? ` · ${problems} ligne(s) ignorée(s)` : "");
+  }
+
+  const target = grNum(grTarget.value), c = grNum(grNextCoef.value), on = grNum(grNextOn.value);
+  if (!used) { grNeed.textContent = "Entre d'abord tes notes."; grNeed.classList.remove("error"); return; }
+  if (!(target >= 0 && target <= 20 && c > 0 && on > 0)) {
+    grNeed.textContent = "Vérifie la moyenne visée (entre 0 et 20), le coefficient et le barème.";
+    grNeed.classList.add("error");
+    return;
+  }
+  grNeed.classList.remove("error");
+  const need20 = (target * (coefs + c) - sum) / c; // note /20 nécessaire au prochain contrôle
+  if (need20 > 20) {
+    grNeed.textContent = `Impossible : il faudrait ${grFmt(need20)} / 20. Avec 20 / 20, ta moyenne maximale serait ${grFmt((sum + 20 * c) / (coefs + c))} / 20.`;
+  } else if (need20 <= 0) {
+    grNeed.textContent = `Objectif déjà atteint : même avec 0, ta moyenne resterait à ${grFmt(sum / (coefs + c))} / 20.`;
+  } else {
+    const soit = on === 20 ? "" : ` (soit ${grFmt(need20)} / 20)`;
+    grNeed.textContent = `Il te faut au moins ${grFmt((need20 * on) / 20)} / ${grFmt(on)}${soit} pour atteindre ${grFmt(target)}.`;
+  }
+}
+
+function grAddRow(focus) {
+  const row = document.createElement("div");
+  row.className = "gr-row";
+  row.innerHTML =
+    '<input class="text-in gr-name" type="text" maxlength="30" placeholder="Matière (facultatif)" aria-label="Matière">' +
+    '<input class="text-in" type="text" inputmode="decimal" placeholder="Note" aria-label="Note">' +
+    '<input class="text-in" type="text" inputmode="decimal" value="20" aria-label="Barème (sur)">' +
+    '<input class="text-in" type="text" inputmode="decimal" value="1" aria-label="Coefficient">' +
+    '<button class="gr-del" type="button" aria-label="Supprimer cette ligne">×</button>';
+  grRows.appendChild(row);
+  if (focus) row.querySelectorAll("input")[1].focus();
+}
+
+function grReset() {
+  grRows.innerHTML = "";
+  for (let i = 0; i < 4; i++) grAddRow(false);
+  grRender();
+}
+
+grRows.addEventListener("input", grRender);
+grRows.addEventListener("click", (e) => {
+  const del = e.target.closest(".gr-del");
+  if (!del) return;
+  del.parentElement.remove();
+  if (!grRows.children.length) grAddRow(false);
+  grRender();
+});
+[grTarget, grNextCoef, grNextOn].forEach((el) => el.addEventListener("input", grRender));
+$("grAdd").addEventListener("click", () => { grAddRow(true); grRender(); });
+$("grClear").addEventListener("click", grReset);
+grReset();
