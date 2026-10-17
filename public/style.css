@@ -295,3 +295,23 @@ button, label, a { -webkit-tap-highlight-color: transparent; touch-action: manip
   text-decoration: none; font-weight: 700; box-shadow: 0 4px 0 #b89a1f; transition: transform .15s;
 }
 .foot a.donate:hover, a.donate:hover { transform: translateY(-2px); text-decoration: none; }
+.gr-head, .gr-row { display: grid; grid-template-columns: minmax(0, 1fr) 90px 80px 80px 44px; gap: 8px; align-items: center; }
+.gr-head { color: var(--muted); font-size: .8rem; padding: 0 2px; }
+.gr-rows { display: grid; gap: 8px; }
+.gr-row .text-in, .gr-target .text-in { min-width: 0; width: 100%; }
+.gr-row.bad .text-in { border-color: var(--pink); }
+.gr-del { border: 0; cursor: pointer; background: var(--ink-2); color: var(--muted); border-radius: 10px; height: 44px; font-size: 1.2rem; }
+.gr-del:hover { color: #fff; background: rgba(255, 61, 129, .4); }
+.gr-result { background: var(--ink-2); border-radius: 14px; padding: 16px 18px; display: grid; gap: 4px; justify-items: start; }
+.gr-result small { color: var(--muted); }
+.gr-result strong { font: 800 2.4rem "Bricolage Grotesque", sans-serif; line-height: 1.1; }
+.gr-info { color: var(--muted); font-size: .9rem; }
+.gr-target h2 { font: 800 1.2rem "Bricolage Grotesque", sans-serif; margin-bottom: 10px; }
+.gr-target .select { width: 170px; }
+.gr-note { color: var(--muted); font-size: .85rem; }
+@media (max-width: 700px) {
+  .gr-head { display: none; }
+  .gr-row { grid-template-columns: 1fr 1fr 1fr 44px; }
+  .gr-row .gr-name { grid-column: 1 / -1; }
+  .gr-target .select { width: 100%; }
+}
