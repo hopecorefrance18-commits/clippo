@@ -351,6 +351,38 @@ Hugo</textarea>
     </section>
   </main>
 
+      <!-- Calculateur de moyenne -->
+    <section id="grades" class="panel">
+      <h1>Calcule ta moyenne.</h1>
+      <p class="sub">Entre tes notes et leurs coefficients. Clippo calcule ta moyenne et la note qu'il te faut au prochain contrôle.</p>
+
+      <div class="card">
+        <div class="gr-head"><span>Matière</span><span>Note</span><span>Sur</span><span>Coef.</span><span></span></div>
+        <div id="grRows" class="gr-rows"></div>
+        <div class="row">
+          <button id="grAdd" class="ghost-btn">+ Ajouter une note</button>
+          <button id="grClear" class="ghost-btn">Tout effacer</button>
+        </div>
+
+        <div class="gr-result">
+          <small>Ta moyenne</small>
+          <strong id="grAvg">–</strong>
+          <span id="grInfo" class="gr-info"></span>
+        </div>
+
+        <div class="gr-target">
+          <h2>Quelle note viser ?</h2>
+          <div class="row">
+            <label class="select"><span>Moyenne visée</span><input id="grTarget" type="number" class="text-in" min="0" max="20" step="0.1" value="12"></label>
+            <label class="select"><span>Coef. du prochain contrôle</span><input id="grNextCoef" type="number" class="text-in" min="0.1" step="0.1" value="1"></label>
+            <label class="select"><span>Barème (sur)</span><input id="grNextOn" type="number" class="text-in" min="1" step="1" value="20"></label>
+          </div>
+          <p id="grNeed" class="status" role="status"></p>
+        </div>
+        <p class="gr-note">Tes notes restent sur ton appareil et ne sont pas enregistrées : si tu fermes la page, elles disparaissent.</p>
+      </div>
+    </section>
+
   <footer class="foot">
         
     <p> <a href="https://discord.gg/jsqZRpvMG" target="_blank" rel="noopener">Discord</a> !</p>
