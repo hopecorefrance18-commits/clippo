@@ -1,15 +1,42 @@
 const $ = (id) => document.getElementById(id);
 
-// ---------- Onglets ----------
-document.querySelectorAll(".tab").forEach((btn) => {
-  btn.addEventListener("click", () => {
-    document.querySelectorAll(".tab").forEach((b) => {
-      b.classList.toggle("active", b === btn);
-      b.setAttribute("aria-selected", b === btn);
-    });
-    document.querySelectorAll(".panel").forEach((p) => p.classList.toggle("active", p.id === btn.dataset.tab));
+// ---------- Navigation : catégories et outils ----------
+const lastTool = {}; // dernier outil ouvert dans chaque catégorie
+
+function openTab(id) {
+  const panel = document.getElementById(id);
+  if (!panel || !panel.classList.contains("panel")) return;
+  document.querySelectorAll(".panel").forEach((p) => p.classList.toggle("active", p === panel));
+
+  const tool = document.querySelector(`.tab[data-tab="${id}"]`);
+  const group = tool ? tool.closest(".subgroup") : null;
+  if (group) lastTool[group.dataset.cat] = id;
+
+  document.querySelectorAll(".tab").forEach((t) => {
+    const on = t.dataset.tab === id;
+    t.classList.toggle("active", on);
+    if (on) t.setAttribute("aria-current", "page"); else t.removeAttribute("aria-current");
   });
-});
+  document.querySelectorAll(".subgroup").forEach((s) => { s.hidden = s !== group; });
+  document.querySelectorAll(".cat").forEach((c) => {
+    const on = group ? c.dataset.cat === group.dataset.cat : c.dataset.tab === id;
+    c.classList.toggle("active", on);
+    if (on) c.setAttribute("aria-current", "page"); else c.removeAttribute("aria-current");
+  });
+
+  // garde l'élément actif visible dans les menus qui défilent (téléphone)
+  document.querySelectorAll(".cat.active, .tab.active").forEach((el) => {
+    if (el.offsetParent) el.scrollIntoView({ inline: "center", block: "nearest" });
+  });
+  history.replaceState(null, "", id === "home" ? location.pathname + location.search : "#" + id);
+}
+
+document.querySelectorAll(".tab").forEach((t) => t.addEventListener("click", () => openTab(t.dataset.tab)));
+document.querySelectorAll(".cat").forEach((c) => c.addEventListener("click", () => {
+  if (c.dataset.tab) return openTab(c.dataset.tab); // Accueil
+  const group = document.querySelector(`.subgroup[data-cat="${c.dataset.cat}"]`);
+  openTab(lastTool[c.dataset.cat] || group.querySelector(".tab").dataset.tab);
+}));
 
 // ---------- Extraire le MP3 (dans le navigateur) ----------
 const mp3Drop = $("mp3Drop"), mp3File = $("mp3File"), mp3Status = $("mp3Status");
@@ -907,3 +934,12 @@ grRows.addEventListener("click", (e) => {
 $("grAdd").addEventListener("click", () => { grAddRow(true); grRender(); });
 $("grClear").addEventListener("click", grReset);
 grReset();
+
+// ---------- Ouverture directe d'un outil avec le lien (ex. /#qr) ----------
+function openFromHash() {
+  const wanted = location.hash.slice(1);
+  const el = wanted && document.getElementById(wanted);
+  openTab(el && el.classList.contains("panel") ? wanted : "home");
+}
+window.addEventListener("hashchange", openFromHash);
+openFromHash();
