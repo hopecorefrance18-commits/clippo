@@ -32,7 +32,7 @@ body {
 /* --- En-tête : Clippo tout à gauche --- */
 .top { display: flex; align-items: center; justify-content: space-between; padding: 18px 28px; gap: 16px; flex-wrap: wrap; }
 .logo { display: flex; align-items: center; text-decoration: none; animation: logoPop .9s cubic-bezier(.2,1.4,.4,1) both; }
-.logo img { height: 90px; width: auto; display: block; }
+.logo img { height: 120px; width: auto; display: block; }
 @keyframes logoPop { from { transform: translateX(-30px) rotate(-6deg); opacity: 0; } }
 .tabs { display: flex; gap: 6px; background: rgba(255,255,255,.08); padding: 5px; border-radius: 24px; flex-wrap: wrap; justify-content: flex-end; }
 .tab {
@@ -276,7 +276,7 @@ button, label, a { -webkit-tap-highlight-color: transparent; touch-action: manip
 }
 @media (max-width: 700px) {
   .top { flex-direction: column; align-items: flex-start; gap: 12px; padding: 14px 16px; }
-  .logo img { height: 44px; }
+  .logo img { height: 64px; }
   .tabs { width: 100%; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; border-radius: 999px; justify-content: flex-start; }
   .tabs::-webkit-scrollbar { display: none; }
   .tab { flex-shrink: 0; white-space: nowrap; padding: 10px 14px; font-size: .9rem; }
