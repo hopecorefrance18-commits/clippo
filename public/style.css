@@ -32,7 +32,7 @@ body {
 /* --- En-tête : Clippo tout à gauche --- */
 .top { display: flex; align-items: center; justify-content: space-between; padding: 18px 28px; gap: 16px; flex-wrap: wrap; }
 .logo { display: flex; align-items: center; text-decoration: none; animation: logoPop .9s cubic-bezier(.2,1.4,.4,1) both; }
-.logo img { height: 60px; width: auto; display: block; }
+.logo img { height: 90px; width: auto; display: block; }
 @keyframes logoPop { from { transform: translateX(-30px) rotate(-6deg); opacity: 0; } }
 .tabs { display: flex; gap: 6px; background: rgba(255,255,255,.08); padding: 5px; border-radius: 24px; flex-wrap: wrap; justify-content: flex-end; }
 .tab {
