@@ -371,3 +371,24 @@ button, label, a { -webkit-tap-highlight-color: transparent; touch-action: manip
   .todo-foot { flex-direction: row; flex-wrap: wrap; }
 }
 
+/* --- Flashcards --- */
+.fc-card {
+  width: 100%; min-height: 220px; display: grid; place-content: center; gap: 8px; text-align: center;
+  cursor: pointer; padding: 24px; border-radius: var(--radius); border: 2px solid rgba(255,255,255,.15);
+  background: var(--ink-2); color: var(--paper); font: 800 clamp(1.3rem, 4vw, 1.9rem) "Bricolage Grotesque", sans-serif;
+  transition: transform .15s, border-color .2s, background .2s;
+}
+.fc-card:hover { transform: translateY(-2px); }
+.fc-card small { font: 700 .8rem "DM Sans", sans-serif; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+.fc-card span { word-break: break-word; }
+.fc-card.back { border-color: var(--aqua); background: rgba(46, 230, 214, .1); }
+.fc-actions { justify-content: center; align-items: center; }
+.fc-actions .primary { margin-left: 0; }
+.fc-title { font: 800 1.2rem "Bricolage Grotesque", sans-serif; }
+.fc-add { display: grid; gap: 10px; }
+.fc-add .text-in { width: 100%; }
+.fc-add .primary { margin-left: 0; justify-self: start; }
+.fc-ans { display: block; color: var(--muted); font-size: .9rem; }
+.todo-item.known .todo-text { color: var(--aqua); }
+@media (max-width: 700px) { .fc-add .primary { width: 100%; } }
+
