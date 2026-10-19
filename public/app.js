@@ -1185,3 +1185,40 @@ fcRender();
 todos = todoLoad();
 todoRender();
 
+// ---------- Détection des mises à jour ----------
+const VERSION_KEY = "clippo_version";
+let updating = false;
+
+function showUpdateOverlay() {
+  const box = document.createElement("div");
+  box.className = "upd-overlay";
+  box.setAttribute("role", "alert");
+  box.innerHTML = '<div class="upd-box"><span class="upd-spin" aria-hidden="true"></span><strong>Chargement de la mise à jour…</strong><small>Veuillez patienter.</small></div>';
+  document.body.appendChild(box);
+}
+
+async function checkVersion() {
+  if (updating) return;
+  try {
+    const res = await fetch("version.json?t=" + Date.now(), { cache: "no-store" });
+    if (!res.ok) return;
+    const latest = String((await res.json()).version);
+    let seen = null;
+    try { seen = localStorage.getItem(VERSION_KEY); } catch { /* stockage indisponible */ }
+    if (seen === null) { // première visite : on note simplement la version
+      try { localStorage.setItem(VERSION_KEY, latest); } catch { /* ignoré */ }
+      return;
+    }
+    if (seen !== latest) {
+      updating = true;
+      try { localStorage.setItem(VERSION_KEY, latest); } catch { /* ignoré */ }
+      showUpdateOverlay();
+      setTimeout(() => location.reload(), 2000);
+    }
+  } catch { /* hors ligne : on réessaiera plus tard */ }
+}
+
+checkVersion();
+setInterval(checkVersion, 60000);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) checkVersion(); });
+
