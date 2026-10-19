@@ -392,3 +392,33 @@ button, label, a { -webkit-tap-highlight-color: transparent; touch-action: manip
 .todo-item.known .todo-text { color: var(--aqua); }
 @media (max-width: 700px) { .fc-add .primary { width: 100%; } }
 
+/* --- Mises à jour : rendu amélioré --- */
+.timeline { gap: 22px; }
+.timeline::before { width: 3px; left: 6px; opacity: .8; }
+.upd-item { padding: 20px 22px; transition: transform .2s, border-color .2s; }
+.upd-item:hover { transform: translateX(4px); border-color: rgba(255,255,255,.3); }
+.upd-item::before { top: 24px; background: var(--pink); box-shadow: 0 0 0 4px rgba(255, 61, 129, .25); }
+.upd-item time {
+  display: inline-block; background: rgba(46, 230, 214, .14); color: var(--aqua);
+  padding: 3px 12px; border-radius: 999px; font-size: .8rem;
+}
+.upd-item h3 { font-size: 1.3rem; margin: 10px 0 14px; }
+.upd-item li { line-height: 1.45; }
+.upd-item li > span:last-child { color: var(--paper); }
+.tag { min-width: 82px; text-align: center; }
+
+/* Dernière mise à jour : mise en avant */
+.upd-item.latest { border-color: var(--aqua); box-shadow: 0 0 30px rgba(46, 230, 214, .15); }
+.upd-item.latest::before { background: var(--aqua); box-shadow: 0 0 0 4px rgba(46, 230, 214, .3); animation: ping 1.8s ease-out infinite; }
+.upd-item.latest::after {
+  content: "Dernière"; position: absolute; top: 18px; right: 18px;
+  background: var(--sun); color: var(--ink); font: 800 .7rem "DM Sans", sans-serif;
+  text-transform: uppercase; letter-spacing: .06em; padding: 4px 10px; border-radius: 999px;
+}
+@media (max-width: 700px) {
+  .upd-item { padding: 16px; }
+  .upd-item.latest::after { position: static; display: inline-block; margin-left: 8px; }
+  .tag { min-width: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .upd-item, .upd-item.latest::before { transition: none; animation: none; } }
+
