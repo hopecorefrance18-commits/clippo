@@ -796,7 +796,7 @@ function pdFinish() {
   pdBeep();
   const next = pdNextMode(wasFocus);
   pdSetMode(next);
-  if (pdAuto.checked) pdToggle();
+ 
   pdMsg.textContent = wasFocus
     ? `Bravo, session terminée ! ${PD_NAMES[next]} : ${pdMinutes(next)} min.`
     : "Pause terminée, on reprend !";
