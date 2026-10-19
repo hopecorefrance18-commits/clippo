@@ -694,7 +694,7 @@ drawWheel();
 // ---------- Pomodoro ----------
 const pdTime = $("pdTime"), pdPhase = $("pdPhase"), pdRing = $("pdRing"), pdStart = $("pdStart");
 const pdReset = $("pdReset"), pdSkip = $("pdSkip"), pdTask = $("pdTask"), pdToday = $("pdToday"), pdMsg = $("pdMsg");
-const pdFocus = $("pdFocus"), pdShort = $("pdShort"), pdLong = $("pdLong"), pdAuto = $("pdAuto"), pdSound = $("pdSound");
+const pdFocus = $("pdFocus"), pdShort = $("pdShort"), pdLong = $("pdLong"), pdSound = $("pdSound");
 const pdDots = $("pdDots"), pdClock = document.querySelector(".pd-clock");
 const PD_CIRC = 2 * Math.PI * 90;
 const PD_NAMES = { focus: "Concentration", short: "Pause courte", long: "Pause longue" };
