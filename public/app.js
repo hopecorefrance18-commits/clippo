@@ -1222,3 +1222,11 @@ checkVersion();
 setInterval(checkVersion, 60000);
 document.addEventListener("visibilitychange", () => { if (!document.hidden) checkVersion(); });
 
+// ---------- Clic sur le logo : rechargement complet ----------
+document.querySelectorAll(".logo").forEach((logo) => {
+  logo.addEventListener("click", (e) => {
+    e.preventDefault();
+    location.href = location.pathname + "?r=" + Date.now();
+  });
+});
+
