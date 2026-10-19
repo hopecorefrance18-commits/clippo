@@ -431,3 +431,19 @@ button, label, a { -webkit-tap-highlight-color: transparent; touch-action: manip
 
 /* --- Flashcards : titre centré --- */
 #flashcards h1, #flashcards .sub { text-align: center; }
+
+/* --- Message de mise à jour --- */
+.upd-overlay {
+  position: fixed; inset: 0; z-index: 9999; display: grid; place-items: center;
+  background: rgba(21, 17, 46, .92); backdrop-filter: blur(8px);
+}
+.upd-box { display: grid; gap: 10px; justify-items: center; text-align: center; padding: 24px; }
+.upd-box strong { font: 800 1.5rem "Bricolage Grotesque", sans-serif; }
+.upd-box small { color: var(--muted); font-size: 1rem; }
+.upd-spin {
+  width: 44px; height: 44px; border-radius: 50%;
+  border: 5px solid rgba(255,255,255,.15); border-top-color: var(--aqua);
+  animation: updSpin .9s linear infinite;
+}
+@keyframes updSpin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .upd-spin { animation: none; } }
