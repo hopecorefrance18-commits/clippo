@@ -438,6 +438,48 @@ Hugo</textarea>
     </section>
 
   </main>
+      <!-- Flashcards -->
+    <section id="flashcards" class="panel">
+      <h1>Révise avec des flashcards.</h1>
+      <p class="sub">Crée tes cartes (question d'un côté, réponse de l'autre), puis entraîne-toi. Elles sont gardées dans ton navigateur.</p>
+
+      <div class="card">
+        <button id="fcCard" class="fc-card" type="button" aria-live="polite">
+          <small id="fcSide">Question</small>
+          <span id="fcText"></span>
+        </button>
+        <p id="fcCount" class="status" role="status"></p>
+
+        <div class="row fc-actions">
+          <button id="fcPrev" class="ghost-btn">← Précédente</button>
+          <button id="fcFlip" class="primary">Retourner</button>
+          <button id="fcNext" class="ghost-btn">Suivante →</button>
+        </div>
+        <div class="row fc-actions">
+          <button id="fcKnow" class="ghost-btn">✅ Je savais</button>
+          <button id="fcAgain" class="ghost-btn">🔁 À revoir</button>
+          <button id="fcShuffle" class="ghost-btn">🔀 Mélanger</button>
+        </div>
+
+        <div class="chips" id="fcFilters">
+          <button class="chip active" data-filter="all">Toutes</button>
+          <button class="chip" data-filter="review">À revoir</button>
+        </div>
+
+        <h2 class="fc-title">Ajouter une carte</h2>
+        <div class="fc-add">
+          <input id="fcQ" type="text" class="text-in" maxlength="200" placeholder="Question (ex. Capitale de l'Australie ?)" autocomplete="off">
+          <input id="fcA" type="text" class="text-in" maxlength="300" placeholder="Réponse (ex. Canberra)" autocomplete="off">
+          <button id="fcAdd" class="primary">Ajouter la carte</button>
+        </div>
+
+        <ul id="fcList" class="todo-list"></ul>
+        <div class="row">
+          <button id="fcClearAll" class="ghost-btn">Tout supprimer</button>
+        </div>
+        <p class="gr-note">Tes cartes restent sur ton appareil (dans ce navigateur) et ne sont envoyées nulle part. Si tu vides les données du site, elles disparaissent.</p>
+      </div>
+    </section>
 
   <footer class="foot">
     <!-- BOUTON DE DON (facultatif) : pour l'activer, remplace TON_PSEUDO par ton lien, puis supprime la ligne qui contient seulement l'ouverture du commentaire juste en dessous et celle qui contient seulement sa fermeture. -->
