@@ -1,0 +1,11 @@
+{
+  "name": "Clippo",
+  "short_name": "Clippo",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#15112e",
+  "theme_color": "#15112e",
+  "icons": [
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
