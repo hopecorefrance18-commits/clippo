@@ -428,3 +428,6 @@ button, label, a { -webkit-tap-highlight-color: transparent; touch-action: manip
   .pd-settings .select { width: 100%; }
   .pd-settings .check { padding: 4px 0; justify-content: flex-start; width: 100%; }
 }
+
+/* --- Flashcards : titre centré --- */
+#flashcards h1, #flashcards .sub { text-align: center; }
