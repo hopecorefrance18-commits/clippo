@@ -1230,3 +1230,219 @@ document.querySelectorAll(".logo").forEach((logo) => {
   });
 });
 
+// ---------- Quiz du cours (scan + quiz, sur l'appareil) ----------
+const sqFile = $("sqFile"), sqText = $("sqText"), sqGo = $("sqGo"), sqStatus = $("sqStatus");
+const sqSetup = $("sqSetup"), sqRun = $("sqRun"), sqForm = $("sqForm"), sqSubmit = $("sqSubmit"), sqResult = $("sqResult");
+const SQ_STOP = new Set("cependant pourtant alors ainsi aussi donc lorsque quand parce comme depuis pendant entre dans cette ces ses leur leurs plusieurs chaque toujours souvent egalement ensuite notamment premier premiere seconde autres certains certaines pouvoir devoir faire avoir etre peut peuvent sont avait etait seront ceux celles".split(" "));
+let sqQuestions = [], sqLibReady;
+
+function sqMessage(msg, isError = false) {
+  sqStatus.textContent = msg;
+  sqStatus.classList.toggle("error", isError);
+}
+function sqEl(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text !== undefined) e.textContent = text;
+  return e;
+}
+function sqNorm(s) { return String(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, ""); }
+function sqLev(a, b) {
+  const d = Array.from({ length: a.length + 1 }, (_, i) => [i]);
+  for (let j = 1; j <= b.length; j++) d[0][j] = j;
+  for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++)
+    d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+  return d[a.length][b.length];
+}
+function sqShuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// --- Lecture des photos (OCR dans le navigateur) ---
+function sqLoadOcr() {
+  if (window.Tesseract) return Promise.resolve();
+  if (!sqLibReady) {
+    sqLibReady = new Promise((resolve, reject) => {
+      const s = document.createElement("script");
+      s.src = "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";
+      s.onload = resolve;
+      s.onerror = () => { sqLibReady = null; reject(new Error("Impossible de charger le lecteur de texte. Vérifie ta connexion.")); };
+      document.head.appendChild(s);
+    });
+  }
+  return sqLibReady;
+}
+function sqToCanvas(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const s = Math.min(1, 2000 / Math.max(img.naturalWidth, img.naturalHeight));
+      const c = document.createElement("canvas");
+      c.width = Math.round(img.naturalWidth * s);
+      c.height = Math.round(img.naturalHeight * s);
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      resolve(c);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Image illisible.")); };
+    img.src = url;
+  });
+}
+
+sqFile.addEventListener("change", async () => {
+  const files = Array.from(sqFile.files).filter((f) => f.type.startsWith("image/")).slice(0, 3);
+  sqFile.value = "";
+  if (!files.length) return;
+  sqGo.disabled = true;
+  try {
+    sqMessage("Chargement du lecteur de texte… (la première fois, ça peut prendre une minute)");
+    await sqLoadOcr();
+    for (let i = 0; i < files.length; i++) {
+      const canvas = await sqToCanvas(files[i]);
+      const { data } = await window.Tesseract.recognize(canvas, "fra", {
+        logger: (m) => { if (m.status === "recognizing text") sqMessage(`Lecture de la photo ${i + 1}/${files.length}… ${Math.round(m.progress * 100)}%`); },
+      });
+      sqText.value = (sqText.value.trim() + "\n" + data.text.trim()).trim();
+    }
+    sqMessage(sqText.value.trim().length < 150
+      ? "Peu de texte lu. Essaie une photo plus nette, ou écris ton cours dans la case."
+      : "Terminé ! Relis le texte et corrige-le si besoin, puis crée ton quiz.");
+  } catch (e) {
+    console.error(e);
+    sqMessage(e.message || "La lecture de la photo a échoué.", true);
+  } finally {
+    sqGo.disabled = false;
+  }
+});
+
+// --- Création du quiz ---
+function sqPickKeyword(sentence) {
+  const words = (sentence.match(/[A-Za-zÀ-ÿ0-9][A-Za-zÀ-ÿ0-9'’-]*/g) || []).map((w) => w.replace(/['’-]+$/g, ""));
+  let best = null, bestScore = 0;
+  words.forEach((w, i) => {
+    if (SQ_STOP.has(sqNorm(w))) return;
+    const isNum = /\d{2,}/.test(w);
+    if (!isNum && w.length < 6) return;
+    let score = w.length + (isNum ? 6 : 0) + (i > 0 && /^[A-ZÀ-Ý]/.test(w) ? 4 : 0);
+    if (score > bestScore) { best = w; bestScore = score; }
+  });
+  return best;
+}
+
+function sqBuild(text) {
+  const sentences = (text.replace(/\s+/g, " ").match(/[^.!?]+[.!?]?/g) || [])
+    .map((s) => s.trim())
+    .filter((s) => { const n = s.split(" ").length; return n >= 6 && n <= 35; });
+  const items = [];
+  sentences.forEach((s) => { const k = sqPickKeyword(s); if (k) items.push({ sentence: s, answer: k }); });
+  const pool = [...new Set(items.map((i) => i.answer))];
+  return sqShuffle(items).slice(0, 10).map((it, i) => {
+    const blank = it.sentence.split(it.answer).join("_____");
+    const dist = pool
+      .filter((w) => sqNorm(w) !== sqNorm(it.answer))
+      .map((w) => ({ w, k: Math.abs(w.length - it.answer.length) + Math.random() * 3 }))
+      .sort((a, b) => a.k - b.k).slice(0, 3).map((x) => x.w);
+    if (i % 3 === 2 || dist.length < 3) return { type: "open", blank, answer: it.answer, sentence: it.sentence };
+    const choices = sqShuffle([it.answer, ...dist]);
+    return { type: "qcm", blank, answer: it.answer, sentence: it.sentence, choices, correct: choices.indexOf(it.answer) };
+  });
+}
+
+function sqShowQuiz() {
+  sqSetup.hidden = true;
+  sqRun.hidden = false;
+  sqResult.hidden = true;
+  sqSubmit.hidden = false;
+  sqForm.innerHTML = "";
+  sqQuestions.forEach((q, i) => {
+    const box = sqEl("div", "qz-q");
+    box.appendChild(sqEl("strong", "", `${i + 1}. Complète : ${q.blank}`));
+    if (q.type === "qcm") {
+      q.choices.forEach((c, k) => {
+        const lab = sqEl("label", "qz-choice");
+        const r = document.createElement("input");
+        r.type = "radio"; r.name = "sq" + i; r.value = String(k);
+        lab.append(r, sqEl("span", "", c));
+        box.appendChild(lab);
+      });
+    } else {
+      const t = document.createElement("input");
+      t.type = "text"; t.className = "text-in"; t.name = "sq" + i; t.maxLength = 60;
+      t.placeholder = "Écris le mot qui manque…"; t.autocomplete = "off";
+      box.appendChild(t);
+    }
+    sqForm.appendChild(box);
+  });
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+sqGo.addEventListener("click", () => {
+  const text = sqText.value.trim();
+  if (text.length < 200) return sqMessage("Le texte est trop court pour faire un quiz (200 caractères minimum).", true);
+  sqQuestions = sqBuild(text);
+  if (sqQuestions.length < 3) return sqMessage("Je n'ai pas trouvé assez de phrases complètes. Vérifie la ponctuation du texte ou ajoute plus de cours.", true);
+  sqMessage("");
+  sqShowQuiz();
+});
+
+// --- Correction ---
+sqSubmit.addEventListener("click", () => {
+  const given = sqQuestions.map((q, i) => {
+    if (q.type === "qcm") {
+      const c = sqForm.querySelector(`input[name="sq${i}"]:checked`);
+      return c ? parseInt(c.value, 10) : null;
+    }
+    return sqForm.querySelector(`input[name="sq${i}"]`).value.trim();
+  });
+  const ok = sqQuestions.map((q, i) => {
+    if (q.type === "qcm") return given[i] === q.correct;
+    const n = sqNorm(given[i] || ""), a = sqNorm(q.answer);
+    return !!n && (n === a || (a.length >= 5 && sqLev(n, a) <= 1));
+  });
+  const good = ok.filter(Boolean).length;
+  const note = (good / sqQuestions.length) * 20;
+
+  sqResult.innerHTML = "";
+  const head = sqEl("div", "qz-score");
+  head.append(sqEl("small", "", "Ta note"), sqEl("strong", "", grFmt(note) + " / 20"),
+    sqEl("span", "gr-info", `${good} bonne${good > 1 ? "s" : ""} réponse${good > 1 ? "s" : ""} sur ${sqQuestions.length} · ${grMention(note)}`));
+  sqResult.appendChild(head);
+
+  const wrong = sqQuestions.filter((_, i) => !ok[i]);
+  if (wrong.length) {
+    sqResult.appendChild(sqEl("h3", "fc-title", "À revoir dans ton cours"));
+    const ul = sqEl("ul", "qz-review");
+    wrong.forEach((q) => ul.appendChild(sqEl("li", "", q.sentence)));
+    sqResult.appendChild(ul);
+  } else {
+    sqResult.appendChild(sqEl("p", "", "Bravo, tout est juste ! 🎉"));
+  }
+
+  sqResult.appendChild(sqEl("h3", "fc-title", "Correction détaillée"));
+  sqQuestions.forEach((q, i) => {
+    const box = sqEl("div", "qz-q " + (ok[i] ? "good" : "bad"));
+    box.appendChild(sqEl("strong", "", `${ok[i] ? "✅" : "❌"} ${i + 1}. ${q.blank}`));
+    const mine = q.type === "qcm" ? (given[i] === null ? "aucune" : q.choices[given[i]]) : (given[i] || "aucune");
+    box.appendChild(sqEl("p", "", "Ta réponse : " + mine));
+    if (!ok[i]) box.appendChild(sqEl("p", "qz-exp", "Bonne réponse : " + q.answer));
+    sqResult.appendChild(box);
+  });
+
+  const row = sqEl("div", "row");
+  const again = sqEl("button", "ghost-btn", "Nouveau quiz sur ce cours");
+  again.addEventListener("click", () => { sqQuestions = sqBuild(sqText.value); sqShowQuiz(); });
+  const fresh = sqEl("button", "ghost-btn", "Nouveau cours");
+  fresh.addEventListener("click", () => { sqText.value = ""; sqRun.hidden = true; sqSetup.hidden = false; sqMessage(""); });
+  row.append(again, fresh);
+  sqResult.appendChild(row);
+
+  sqSubmit.hidden = true;
+  sqResult.hidden = false;
+  sqResult.scrollIntoView({ behavior: "smooth", block: "start" });
+});
+
