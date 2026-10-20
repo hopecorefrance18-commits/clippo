@@ -479,7 +479,7 @@ button, label, a { -webkit-tap-highlight-color: transparent; touch-action: manip
 #scanquiz .gr-note, #scanquiz .status, #scanquiz .fc-title { text-align: center; }
 
 /* --- Mises à jour : sans pastilles, centré --- */
-.timeline { padding-left: 0; }
+
 .timeline::before { display: none; }
 .upd-item::before { display: none; }
 .upd-item.latest::before { display: none; }
