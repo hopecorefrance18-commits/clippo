@@ -477,3 +477,17 @@ button, label, a { -webkit-tap-highlight-color: transparent; touch-action: manip
 #scanquiz .qz-score { justify-items: center; text-align: center; }
 #scanquiz .row { justify-content: center; }
 #scanquiz .gr-note, #scanquiz .status, #scanquiz .fc-title { text-align: center; }
+
+/* --- Mises à jour : sans pastilles, centré --- */
+.timeline { padding-left: 0; }
+.timeline::before { display: none; }
+.upd-item::before { display: none; }
+.upd-item.latest::before { display: none; }
+.upd-item:hover { transform: none; }
+#updates h1, #updates .sub { text-align: center; }
+.upd-item { text-align: center; }
+.upd-item ul { justify-items: center; }
+.upd-item li { justify-content: center; text-align: left; }
+@media (max-width: 700px) {
+  .upd-item li { flex-direction: column; align-items: center; text-align: center; gap: 6px; }
+}
