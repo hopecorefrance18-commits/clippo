@@ -447,3 +447,22 @@ button, label, a { -webkit-tap-highlight-color: transparent; touch-action: manip
 }
 @keyframes updSpin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .upd-spin { animation: none; } }
+
+/* --- Quiz du cours --- */
+.qz-setup { display: grid; gap: 16px; }
+.qz-setup .primary, #sqSubmit { margin-left: 0; justify-self: start; }
+.qz-form { display: grid; gap: 14px; }
+.qz-q { background: var(--ink-2); border-radius: 14px; padding: 14px 16px; display: grid; gap: 8px; border: 2px solid transparent; }
+.qz-q.good { border-color: var(--aqua); }
+.qz-q.bad { border-color: var(--pink); }
+.qz-q .text-in { width: 100%; background: rgba(255,255,255,.06); }
+.qz-choice { display: flex; gap: 10px; align-items: center; padding: 8px 10px; border-radius: 10px; cursor: pointer; background: rgba(255,255,255,.05); }
+.qz-choice:hover { background: rgba(255,255,255,.1); }
+.qz-choice input { accent-color: var(--aqua); width: 18px; height: 18px; flex-shrink: 0; }
+.qz-exp { color: var(--muted); font-size: .92rem; }
+#sqResult { display: grid; gap: 14px; margin-top: 8px; }
+.qz-score { background: var(--ink-2); border-radius: 14px; padding: 16px 18px; display: grid; gap: 4px; justify-items: start; }
+.qz-score small { color: var(--muted); }
+.qz-score strong { font: 800 2.4rem "Bricolage Grotesque", sans-serif; line-height: 1.1; }
+.qz-review { padding-left: 22px; display: grid; gap: 6px; }
+@media (max-width: 700px) { .qz-setup .primary, #sqSubmit { width: 100%; } }
