@@ -538,41 +538,32 @@ Hugo</textarea>
       </div>
     </section>
 
-    <!-- Mises à jour -->
-    <section id="updates" class="panel">
-      <h1>Les mises à jour.</h1>
-      <p class="sub">Toutes les nouveautés de Clippo, de la plus récente à la plus ancienne.</p>
+       <!-- Quiz du cours -->
+    <section id="scanquiz" class="panel">
+      <h1>Scanne ton cours, révise.</h1>
+      <p class="sub">Prends ton cours en photo : Clippo lit le texte et crée un quiz. Tout se fait sur ton appareil.</p>
 
-      <div class="timeline">
-        <article class="upd-item latest">
-          <time datetime="2026-10-20">20 octobre 2026</time>
-          <h3>Nouveau : le Quiz du cours</h3>
-          <ul>
-            <li><span class="tag new">Nouveau</span><span>Quiz du cours : scanne ton cours en photo, Clippo crée un quiz, te note sur 20 et te dit quoi revoir.</span></li>
-          </ul>
-        </article>
+      <div class="card">
+        <div id="sqSetup" class="qz-setup">
+          <label id="sqDrop" class="drop">
+            <input id="sqFile" type="file" accept="image/*" multiple hidden>
+            <strong>Ajoute des photos de ton cours</strong>
+            <span>Jusqu'à 3 photos, nettes et bien éclairées</span>
+          </label>
+          <textarea id="sqText" class="fancy-in" rows="8" placeholder="Le texte lu apparaît ici. Tu peux aussi coller ton cours directement, et corriger les erreurs de lecture."></textarea>
+          <button id="sqGo" class="primary">Créer mon quiz</button>
+        </div>
 
-        <article class="upd-item">
-          <time datetime="2026-10-19">19 octobre 2026</time>
-          <h3>Flashcards et icône d'application</h3>
-          <ul>
-            <li><span class="tag new">Nouveau</span><span>Les flashcards dans la catégorie Éducatif : crée tes cartes et révise-les.</span></li>
-            <li><span class="tag new">Nouveau</span><span>Ajoute Clippo à l'écran d'accueil de ton téléphone avec son vrai logo.</span></li>
-            <li><span class="tag better">Amélioré</span><span>Un logo plus grand et une icône d'onglet plus lisible.</span></li>
-          </ul>
-        </article>
+        <div id="sqRun" hidden>
+          <div id="sqForm" class="qz-form"></div>
+          <button id="sqSubmit" class="primary">Terminer et corriger</button>
+          <div id="sqResult" hidden></div>
+        </div>
 
-        <article class="upd-item">
-          <time datetime="2026-10-16">16 octobre 2026</time>
-          <h3>Lancement de Clippo</h3>
-          <ul>
-            <li><span class="tag new">Nouveau</span><span>Les premiers outils : MP3, détourage, texte stylé, QR code, Pomodoro et bien d'autres.</span></li>
-          </ul>
-        </article>
+        <p id="sqStatus" class="status" role="status"></p>
+        <p class="gr-note">Tes photos et ton texte restent sur ton appareil. Le quiz est créé à partir des phrases de ton cours : relis toujours ton cours pour vérifier.</p>
       </div>
     </section>
-
-  </main>
   
     <!-- BOUTON DE DON (facultatif) : pour l'activer, remplace TON_PSEUDO par ton lien, puis supprime la ligne qui contient seulement l'ouverture du commentaire juste en dessous et celle qui contient seulement sa fermeture. -->
     
