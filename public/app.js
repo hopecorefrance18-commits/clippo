@@ -1453,3 +1453,221 @@ sqSubmit.addEventListener("click", () => {
   sqResult.hidden = false;
   sqResult.scrollIntoView({ behavior: "smooth", block: "start" });
 });
+
+// ---------- Flouter une image (dans le navigateur) ----------
+const blDrop = $("blDrop"), blFile = $("blFile"), blWork = $("blWork"), blCanvas = $("blCanvas"), blStatus = $("blStatus");
+const blTool = $("blTool"), blEffect = $("blEffect"), blShape = $("blShape"), blSize = $("blSize"), blPower = $("blPower");
+const blUndo = $("blUndo"), blApplyAll = $("blApplyAll");
+const blCtx = blCanvas.getContext("2d");
+const BL_MAX = 1600, BL_UNDO = 6;
+let blHistory = [], blOriginal = null, blName = "image", blDrag = null;
+
+function blMessage(msg, isError = false) {
+  blStatus.textContent = msg;
+  blStatus.classList.toggle("error", isError);
+}
+
+function blUi() {
+  const t = blTool.value;
+  $("blShapeBox").hidden = t !== "brush";
+  $("blSizeBox").hidden = t !== "brush";
+  $("blPowerBox").hidden = blEffect.value === "black";
+  blApplyAll.hidden = t !== "all";
+  blUndo.disabled = !blHistory.length;
+  blCanvas.style.cursor = t === "all" ? "default" : "crosshair";
+  blCanvas.style.touchAction = t === "all" ? "auto" : "none";
+}
+
+function blPush(snap) {
+  blHistory.push(snap || blCtx.getImageData(0, 0, blCanvas.width, blCanvas.height));
+  if (blHistory.length > BL_UNDO) blHistory.shift();
+}
+
+function blLoad(file) {
+  if (!file || !file.type.startsWith("image/")) return blMessage("Choisis un fichier image.", true);
+  const url = URL.createObjectURL(file);
+  const img = new Image();
+  img.onload = () => {
+    const s = Math.min(1, BL_MAX / Math.max(img.naturalWidth, img.naturalHeight));
+    blCanvas.width = Math.max(1, Math.round(img.naturalWidth * s));
+    blCanvas.height = Math.max(1, Math.round(img.naturalHeight * s));
+    blCtx.drawImage(img, 0, 0, blCanvas.width, blCanvas.height);
+    URL.revokeObjectURL(url);
+    blOriginal = blCtx.getImageData(0, 0, blCanvas.width, blCanvas.height);
+    blHistory = [];
+    blName = file.name.replace(/\.[^.]+$/, "") || "image";
+    blWork.hidden = false;
+    blUi();
+    blMessage("Choisis un outil, puis dessine sur l'image pour la flouter.");
+  };
+  img.onerror = () => { URL.revokeObjectURL(url); blMessage("Impossible de lire cette image.", true); };
+  img.src = url;
+}
+
+// Crée une copie de l'image avec l'effet choisi (flou, pixelisé ou noir)
+function blMakeEffect() {
+  const w = blCanvas.width, h = blCanvas.height;
+  const unit = Math.max(w, h) / 1000;
+  const p = parseInt(blPower.value, 10);
+  const fx = document.createElement("canvas");
+  fx.width = w; fx.height = h;
+  const c = fx.getContext("2d");
+  const kind = blEffect.value;
+
+  if (kind === "black") {
+    c.fillStyle = "#000";
+    c.fillRect(0, 0, w, h);
+    return fx;
+  }
+  if (kind === "pixel") {
+    const size = Math.max(3, Math.round(p * unit * 1.2));
+    const sw = Math.max(1, Math.ceil(w / size)), sh = Math.max(1, Math.ceil(h / size));
+    const t = document.createElement("canvas");
+    t.width = sw; t.height = sh;
+    const tc = t.getContext("2d");
+    tc.imageSmoothingQuality = "high";
+    tc.drawImage(blCanvas, 0, 0, sw, sh);
+    c.imageSmoothingEnabled = false;
+    c.drawImage(t, 0, 0, sw, sh, 0, 0, sw * size, sh * size);
+    return fx;
+  }
+  const blur = Math.max(1, p * unit);
+  if (typeof c.filter === "string") {
+    const pad = Math.ceil(blur * 2); // évite les bords transparents
+    c.filter = `blur(${blur}px)`;
+    c.drawImage(blCanvas, -pad, -pad, w + pad * 2, h + pad * 2);
+    c.filter = "none";
+  } else { // navigateurs sans filtre canvas : flou par réduction
+    const f = Math.max(2, blur);
+    const sw = Math.max(1, Math.round(w / f)), sh = Math.max(1, Math.round(h / f));
+    const t = document.createElement("canvas");
+    t.width = sw; t.height = sh;
+    const tc = t.getContext("2d");
+    tc.imageSmoothingQuality = "high";
+    tc.drawImage(blCanvas, 0, 0, sw, sh);
+    c.imageSmoothingQuality = "high";
+    c.drawImage(t, 0, 0, sw, sh, 0, 0, w, h);
+  }
+  return fx;
+}
+
+function blPos(e) {
+  const r = blCanvas.getBoundingClientRect();
+  const k = blCanvas.width / r.width;
+  return { x: (e.clientX - r.left) * k, y: (e.clientY - r.top) * k, k };
+}
+
+function blStamp(fx, x, y, r, shape) {
+  blCtx.save();
+  blCtx.beginPath();
+  if (shape === "square") blCtx.rect(x - r, y - r, r * 2, r * 2);
+  else blCtx.arc(x, y, r, 0, Math.PI * 2);
+  blCtx.clip();
+  blCtx.drawImage(fx, 0, 0);
+  blCtx.restore();
+}
+
+function blShapePath(tool, a, b) {
+  const x = Math.min(a.x, b.x), y = Math.min(a.y, b.y);
+  const w = Math.abs(b.x - a.x), h = Math.abs(b.y - a.y);
+  blCtx.beginPath();
+  if (tool === "ellipse") blCtx.ellipse(x + w / 2, y + h / 2, w / 2, h / 2, 0, 0, Math.PI * 2);
+  else blCtx.rect(x, y, w, h);
+}
+
+blCanvas.addEventListener("pointerdown", (e) => {
+  if (!blOriginal || blTool.value === "all") return;
+  e.preventDefault();
+  blCanvas.setPointerCapture(e.pointerId);
+  const p = blPos(e);
+  const snap = blCtx.getImageData(0, 0, blCanvas.width, blCanvas.height);
+  blPush(snap);
+  blDrag = { tool: blTool.value, snap, start: p, last: p, fx: blMakeEffect(), r: (parseInt(blSize.value, 10) * p.k) / 2, shape: blShape.value };
+  if (blDrag.tool === "brush") blStamp(blDrag.fx, p.x, p.y, blDrag.r, blDrag.shape);
+  blUi();
+});
+
+blCanvas.addEventListener("pointermove", (e) => {
+  if (!blDrag) return;
+  const p = blPos(e), d = blDrag;
+  if (d.tool === "brush") {
+    const dx = p.x - d.last.x, dy = p.y - d.last.y;
+    const n = Math.ceil(Math.hypot(dx, dy) / Math.max(1, d.r / 3));
+    for (let i = 1; i <= n; i++) blStamp(d.fx, d.last.x + (dx * i) / n, d.last.y + (dy * i) / n, d.r, d.shape);
+  } else {
+    blCtx.putImageData(d.snap, 0, 0);
+    blCtx.save();
+    blShapePath(d.tool, d.start, p);
+    blCtx.lineWidth = 3 * p.k;
+    blCtx.strokeStyle = "#000";
+    blCtx.setLineDash([8 * p.k, 6 * p.k]);
+    blCtx.stroke();
+    blCtx.lineWidth = 1.5 * p.k;
+    blCtx.strokeStyle = "#fff";
+    blCtx.stroke();
+    blCtx.restore();
+  }
+  d.last = p;
+});
+
+function blEnd(e, cancel) {
+  if (!blDrag) return;
+  const d = blDrag;
+  blDrag = null;
+  if (d.tool !== "brush") {
+    blCtx.putImageData(d.snap, 0, 0);
+    const p = blPos(e);
+    if (cancel || Math.abs(p.x - d.start.x) < 3 || Math.abs(p.y - d.start.y) < 3) {
+      blHistory.pop();
+    } else {
+      blCtx.save();
+      blShapePath(d.tool, d.start, p);
+      blCtx.clip();
+      blCtx.drawImage(d.fx, 0, 0);
+      blCtx.restore();
+    }
+  }
+  blUi();
+}
+blCanvas.addEventListener("pointerup", (e) => blEnd(e, false));
+blCanvas.addEventListener("pointercancel", (e) => blEnd(e, true));
+
+blApplyAll.addEventListener("click", () => {
+  if (!blOriginal) return;
+  blPush();
+  blCtx.drawImage(blMakeEffect(), 0, 0);
+  blUi();
+  blMessage("Effet appliqué à toute l'image.");
+});
+blUndo.addEventListener("click", () => {
+  const snap = blHistory.pop();
+  if (snap) blCtx.putImageData(snap, 0, 0);
+  blUi();
+});
+$("blReset").addEventListener("click", () => {
+  if (!blOriginal) return;
+  blCtx.putImageData(blOriginal, 0, 0);
+  blHistory = [];
+  blUi();
+  blMessage("Image réinitialisée.");
+});
+$("blSave").addEventListener("click", () => {
+  if (!blOriginal) return;
+  blCanvas.toBlob((b) => {
+    if (!b) return blMessage("Impossible de créer l'image.", true);
+    const url = URL.createObjectURL(b);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = blName + "-flou.png";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  }, "image/png");
+});
+
+[blTool, blEffect].forEach((el) => el.addEventListener("change", blUi));
+blFile.addEventListener("change", () => blLoad(blFile.files[0]));
+["dragenter", "dragover"].forEach((ev) => blDrop.addEventListener(ev, (e) => { e.preventDefault(); blDrop.classList.add("over"); }));
+["dragleave", "drop"].forEach((ev) => blDrop.addEventListener(ev, (e) => { e.preventDefault(); blDrop.classList.remove("over"); }));
+blDrop.addEventListener("drop", (e) => blLoad(e.dataTransfer.files[0]));
