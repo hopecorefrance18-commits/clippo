@@ -1219,7 +1219,7 @@ async function checkVersion() {
 }
 
 checkVersion();
-setInterval(checkVersion, 60000);
+setInterval(checkVersion, 15000);
 document.addEventListener("visibilitychange", () => { if (!document.hidden) checkVersion(); });
 
 // ---------- Clic sur le logo : rechargement complet ----------
