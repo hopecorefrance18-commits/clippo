@@ -1357,6 +1357,62 @@ function sqBuild(text) {
     return { type: "qcm", blank, answer: it.answer, sentence: it.sentence, choices, correct: choices.indexOf(it.answer) };
   });
 }
-    const choices = sqShuffle([it.answer, ...dist]);
-    return { type: "qcm", blank, answer: it.answer, sentence: it.sentence, choices, correct: choices.indexOf(it.answer) };
+    
+function sqShowQuiz() {
+  sqSetup.hidden = true;
+  sqRun.hidden = false;
+  sqResult.hidden = true;
+  sqSubmit.hidden = false;
+  sqForm.innerHTML = "";
+  sqQuestions.forEach((q, i) => {
+    const box = sqEl("div", "qz-q");
+    box.appendChild(sqEl("strong", "", `${i + 1}. ${q.prompt || "Complète"} : ${q.blank}`));
+    if (q.type === "qcm") {
+      q.choices.forEach((c, k) => {
+        const lab = sqEl("label", "qz-choice");
+        const r = document.createElement("input");
+        r.type = "radio"; r.name = "sq" + i; r.value = String(k);
+        lab.append(r, sqEl("span", "", c));
+        box.appendChild(lab);
+      });
+    } else {
+      const t = document.createElement("input");
+      t.type = "text"; t.className = "text-in"; t.name = "sq" + i; t.maxLength = 60;
+      t.placeholder = "Écris le mot qui manque…"; t.autocomplete = "off";
+      box.appendChild(t);
+    }
+    sqForm.appendChild(box);
   });
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+sqGo.addEventListener("click", () => {
+  const text = sqText.value.trim();
+  if (text.length < 200) return sqMessage("Le texte est trop court pour faire un quiz (200 caractères minimum).", true);
+  sqQuestions = sqBuild(text);
+  if (sqQuestions.length < 3) return sqMessage("Je n'ai pas trouvé assez de phrases complètes. Vérifie la ponctuation du texte ou ajoute plus de cours.", true);
+  sqMessage("");
+  sqShowQuiz();
+});
+
+// --- Correction ---
+sqSubmit.addEventListener("click", () => {
+  const given = sqQuestions.map((q, i) => {
+    if (q.type === "qcm") {
+      const c = sqForm.querySelector(`input[name="sq${i}"]:checked`);
+      return c ? parseInt(c.value, 10) : null;
+    }
+    return sqForm.querySelector(`input[name="sq${i}"]`).value.trim();
+  });
+  const ok = sqQuestions.map((q, i) => {
+    if (q.type === "qcm") return given[i] === q.correct;
+    const n = sqNorm(given[i] || ""), a = sqNorm(q.answer);
+    return !!n && (n === a || (a.length >= 5 && sqLev(n, a) <= 1));
+  });
+  const good = ok.filter(Boolean).length;
+  const note = (good / sqQuestions.length) * 20;
+
+  sqResult.innerHTML = "";
+  const head = sqEl("div", "qz-score");
+  head.append(sqEl("small", "", "Ta note"), sqEl("strong", "", grFmt(note) + " / 20"),
+    sqEl("span", "gr-info", `${good} bonne${good > 1 ? "s"
