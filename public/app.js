@@ -1341,18 +1341,22 @@ function sqBuild(text) {
   const items = [];
   sentences.forEach((s) => { const k = sqPickKeyword(s); if (k) items.push({ sentence: s, answer: k }); });
   const pool = [...new Set(items.map((i) => i.answer))];
-    return sqShuffle(items).slice(0, 10).map((it, i) => {
+  return sqShuffle(items).slice(0, 10).map((it, i) => {
     const blank = it.sentence.split(it.answer).join("_____");
     const dist = pool
       .filter((w) => sqNorm(w) !== sqNorm(it.answer))
       .map((w) => ({ w, k: Math.abs(w.length - it.answer.length) + Math.random() * 3 }))
       .sort((a, b) => a.k - b.k).slice(0, 3).map((x) => x.w);
     if (dist.length < 3 || i % 4 === 3) return { type: "open", blank, answer: it.answer, sentence: it.sentence };
-    if (i % 4 === 1) { // vrai ou faux
+    if (i % 4 === 1) {
       const isTrue = Math.random() < 0.5;
       const shown = isTrue ? it.sentence : it.sentence.split(it.answer).join(dist[0]);
       return { type: "qcm", prompt: "Vrai ou faux ?", blank: shown, answer: isTrue ? "Vrai" : "Faux", sentence: it.sentence, choices: ["Vrai", "Faux"], correct: isTrue ? 0 : 1 };
     }
+    const choices = sqShuffle([it.answer, ...dist]);
+    return { type: "qcm", blank, answer: it.answer, sentence: it.sentence, choices, correct: choices.indexOf(it.answer) };
+  });
+}
     const choices = sqShuffle([it.answer, ...dist]);
     return { type: "qcm", blank, answer: it.answer, sentence: it.sentence, choices, correct: choices.indexOf(it.answer) };
   });
