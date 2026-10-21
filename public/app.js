@@ -1412,7 +1412,44 @@ sqSubmit.addEventListener("click", () => {
   const good = ok.filter(Boolean).length;
   const note = (good / sqQuestions.length) * 20;
 
-  sqResult.innerHTML = "";
+    sqResult.innerHTML = "";
   const head = sqEl("div", "qz-score");
   head.append(sqEl("small", "", "Ta note"), sqEl("strong", "", grFmt(note) + " / 20"),
-    sqEl("span", "gr-info", `${good} bonne${good > 1 ? "s"
+    sqEl("span", "gr-info", `${good} bonne${good > 1 ? "s" : ""} réponse${good > 1 ? "s" : ""} sur ${sqQuestions.length} · ${grMention(note)}`));
+  sqResult.appendChild(head);
+
+  const wrong = sqQuestions.filter((_, i) => !ok[i]);
+  if (wrong.length) {
+    sqResult.appendChild(sqEl("h3", "fc-title", "À revoir dans ton cours"));
+    const ul = sqEl("ul", "qz-review");
+    wrong.forEach((q) => ul.appendChild(sqEl("li", "", q.sentence)));
+    sqResult.appendChild(ul);
+  } else {
+    sqResult.appendChild(sqEl("p", "", "Bravo, tout est juste ! 🎉"));
+  }
+
+  sqResult.appendChild(sqEl("h3", "fc-title", "Correction détaillée"));
+  sqQuestions.forEach((q, i) => {
+    const box = sqEl("div", "qz-q " + (ok[i] ? "good" : "bad"));
+    box.appendChild(sqEl("strong", "", `${ok[i] ? "✅" : "❌"} ${i + 1}. ${q.blank}`));
+    const mine = q.type === "qcm" ? (given[i] === null ? "aucune" : q.choices[given[i]]) : (given[i] || "aucune");
+    box.appendChild(sqEl("p", "", "Ta réponse : " + mine));
+    if (!ok[i]) {
+      box.appendChild(sqEl("p", "qz-exp", "Bonne réponse : " + q.answer));
+      box.appendChild(sqEl("p", "qz-exp", "Dans ton cours : " + q.sentence));
+    }
+    sqResult.appendChild(box);
+  });
+
+  const row = sqEl("div", "row");
+  const again = sqEl("button", "ghost-btn", "Nouveau quiz sur ce cours");
+  again.addEventListener("click", () => { sqQuestions = sqBuild(sqText.value); sqShowQuiz(); });
+  const fresh = sqEl("button", "ghost-btn", "Nouveau cours");
+  fresh.addEventListener("click", () => { sqText.value = ""; sqRun.hidden = true; sqSetup.hidden = false; sqMessage(""); });
+  row.append(again, fresh);
+  sqResult.appendChild(row);
+
+  sqSubmit.hidden = true;
+  sqResult.hidden = false;
+  sqResult.scrollIntoView({ behavior: "smooth", block: "start" });
+});
