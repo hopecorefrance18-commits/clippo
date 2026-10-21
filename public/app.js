@@ -1213,7 +1213,7 @@ async function checkVersion() {
       updating = true;
       try { localStorage.setItem(VERSION_KEY, latest); } catch { /* ignoré */ }
       showUpdateOverlay();
-      setTimeout(() => location.reload(), 2000);
+      setTimeout(() => location.reload(), 800);
     }
   } catch { /* hors ligne : on réessaiera plus tard */ }
 }
