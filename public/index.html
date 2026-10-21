@@ -55,6 +55,7 @@
           <button class="tab" data-tab="mp3">Extraire le MP3</button>
           <button class="tab" data-tab="cutout">Détourer une image</button>
           <button class="tab" data-tab="convert">Convertir une image</button>
+                    <button class="tab" data-tab="blur">Flouter une image</button>
         </div>
         <div class="subgroup" data-cat="creators" hidden>
           <button class="tab" data-tab="fancy">Texte stylé</button>
@@ -97,6 +98,7 @@
           <button class="tool-card" data-go="mp3"><strong>Extraire le MP3</strong><span>Récupère le son d'une vidéo.</span></button>
           <button class="tool-card" data-go="cutout"><strong>Détourer une image</strong><span>Retire l'arrière-plan d'une photo.</span></button>
           <button class="tool-card" data-go="convert"><strong>Convertir une image</strong><span>PNG, JPG ou WEBP, en quelques secondes.</span></button>
+                    <button class="tool-card" data-go="blur"><strong>Flouter une image</strong><span>Cache un visage ou un texte, au pinceau.</span></button>
         </div>
 
         <h3 class="tool-cat">✨ Créateurs</h3>
@@ -545,7 +547,63 @@ Hugo</textarea>
         </article>
       </div>
     </section>
+    <!-- Flouter une image -->
+    <section id="blur" class="panel">
+      <h1>Floute ce que tu veux.</h1>
+      <p class="sub">Ajoute une photo, puis floute toute l'image ou seulement une zone. Tout se fait sur ton appareil.</p>
 
+      <div class="card">
+        <label id="blDrop" class="drop">
+          <input id="blFile" type="file" accept="image/*" hidden>
+          <strong>Dépose ton image ici</strong>
+          <span>ou clique pour la choisir (PNG, JPG, WEBP)</span>
+        </label>
+
+        <div id="blWork" hidden>
+          <div class="row bl-tools">
+            <label class="select"><span>Outil</span>
+              <select id="blTool">
+                <option value="brush">Pinceau</option>
+                <option value="rect">Rectangle</option>
+                <option value="ellipse">Ellipse</option>
+                <option value="all">Toute l'image</option>
+              </select>
+            </label>
+            <label class="select"><span>Effet</span>
+              <select id="blEffect">
+                <option value="blur">Flou</option>
+                <option value="pixel">Pixelisé</option>
+                <option value="black">Noircir</option>
+              </select>
+            </label>
+            <label id="blShapeBox" class="select"><span>Forme du pinceau</span>
+              <select id="blShape">
+                <option value="round">Rond</option>
+                <option value="square">Carré</option>
+              </select>
+            </label>
+            <label id="blSizeBox" class="select"><span>Taille du pinceau</span>
+              <input id="blSize" type="range" min="10" max="150" value="50">
+            </label>
+            <label id="blPowerBox" class="select"><span>Intensité</span>
+              <input id="blPower" type="range" min="2" max="40" value="16">
+            </label>
+          </div>
+
+          <div class="bl-stage"><canvas id="blCanvas" width="10" height="10"></canvas></div>
+
+          <div class="row bl-actions">
+            <button id="blApplyAll" class="primary" hidden>Appliquer à toute l'image</button>
+            <button id="blUndo" class="ghost-btn" disabled>↩ Annuler</button>
+            <button id="blReset" class="ghost-btn">Tout réinitialiser</button>
+            <button id="blSave" class="primary">Télécharger le PNG</button>
+          </div>
+        </div>
+
+        <p id="blStatus" class="status" role="status"></p>
+        <p class="gr-note">Ta photo reste sur ton appareil. Pour cacher une information sensible (nom, plaque, adresse), utilise l'effet « Noircir » ou un flou fort : un flou léger peut parfois être deviné. L'image est réduite à 1600 px maximum.</p>
+      </div>
+    </section>
   </main>
 
   <footer class="foot">
