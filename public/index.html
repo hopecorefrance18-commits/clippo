@@ -201,6 +201,17 @@
               <option value="0.55">Légère (petit fichier)</option>
             </select>
           </label>
+                    <label class="select">
+            <span>Taille maximale</span>
+            <select id="cvMax">
+              <option value="0" selected>Taille d'origine</option>
+              <option value="2560">2560 px</option>
+              <option value="1920">1920 px (Full HD)</option>
+              <option value="1280">1280 px</option>
+              <option value="800">800 px</option>
+              <option value="480">480 px</option>
+            </select>
+          </label>
         </div>
 
         <label id="cvDrop" class="drop">
@@ -214,6 +225,7 @@
           <a id="cvSave" class="primary" href="#" download="clippo.png">Télécharger</a>
         </div>
         <p id="cvStatus" class="status" role="status"></p>
+                <p class="gr-note">L'image téléchargée ne contient plus les infos cachées de la photo d'origine (position GPS, date, modèle de téléphone). Ton image reste sur ton appareil.</p>
       </div>
     </section>
 
