@@ -219,7 +219,40 @@
           <strong>Dépose ton image ici</strong>
           <span>ou clique pour la choisir</span>
         </label>
-
+        <div id="cvPanel" class="cv-panel" hidden>
+          <div class="row cv-tools">
+            <label class="check"><input id="cvCropOn" type="checkbox"> Recadrer</label>
+            <label class="select">
+              <span>Format du cadre</span>
+              <select id="cvAspect">
+                <option value="free" selected>Libre</option>
+                <option value="1:1">Carré (1:1)</option>
+                <option value="16:9">16:9 (YouTube)</option>
+                <option value="9:16">9:16 (TikTok)</option>
+                <option value="4:3">4:3</option>
+                <option value="3:4">3:4</option>
+              </select>
+            </label>
+            <button id="cvTurnL" class="ghost-btn" type="button">↺ Pivoter</button>
+            <button id="cvTurnR" class="ghost-btn" type="button">↻ Pivoter</button>
+            <button id="cvMirror" class="ghost-btn" type="button">⇋ Miroir</button>
+            <button id="cvUndo" class="ghost-btn" type="button">Réinitialiser</button>
+          </div>
+          <div class="cv-stage">
+            <div class="cv-pad">
+              <div id="cvStageWrap" class="cv-wrap">
+                <canvas id="cvStage" width="10" height="10"></canvas>
+                <div id="cvBox" class="cv-box" hidden>
+                  <i class="cv-h nw" data-h="nw"></i>
+                  <i class="cv-h ne" data-h="ne"></i>
+                  <i class="cv-h sw" data-h="sw"></i>
+                  <i class="cv-h se" data-h="se"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+          <p id="cvCropInfo" class="gr-note"></p>
+        </div>
         <div id="cvResult" class="cv-result" hidden>
           <img id="cvPreview" alt="Image convertie">
           <a id="cvSave" class="primary" href="#" download="clippo.png">Télécharger</a>
