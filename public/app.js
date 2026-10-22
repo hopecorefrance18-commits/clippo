@@ -1671,3 +1671,126 @@ blFile.addEventListener("change", () => blLoad(blFile.files[0]));
 ["dragenter", "dragover"].forEach((ev) => blDrop.addEventListener(ev, (e) => { e.preventDefault(); blDrop.classList.add("over"); }));
 ["dragleave", "drop"].forEach((ev) => blDrop.addEventListener(ev, (e) => { e.preventDefault(); blDrop.classList.remove("over"); }));
 blDrop.addEventListener("drop", (e) => blLoad(e.dataTransfer.files[0]));
+
+// ---------- Améliorer une image (dans le navigateur) ----------
+const upDrop = $("upDrop"), upFile = $("upFile"), upStatus = $("upStatus"), upResult = $("upResult");
+const upScale = $("upScale"), upSharp = $("upSharp"), upDenoise = $("upDenoise"), upBoost = $("upBoost");
+const upSave = $("upSave"), upSaveRow = $("upSaveRow");
+let upCurrent = null, upBusy = false, upBeforeUrl = null, upAfterUrl = null;
+
+function upMessage(msg, isError = false) {
+  upStatus.textContent = msg;
+  upStatus.classList.toggle("error", isError);
+}
+const upPause = () => new Promise((r) => setTimeout(r, 20));
+
+function upSharpen(canvas, a) {
+  const w = canvas.width, h = canvas.height;
+  if (a <= 0 || w < 3 || h < 3) return;
+  const ctx = canvas.getContext("2d");
+  const src = ctx.getImageData(0, 0, w, h);
+  const out = ctx.createImageData(w, h);
+  const s = src.data, d = out.data;
+  d.set(s);
+  const k = 1 + 4 * a, row = w * 4;
+  for (let y = 1; y < h - 1; y++) {
+    for (let x = 1; x < w - 1; x++) {
+      const i = (y * w + x) * 4;
+      for (let c = 0; c < 3; c++) {
+        const j = i + c;
+        const v = s[j] * k - a * (s[j - 4] + s[j + 4] + s[j - row] + s[j + row]);
+        d[j] = v < 0 ? 0 : v > 255 ? 255 : v;
+      }
+    }
+  }
+  ctx.putImageData(out, 0, 0);
+}
+
+async function upEnhance(file) {
+  if (!file || !file.type.startsWith("image/")) return upMessage("Choisis un fichier image.", true);
+  if (upBusy) return;
+  upBusy = true;
+  upCurrent = file;
+  upMessage("Lecture de l'image…");
+  const srcUrl = URL.createObjectURL(file);
+  try {
+    const img = await new Promise((resolve, reject) => {
+      const im = new Image();
+      im.onload = () => resolve(im);
+      im.onerror = () => reject(new Error("Impossible de lire cette image."));
+      im.src = srcUrl;
+    });
+    const w0 = img.naturalWidth, h0 = img.naturalHeight;
+    const maxSide = window.matchMedia("(max-width: 700px)").matches ? 2560 : 4096;
+    let factor = parseInt(upScale.value, 10);
+    factor = Math.min(factor, maxSide / Math.max(w0, h0));
+    if (factor < 1) factor = 1; // image déjà très grande : netteté seulement
+    const finalW = Math.round(w0 * factor), finalH = Math.round(h0 * factor);
+
+    // 1. image de départ (réduction légère des défauts de compression)
+    let cur = document.createElement("canvas");
+    cur.width = w0; cur.height = h0;
+    let c = cur.getContext("2d");
+    if (upDenoise.checked && typeof c.filter === "string") c.filter = "blur(0.6px)";
+    c.drawImage(img, 0, 0);
+    c.filter = "none";
+
+    // 2. agrandissement par étapes de ×2 maximum (rendu plus doux qu'un seul grand saut)
+    while (cur.width < finalW || cur.height < finalH) {
+      upMessage(`Agrandissement… ${cur.width} × ${cur.height}`);
+      await upPause();
+      const nw = Math.min(finalW, Math.round(cur.width * 2));
+      const nh = Math.min(finalH, Math.round(cur.height * 2));
+      const next = document.createElement("canvas");
+      next.width = nw; next.height = nh;
+      const nc = next.getContext("2d");
+      nc.imageSmoothingEnabled = true;
+      nc.imageSmoothingQuality = "high";
+      nc.drawImage(cur, 0, 0, nw, nh);
+      cur = next;
+    }
+
+    // 3. netteté
+    upMessage("Accentuation des détails…");
+    await upPause();
+    upSharpen(cur, parseFloat(upSharp.value));
+
+    // 4. couleurs
+    if (upBoost.checked && typeof c.filter === "string") {
+      const col = document.createElement("canvas");
+      col.width = cur.width; col.height = cur.height;
+      const cc = col.getContext("2d");
+      cc.filter = "contrast(1.08) saturate(1.15) brightness(1.02)";
+      cc.drawImage(cur, 0, 0);
+      cur = col;
+    }
+
+    const blob = await new Promise((resolve) => cur.toBlob(resolve, "image/png"));
+    if (!blob) throw new Error("Ton navigateur n'a pas pu créer l'image. Essaie un agrandissement plus petit.");
+    if (upBeforeUrl) URL.revokeObjectURL(upBeforeUrl);
+    if (upAfterUrl) URL.revokeObjectURL(upAfterUrl);
+    upBeforeUrl = srcUrl;
+    upAfterUrl = URL.createObjectURL(blob);
+    $("upBefore").src = upBeforeUrl;
+    $("upAfter").src = upAfterUrl;
+    $("upBeforeCap").textContent = `Avant (${w0} × ${h0})`;
+    $("upAfterCap").textContent = `Après (${cur.width} × ${cur.height})`;
+    upSave.href = upAfterUrl;
+    upSave.download = file.name.replace(/\.[^.]+$/, "") + "-ameliore.png";
+    upResult.hidden = false;
+    upSaveRow.hidden = false;
+    upMessage(factor === 1 ? "Terminé ! L'image était déjà très grande : seule la netteté a été améliorée." : "Terminé ! Ton image est prête.");
+  } catch (e) {
+    console.error(e);
+    URL.revokeObjectURL(srcUrl);
+    upMessage(e.message || "L'amélioration a échoué. Essaie une image plus petite.", true);
+  } finally {
+    upBusy = false;
+  }
+}
+
+upFile.addEventListener("change", () => upEnhance(upFile.files[0]));
+[upScale, upSharp, upDenoise, upBoost].forEach((el) => el.addEventListener("change", () => { if (upCurrent) upEnhance(upCurrent); }));
+["dragenter", "dragover"].forEach((ev) => upDrop.addEventListener(ev, (e) => { e.preventDefault(); upDrop.classList.add("over"); }));
+["dragleave", "drop"].forEach((ev) => upDrop.addEventListener(ev, (e) => { e.preventDefault(); upDrop.classList.remove("over"); }));
+upDrop.addEventListener("drop", (e) => upEnhance(e.dataTransfer.files[0]));
