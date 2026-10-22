@@ -510,3 +510,8 @@ button, label, a { -webkit-tap-highlight-color: transparent; touch-action: manip
 #enhance .results img { background: conic-gradient(#3a3366 25%, #2a2450 0 50%, #3a3366 0 75%, #2a2450 0) 0 0 / 20px 20px; }
 #upSaveRow { justify-content: center; }
 #upSave { margin-left: 0; }
+
+/* --- Générateur de bio --- */
+#bio h1, #bio .sub { text-align: center; }
+#biGo { margin-left: 0; justify-self: start; }
+@media (max-width: 700px) { #biGo { width: 100%; } }
