@@ -167,6 +167,7 @@ const cvDrop = $("cvDrop"), cvFile = $("cvFile"), cvFormat = $("cvFormat"), cvQu
 const cvResult = $("cvResult"), cvPreview = $("cvPreview"), cvSave = $("cvSave"), cvStatus = $("cvStatus");
 const CV_EXT = { "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp" };
 let cvCurrent = null, cvUrl = null;
+const cvMax = $("cvMax");
 
 function cvSize(bytes) {
   return bytes >= 1048576 ? (bytes / 1048576).toFixed(1) + " Mo" : Math.max(1, Math.round(bytes / 1024)) + " Ko";
@@ -185,14 +186,17 @@ function convertImage(file) {
   const img = new Image();
   img.onload = () => {
     const canvas = document.createElement("canvas");
-    canvas.width = img.naturalWidth;
-    canvas.height = img.naturalHeight;
+       const maxPx = parseInt(cvMax.value, 10) || 0;
+    const scale = maxPx ? Math.min(1, maxPx / Math.max(img.naturalWidth, img.naturalHeight)) : 1;
+    canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
+    canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
     const ctx = canvas.getContext("2d");
     if (mime === "image/jpeg") { // le JPG n'a pas de transparence : fond blanc
       ctx.fillStyle = "#ffffff";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
-    ctx.drawImage(img, 0, 0);
+        ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
     URL.revokeObjectURL(srcUrl);
     canvas.toBlob((blob) => {
       if (!blob || blob.type !== mime) return cvMessage("Ton navigateur ne sait pas créer ce format.", true);
@@ -202,7 +206,7 @@ function convertImage(file) {
       cvSave.href = cvUrl;
       cvSave.download = file.name.replace(/\.[^.]+$/, "") + "." + CV_EXT[mime];
       cvResult.hidden = false;
-      cvMessage(`Terminé ! ${cvSize(file.size)} → ${cvSize(blob.size)}`);
+            cvMessage(`Terminé ! ${cvSize(file.size)} → ${cvSize(blob.size)} · ${canvas.width} × ${canvas.height} px · infos cachées supprimées`);
     }, mime, parseFloat(cvQuality.value));
   };
   img.onerror = () => cvMessage("Impossible de lire cette image.", true);
