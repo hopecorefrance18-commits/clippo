@@ -515,3 +515,13 @@ button, label, a { -webkit-tap-highlight-color: transparent; touch-action: manip
 #bio h1, #bio .sub { text-align: center; }
 #biGo { margin-left: 0; justify-self: start; }
 @media (max-width: 700px) { #biGo { width: 100%; } }
+
+/* --- Générateur de mot de passe --- */
+#password h1, #password .sub { text-align: center; }
+.pw-out { width: 100%; min-width: 0; text-align: center; font: 700 clamp(1.1rem, 4vw, 1.6rem) ui-monospace, "Consolas", monospace; letter-spacing: .04em; padding: 18px 14px; word-break: break-all; }
+#pwInfo { text-align: center; }
+.pw-actions { justify-content: center; align-items: center; }
+.pw-actions .primary { margin-left: 0; }
+.pw-checks { gap: 6px 18px; }
+#pwLen { width: 100%; accent-color: var(--pink); }
+@media (max-width: 700px) { .pw-actions .primary, .pw-actions .ghost-btn { width: 100%; } }
