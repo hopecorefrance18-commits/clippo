@@ -177,41 +177,192 @@ function cvMessage(msg, isError = false) {
   cvStatus.classList.toggle("error", isError);
 }
 
+// ---------- Convertir : lecture, recadrage, pivotement, export ----------
+const CV_MAX_SIDE = 6000;
+const cvPanel = $("cvPanel"), cvStage = $("cvStage"), cvStageWrap = $("cvStageWrap"), cvBox = $("cvBox");
+const cvCropOn = $("cvCropOn"), cvAspect = $("cvAspect"), cvCropInfo = $("cvCropInfo");
+let cvOrig = null, cvBase = null, cvRot = 0, cvFlip = false, cvJob = 0, cvDrag = null;
+let cvCrop = { x: 0, y: 0, w: 1, h: 1 }; // fractions de l'image (0 à 1)
+const cvClamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+function cvRatio() {
+  if (cvAspect.value === "free") return 0;
+  const [a, b] = cvAspect.value.split(":").map(Number);
+  return a / b;
+}
+
+function cvResetCrop() { // grand cadre centré, légèrement plus petit que l'image
+  const W = cvBase.width, H = cvBase.height, r = cvRatio();
+  let w = 1, h = 1;
+  if (r) {
+    if (W / H > r) w = (H * r) / W;
+    else h = W / r / H;
+  }
+  w *= 0.8; h *= 0.8;
+  cvCrop = { x: (1 - w) / 2, y: (1 - h) / 2, w, h };
+  cvBoxDraw();
+}
+
+function cvBoxDraw() {
+  const on = cvCropOn.checked && !!cvBase;
+  cvBox.hidden = !on;
+  if (!on) { cvCropInfo.textContent = ""; return; }
+  cvBox.style.left = cvCrop.x * 100 + "%";
+  cvBox.style.top = cvCrop.y * 100 + "%";
+  cvBox.style.width = cvCrop.w * 100 + "%";
+  cvBox.style.height = cvCrop.h * 100 + "%";
+  cvCropInfo.textContent = `Zone recadrée : ${Math.round(cvCrop.w * cvBase.width)} × ${Math.round(cvCrop.h * cvBase.height)} px`;
+}
+
+function cvRefreshBase() { // applique pivotement et miroir, puis dessine l'aperçu
+  const sw = cvOrig.width, sh = cvOrig.height, swap = cvRot % 2 === 1;
+  const c = document.createElement("canvas");
+  c.width = swap ? sh : sw;
+  c.height = swap ? sw : sh;
+  const x = c.getContext("2d");
+  x.translate(c.width / 2, c.height / 2);
+  x.scale(cvFlip ? -1 : 1, 1);
+  x.rotate((cvRot * Math.PI) / 2);
+  x.drawImage(cvOrig, -sw / 2, -sh / 2);
+  cvBase = c;
+  const k = Math.min(1, 900 / Math.max(c.width, c.height));
+  cvStage.width = Math.max(1, Math.round(c.width * k));
+  cvStage.height = Math.max(1, Math.round(c.height * k));
+  cvStage.getContext("2d").drawImage(c, 0, 0, cvStage.width, cvStage.height);
+  cvResetCrop();
+}
+
+function cvRender() { // recadre, réduit, convertit, puis affiche le résultat
+  if (!cvBase || !cvCurrent) return;
+  const file = cvCurrent, mime = cvFormat.value, job = ++cvJob;
+  const bw = cvBase.width, bh = cvBase.height;
+  let sx = 0, sy = 0, sw = bw, sh = bh;
+  if (cvCropOn.checked) {
+    sx = Math.round(cvCrop.x * bw);
+    sy = Math.round(cvCrop.y * bh);
+    sw = Math.max(1, Math.min(bw - sx, Math.round(cvCrop.w * bw)));
+    sh = Math.max(1, Math.min(bh - sy, Math.round(cvCrop.h * bh)));
+  }
+  const maxPx = parseInt(cvMax.value, 10) || 0;
+  const k = maxPx ? Math.min(1, maxPx / Math.max(sw, sh)) : 1;
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(sw * k));
+  canvas.height = Math.max(1, Math.round(sh * k));
+  const ctx = canvas.getContext("2d");
+  if (mime === "image/jpeg") { // le JPG n'a pas de transparence : fond blanc
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(cvBase, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+  cvMessage("Conversion…");
+  canvas.toBlob((blob) => {
+    if (job !== cvJob) return; // une réponse plus récente est en cours
+    if (!blob || blob.type !== mime) return cvMessage("Ton navigateur ne sait pas créer ce format.", true);
+    if (cvUrl) URL.revokeObjectURL(cvUrl);
+    cvUrl = URL.createObjectURL(blob);
+    cvPreview.src = cvUrl;
+    cvSave.href = cvUrl;
+    cvSave.download = file.name.replace(/\.[^.]+$/, "") + (cvCropOn.checked ? "-recadre" : "") + "." + CV_EXT[mime];
+    cvResult.hidden = false;
+    cvMessage(`Terminé ! ${cvSize(file.size)} → ${cvSize(blob.size)} · ${canvas.width} × ${canvas.height} px · infos cachées supprimées`);
+  }, mime, parseFloat(cvQuality.value));
+}
+
 function convertImage(file) {
   if (!file || !file.type.startsWith("image/")) return cvMessage("Choisis un fichier image.", true);
-  cvCurrent = file;
-  cvMessage("Conversion…");
-  const mime = cvFormat.value;
-  const srcUrl = URL.createObjectURL(file);
+  if (file === cvCurrent && cvBase) return cvRender(); // même photo : on recalcule seulement
+  cvMessage("Lecture de l'image…");
+  const url = URL.createObjectURL(file);
   const img = new Image();
   img.onload = () => {
-    const canvas = document.createElement("canvas");
-       const maxPx = parseInt(cvMax.value, 10) || 0;
-    const scale = maxPx ? Math.min(1, maxPx / Math.max(img.naturalWidth, img.naturalHeight)) : 1;
-    canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
-    canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
-    const ctx = canvas.getContext("2d");
-    if (mime === "image/jpeg") { // le JPG n'a pas de transparence : fond blanc
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-    }
-        ctx.imageSmoothingQuality = "high";
-    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-    URL.revokeObjectURL(srcUrl);
-    canvas.toBlob((blob) => {
-      if (!blob || blob.type !== mime) return cvMessage("Ton navigateur ne sait pas créer ce format.", true);
-      if (cvUrl) URL.revokeObjectURL(cvUrl);
-      cvUrl = URL.createObjectURL(blob);
-      cvPreview.src = cvUrl;
-      cvSave.href = cvUrl;
-      cvSave.download = file.name.replace(/\.[^.]+$/, "") + "." + CV_EXT[mime];
-      cvResult.hidden = false;
-            cvMessage(`Terminé ! ${cvSize(file.size)} → ${cvSize(blob.size)} · ${canvas.width} × ${canvas.height} px · infos cachées supprimées`);
-    }, mime, parseFloat(cvQuality.value));
+    const s = Math.min(1, CV_MAX_SIDE / Math.max(img.naturalWidth, img.naturalHeight));
+    const c = document.createElement("canvas");
+    c.width = Math.max(1, Math.round(img.naturalWidth * s));
+    c.height = Math.max(1, Math.round(img.naturalHeight * s));
+    c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+    URL.revokeObjectURL(url);
+    cvOrig = c;
+    cvCurrent = file;
+    cvRot = 0; cvFlip = false;
+    cvCropOn.checked = false;
+    cvAspect.value = "free";
+    cvPanel.hidden = false;
+    cvRefreshBase();
+    cvRender();
   };
-  img.onerror = () => cvMessage("Impossible de lire cette image.", true);
-  img.src = srcUrl;
+  img.onerror = () => { URL.revokeObjectURL(url); cvMessage("Impossible de lire cette image.", true); };
+  img.src = url;
 }
+
+// --- Réglages du panneau ---
+cvCropOn.addEventListener("change", () => { if (!cvBase) return; if (cvCropOn.checked) cvResetCrop(); cvBoxDraw(); cvRender(); });
+cvAspect.addEventListener("change", () => { if (!cvBase) return; cvCropOn.checked = true; cvResetCrop(); cvRender(); });
+$("cvTurnL").addEventListener("click", () => { if (!cvOrig) return; cvRot = (cvRot + 3) % 4; cvRefreshBase(); cvRender(); });
+$("cvTurnR").addEventListener("click", () => { if (!cvOrig) return; cvRot = (cvRot + 1) % 4; cvRefreshBase(); cvRender(); });
+$("cvMirror").addEventListener("click", () => { if (!cvOrig) return; cvFlip = !cvFlip; cvRefreshBase(); cvRender(); });
+$("cvUndo").addEventListener("click", () => {
+  if (!cvOrig) return;
+  cvRot = 0; cvFlip = false;
+  cvCropOn.checked = false;
+  cvAspect.value = "free";
+  cvRefreshBase();
+  cvRender();
+});
+
+// --- Déplacer et redimensionner le cadre ---
+function cvPoint(e) {
+  const r = cvStageWrap.getBoundingClientRect();
+  return { x: (e.clientX - r.left) / r.width, y: (e.clientY - r.top) / r.height };
+}
+
+cvBox.addEventListener("pointerdown", (e) => {
+  if (!cvBase) return;
+  e.preventDefault();
+  cvBox.setPointerCapture(e.pointerId);
+  cvDrag = { mode: (e.target.dataset && e.target.dataset.h) || "move", start: cvPoint(e), rect: { ...cvCrop } };
+});
+
+cvBox.addEventListener("pointermove", (e) => {
+  if (!cvDrag) return;
+  const d = cvDrag, p = cvPoint(e), W = cvBase.width, H = cvBase.height;
+  if (d.mode === "move") {
+    cvCrop.x = cvClamp(d.rect.x + p.x - d.start.x, 0, 1 - d.rect.w);
+    cvCrop.y = cvClamp(d.rect.y + p.y - d.start.y, 0, 1 - d.rect.h);
+  } else {
+    const m = d.mode; // nw, ne, sw ou se : le coin opposé reste fixe
+    const ax = m.includes("w") ? d.rect.x + d.rect.w : d.rect.x;
+    const ay = m.includes("n") ? d.rect.y + d.rect.h : d.rect.y;
+    const px = cvClamp(p.x, 0, 1), py = cvClamp(p.y, 0, 1);
+    const sx = px >= ax ? 1 : -1, sy = py >= ay ? 1 : -1;
+    let wpx = Math.abs(px - ax) * W, hpx = Math.abs(py - ay) * H;
+    const r = cvRatio();
+    if (r) {
+      wpx = Math.max(wpx, hpx * r);
+      wpx = Math.min(wpx, (sx > 0 ? 1 - ax : ax) * W, (sy > 0 ? 1 - ay : ay) * H * r);
+      wpx = Math.max(wpx, 20);
+      hpx = wpx / r;
+    } else {
+      wpx = Math.max(wpx, 20);
+      hpx = Math.max(hpx, 20);
+    }
+    const w = Math.min(1, wpx / W), h = Math.min(1, hpx / H);
+    cvCrop = {
+      x: cvClamp(sx > 0 ? ax : ax - w, 0, 1 - w),
+      y: cvClamp(sy > 0 ? ay : ay - h, 0, 1 - h),
+      w, h,
+    };
+  }
+  cvBoxDraw();
+});
+
+function cvDragEnd() {
+  if (!cvDrag) return;
+  cvDrag = null;
+  cvRender();
+}
+cvBox.addEventListener("pointerup", cvDragEnd);
+cvBox.addEventListener("pointercancel", cvDragEnd);
 
 function cvUpdateQuality() { cvQuality.disabled = cvFormat.value === "image/png"; }
 cvUpdateQuality();
