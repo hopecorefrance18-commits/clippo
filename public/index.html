@@ -714,6 +714,38 @@ Hugo</textarea>
         <p class="gr-note">Ce que tu écris reste sur ton appareil. Relis ta bio avant de la publier et évite d'y mettre des informations personnelles (adresse, numéro, école).</p>
       </div>
     </section>
+      <!-- Générateur de mot de passe -->
+    <section id="password" class="panel">
+      <h1>Un mot de passe solide.</h1>
+      <p class="sub">Choisis la longueur et les caractères, puis copie ton mot de passe. Il est créé sur ton appareil et n'est jamais enregistré.</p>
+
+      <div class="card">
+        <input id="pwOut" class="text-in pw-out" type="text" readonly aria-label="Mot de passe généré">
+        <div class="todo-meter"><div id="pwBar" class="todo-bar"></div></div>
+        <p id="pwInfo" class="status" role="status"></p>
+
+        <div class="row pw-actions">
+          <button id="pwCopy" class="primary">Copier</button>
+          <button id="pwGo" class="ghost-btn">🔄 Générer un autre</button>
+        </div>
+
+        <label class="select">
+          <span>Longueur : <strong id="pwLenVal">16</strong> caractères</span>
+          <input id="pwLen" type="range" min="8" max="64" value="16">
+        </label>
+
+        <div class="row pw-checks">
+          <label class="check"><input id="pwUp" type="checkbox" checked> Majuscules (A-Z)</label>
+          <label class="check"><input id="pwLow" type="checkbox" checked> Minuscules (a-z)</label>
+          <label class="check"><input id="pwNum" type="checkbox" checked> Chiffres (0-9)</label>
+          <label class="check"><input id="pwSym" type="checkbox" checked> Symboles (!@#…)</label>
+          <label class="check"><input id="pwAmb" type="checkbox"> Éviter les caractères qui se ressemblent</label>
+        </div>
+
+        <p id="pwStatus" class="status" role="status"></p>
+        <p class="gr-note">Utilise un mot de passe différent pour chaque compte et ne le partage avec personne. Pour les retenir, utilise un gestionnaire de mots de passe.</p>
+      </div>
+    </section>
   </main>
 
   <footer class="foot">
