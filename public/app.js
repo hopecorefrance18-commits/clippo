@@ -1794,3 +1794,131 @@ upFile.addEventListener("change", () => upEnhance(upFile.files[0]));
 ["dragenter", "dragover"].forEach((ev) => upDrop.addEventListener(ev, (e) => { e.preventDefault(); upDrop.classList.add("over"); }));
 ["dragleave", "drop"].forEach((ev) => upDrop.addEventListener(ev, (e) => { e.preventDefault(); upDrop.classList.remove("over"); }));
 upDrop.addEventListener("drop", (e) => upEnhance(e.dataTransfer.files[0]));
+
+// ---------- Générateur de bio ----------
+const BIO_LIMITS = { tiktok: 80, instagram: 150, discord: 190, x: 160 };
+const BIO_DATA = {
+  mignon: {
+    emo: ["🌸", "🍓", "✨", "🧸", "🐰", "☁️", "💖"],
+    t: [
+      "{n} · petit nuage {e}", "{n} | {i} | bisous {e}", "juste {n}, fan de {i} {e}",
+      "{e} amoureux de {i} {e}", "{i} et câlins {e}", "douce vie, doux sourires {e}",
+      "mode doudou activé {e}", "ici pour sourire et partager {e}", "{e} petite bulle de bonne humeur {e}",
+      "{n} {e} {i} & chocolat chaud", "un peu de douceur chaque jour {e}", "{e} rêveur(se) de {i}",
+    ],
+  },
+  gaming: {
+    emo: ["🎮", "🔥", "⚡", "👾", "🏆", "🎧", "💥"],
+    t: [
+      "{n} | {i} | GG {e}", "{e} joueur(se) de {i} {e}", "{n} · toujours en partie {e}",
+      "{i} le jour, {i} la nuit {e}", "niveau max en {i} {e}", "{e} pas de pause, que du jeu {e}",
+      "AFK = jamais {e}", "{n} {e} ranked & chill", "{e} le skill, pas la chance {e}",
+      "{n} · prêt pour la prochaine game {e}", "{i} addict {e}", "on se retrouve en lobby {e}",
+    ],
+  },
+  mystere: {
+    emo: ["🌙", "🖤", "🔮", "🌌", "🕯️", "🦇", "✦"],
+    t: [
+      "{n} · ombre de la nuit {e}", "{e} on ne sait jamais qui je suis {e}", "silence, {i} et mystère {e}",
+      "{n} | {i} {e}", "né(e) sous la lune {e}", "{e} ne cherche pas, tu trouveras {e}",
+      "entre ombre et lumière {e}", "{i}, secrets et minuit {e}", "{n} {e} énigme ambulante",
+      "{e} certains mystères restent entiers {e}", "je parle peu, je pense beaucoup {e}", "{n} · caché(e) dans la brume {e}",
+    ],
+  },
+  drole: {
+    emo: ["😂", "🤪", "🥐", "🍕", "😎", "🤡", "🔥"],
+    t: [
+      "{n} · 100% bon sens, 0% sérieux {e}", "{i}, pizza et mauvaises blagues {e}", "{e} ma bio est en pause café {e}",
+      "{n} | {i} | sieste {e}", "pro de {i}, amateur du reste {e}", "{e} rire d'abord, réfléchir ensuite {e}",
+      "{n} : mode humour activé {e}", "je ne suis pas en retard, j'arrive en style {e}", "{e} vie de {i} et de gaffes {e}",
+      "{n} {e} spécialiste de la sieste", "drôle de bio, drôle de vie {e}", "{i} ou rien, mais avec des chips {e}",
+    ],
+  },
+  motive: {
+    emo: ["💪", "🚀", "🎯", "⭐", "🔥", "📈", "✨"],
+    t: [
+      "{n} · un pas de plus chaque jour {e}", "{e} {i}, objectif : progresser {e}", "rêve grand, travaille dur {e}",
+      "{n} | {i} | en route {e}", "{e} la discipline avant la motivation {e}", "{i} chaque jour, mieux chaque jour {e}",
+      "{n} {e} jamais sans mon objectif", "{e} petit à petit, on y arrive {e}", "{i} & persévérance {e}",
+      "{n} · on lâche rien {e}", "{e} aujourd'hui meilleur(e) qu'hier {e}", "{n} : cap sur {i} {e}",
+    ],
+  },
+  chill: {
+    emo: ["🌴", "☀️", "🎶", "☕", "🌊", "🍃", "😌"],
+    t: [
+      "{n} · tranquille, tout va bien {e}", "{e} {i}, musique et bonne humeur {e}", "vivre doucement {e}",
+      "{n} | {i} | café {e}", "{e} la vie sans stress {e}", "{i} dans le calme {e}",
+      "{n} {e} good vibes only", "{e} un jour à la fois {e}", "{i} et petits bonheurs {e}",
+      "{n} · cool, simplement {e}", "{e} détendu(e) mais présent(e) {e}", "{n} : plage, {i}, repos {e}",
+    ],
+  },
+};
+
+const biStyle = $("biStyle"), biPlat = $("biPlat"), biName = $("biName"), biInt = $("biInt");
+const biEmoji = $("biEmoji"), biList = $("biList");
+const biLen = (s) => Array.from(s).length;
+
+function biMake(tpl, name, interest, emojis, useEmoji) {
+  let s = tpl
+    .split("{n}").join(name)
+    .split("{i}").join(interest)
+    .split("{e}").join(useEmoji ? pick(emojis) : "");
+  return s.replace(/\s+/g, " ").replace(/\s+([|·:,])/g, " $1").replace(/^[\s|·:,]+|[\s|·:,]+$/g, "").trim();
+}
+
+function biGenerate() {
+  const data = BIO_DATA[biStyle.value];
+  const limit = BIO_LIMITS[biPlat.value];
+  const name = biName.value.trim();
+  const interests = biInt.value.split(",").map((s) => s.trim()).filter(Boolean).slice(0, 4);
+  const pool = data.t.filter((t) => (name || !t.includes("{n}")) && (interests.length || !t.includes("{i}")));
+  const useEmoji = biEmoji.checked;
+  const seen = new Set();
+  for (let tries = 0; seen.size < 8 && tries < 150; tries++) {
+    const tpl = pick(pool.length ? pool : data.t);
+    const bio = biMake(tpl, name, interests.length ? pick(interests) : "", data.emo, useEmoji);
+    if (bio && biLen(bio) <= limit) seen.add(bio);
+  }
+  return [...seen];
+}
+
+function biRender() {
+  biList.innerHTML = "";
+  const limit = BIO_LIMITS[biPlat.value];
+  biGenerate().forEach((bio) => {
+    const row = document.createElement("div");
+    row.className = "fancy-row";
+    const box = document.createElement("div");
+    const label = document.createElement("small");
+    label.textContent = `${biLen(bio)} / ${limit} caractères`;
+    const out = document.createElement("span");
+    out.textContent = bio;
+    box.append(label, out);
+    const btn = document.createElement("button");
+    btn.className = "copy-btn";
+    btn.textContent = "Copier";
+    btn.addEventListener("click", async () => {
+      try {
+        await copyText(bio);
+        btn.textContent = "Copié !";
+        btn.classList.add("done");
+      } catch {
+        btn.textContent = "Erreur";
+      }
+      setTimeout(() => { btn.textContent = "Copier"; btn.classList.remove("done"); }, 1500);
+    });
+    row.append(box, btn);
+    biList.appendChild(row);
+  });
+  if (!biList.children.length) {
+    const p = document.createElement("p");
+    p.className = "status error";
+    p.textContent = "Aucune bio assez courte pour ce réseau. Raccourcis ton prénom ou tes passions.";
+    biList.appendChild(p);
+  }
+}
+
+$("biGo").addEventListener("click", biRender);
+[biStyle, biPlat, biEmoji].forEach((el) => el.addEventListener("change", biRender));
+[biName, biInt].forEach((el) => el.addEventListener("input", biRender));
+biRender();
