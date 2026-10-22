@@ -504,3 +504,9 @@ button, label, a { -webkit-tap-highlight-color: transparent; touch-action: manip
 .bl-actions { justify-content: center; align-items: center; }
 .bl-actions .primary { margin-left: 0; }
 @media (max-width: 700px) { .bl-tools .select { width: 100%; } }
+
+/* --- Améliorer une image --- */
+#enhance h1, #enhance .sub { text-align: center; }
+#enhance .results img { background: conic-gradient(#3a3366 25%, #2a2450 0 50%, #3a3366 0 75%, #2a2450 0) 0 0 / 20px 20px; }
+#upSaveRow { justify-content: center; }
+#upSave { margin-left: 0; }
