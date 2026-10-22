@@ -62,6 +62,7 @@
           <button class="tab" data-tab="fancy">Texte stylé</button>
           <button class="tab" data-tab="pseudo">Pseudos</button>
           <button class="tab" data-tab="emoji">Émojis</button>
+                    <button class="tab" data-tab="bio">Bio</button>
         </div>
         <div class="subgroup" data-cat="practical" hidden>
           <button class="tab" data-tab="qr">QR code</button>
@@ -108,6 +109,7 @@
           <button class="tool-card" data-go="fancy"><strong>Texte stylé</strong><span>Des polices originales pour Discord et TikTok.</span></button>
           <button class="tool-card" data-go="pseudo"><strong>Pseudos</strong><span>Des idées de pseudos à copier.</span></button>
           <button class="tool-card" data-go="emoji"><strong>Émojis</strong><span>Émojis et symboles à copier-coller.</span></button>
+                    <button class="tool-card" data-go="bio"><strong>Générateur de bio</strong><span>Des bios prêtes à copier pour TikTok, Instagram, Discord.</span></button>
         </div>
 
         <h3 class="tool-cat">🧰 Pratique</h3>
@@ -663,6 +665,50 @@ Hugo</textarea>
         </div>
         <p id="upStatus" class="status" role="status"></p>
         <p class="gr-note">Clippo améliore la netteté mais ne peut pas inventer les détails absents : plus l'image de départ est petite et floue, plus le résultat reste limité. La taille est plafonnée à 4096 px (2560 px sur téléphone).</p>
+      </div>
+    </section>
+      <!-- Générateur de bio -->
+    <section id="bio" class="panel">
+      <h1>Une bio qui te ressemble.</h1>
+      <p class="sub">Choisis un style et un réseau, ajoute ton prénom et tes passions si tu veux, puis copie la bio que tu préfères.</p>
+
+      <div class="card">
+        <div class="row">
+          <label class="select">
+            <span>Style</span>
+            <select id="biStyle">
+              <option value="mignon">Mignon</option>
+              <option value="gaming">Gaming</option>
+              <option value="mystere">Mystérieux</option>
+              <option value="drole">Drôle</option>
+              <option value="motive">Motivé</option>
+              <option value="chill">Chill</option>
+            </select>
+          </label>
+          <label class="select">
+            <span>Réseau</span>
+            <select id="biPlat">
+              <option value="tiktok">TikTok (80 caractères)</option>
+              <option value="instagram">Instagram (150)</option>
+              <option value="discord">Discord (190)</option>
+              <option value="x">X (160)</option>
+            </select>
+          </label>
+        </div>
+        <div class="row">
+          <label class="select grow">
+            <span>Prénom ou pseudo (facultatif)</span>
+            <input id="biName" class="text-in" type="text" maxlength="20" placeholder="ex : Léa" autocomplete="off">
+          </label>
+          <label class="select grow">
+            <span>Passions, séparées par une virgule (facultatif)</span>
+            <input id="biInt" class="text-in" type="text" maxlength="60" placeholder="ex : musique, dessin, foot" autocomplete="off">
+          </label>
+          <label class="check"><input id="biEmoji" type="checkbox" checked> Ajouter des émojis</label>
+        </div>
+        <button id="biGo" class="primary">Générer d'autres bios</button>
+        <div id="biList" class="fancy-list"></div>
+        <p class="gr-note">Ce que tu écris reste sur ton appareil. Relis ta bio avant de la publier et évite d'y mettre des informations personnelles (adresse, numéro, école).</p>
       </div>
     </section>
   </main>
