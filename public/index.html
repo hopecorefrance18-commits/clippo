@@ -56,6 +56,7 @@
           <button class="tab" data-tab="cutout">Détourer une image</button>
           <button class="tab" data-tab="convert">Convertir une image</button>
                     <button class="tab" data-tab="blur">Flouter une image</button>
+                    <button class="tab" data-tab="enhance">Améliorer une image</button>
         </div>
         <div class="subgroup" data-cat="creators" hidden>
           <button class="tab" data-tab="fancy">Texte stylé</button>
@@ -99,6 +100,7 @@
           <button class="tool-card" data-go="cutout"><strong>Détourer une image</strong><span>Retire l'arrière-plan d'une photo.</span></button>
           <button class="tool-card" data-go="convert"><strong>Convertir une image</strong><span>PNG, JPG ou WEBP, en quelques secondes.</span></button>
                     <button class="tool-card" data-go="blur"><strong>Flouter une image</strong><span>Cache un visage ou un texte, au pinceau.</span></button>
+                    <button class="tool-card" data-go="enhance"><strong>Améliorer une image</strong><span>Agrandis et rends ta photo plus nette.</span></button>
         </div>
 
         <h3 class="tool-cat">✨ Créateurs</h3>
@@ -610,6 +612,50 @@ Hugo</textarea>
 
         <p id="blStatus" class="status" role="status"></p>
         <p class="gr-note">Ta photo reste sur ton appareil. Pour cacher une information sensible (nom, plaque, adresse), utilise l'effet « Noircir » ou un flou fort : un flou léger peut parfois être deviné. L'image est réduite à 1600 px maximum.</p>
+      </div>
+    </section>
+      <!-- Améliorer une image -->
+    <section id="enhance" class="panel">
+      <h1>Une image plus nette.</h1>
+      <p class="sub">Dépose une photo : Clippo l'agrandit, accentue les détails et réduit les défauts. Tout se fait sur ton appareil.</p>
+
+      <div class="card">
+        <div class="row">
+          <label class="select">
+            <span>Agrandissement</span>
+            <select id="upScale">
+              <option value="2" selected>× 2</option>
+              <option value="3">× 3</option>
+              <option value="4">× 4</option>
+            </select>
+          </label>
+          <label class="select">
+            <span>Netteté</span>
+            <select id="upSharp">
+              <option value="0.25">Légère</option>
+              <option value="0.5" selected>Moyenne</option>
+              <option value="0.8">Forte</option>
+            </select>
+          </label>
+          <label class="check"><input id="upDenoise" type="checkbox" checked> Réduire les défauts JPG</label>
+          <label class="check"><input id="upBoost" type="checkbox"> Raviver les couleurs</label>
+        </div>
+
+        <label id="upDrop" class="drop">
+          <input id="upFile" type="file" accept="image/*" hidden>
+          <strong>Dépose ton image ici</strong>
+          <span>ou clique pour la choisir (PNG, JPG, WEBP)</span>
+        </label>
+
+        <div id="upResult" class="results" hidden>
+          <figure><figcaption id="upBeforeCap">Avant</figcaption><img id="upBefore" alt="Image d'origine"></figure>
+          <figure><figcaption id="upAfterCap">Après</figcaption><img id="upAfter" alt="Image améliorée"></figure>
+        </div>
+        <div class="row" id="upSaveRow" hidden>
+          <a id="upSave" class="primary" href="#" download="clippo-ameliore.png">Télécharger le PNG</a>
+        </div>
+        <p id="upStatus" class="status" role="status"></p>
+        <p class="gr-note">Clippo améliore la netteté mais ne peut pas inventer les détails absents : plus l'image de départ est petite et floue, plus le résultat reste limité. La taille est plafonnée à 4096 px (2560 px sur téléphone).</p>
       </div>
     </section>
   </main>
