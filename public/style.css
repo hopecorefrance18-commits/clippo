@@ -525,3 +525,17 @@ button, label, a { -webkit-tap-highlight-color: transparent; touch-action: manip
 .pw-checks { gap: 6px 18px; }
 #pwLen { width: 100%; accent-color: var(--pink); }
 @media (max-width: 700px) { .pw-actions .primary, .pw-actions .ghost-btn { width: 100%; } }
+
+/* --- Convertir : recadrage --- */
+.cv-panel { display: grid; gap: 12px; }
+.cv-tools { align-items: end; }
+.cv-stage { display: grid; justify-items: center; background: var(--ink-2); border-radius: 14px; padding: 6px; }
+.cv-pad { display: block; max-width: 100%; padding: 14px; overflow: hidden; line-height: 0; border-radius: 12px; }
+.cv-wrap { position: relative; display: inline-block; max-width: 100%; }
+.cv-wrap canvas { display: block; max-width: 100%; max-height: 60vh; width: auto; height: auto; border-radius: 4px; }
+.cv-box { position: absolute; box-sizing: border-box; border: 2px solid #fff; box-shadow: 0 0 0 9999px rgba(21, 17, 46, .6); cursor: move; touch-action: none; }
+.cv-h { position: absolute; width: 22px; height: 22px; box-sizing: border-box; background: var(--aqua); border: 2px solid var(--ink); border-radius: 50%; touch-action: none; }
+.cv-h.nw { left: -11px; top: -11px; cursor: nwse-resize; }
+.cv-h.ne { right: -11px; top: -11px; cursor: nesw-resize; }
+.cv-h.sw { left: -11px; bottom: -11px; cursor: nesw-resize; }
+.cv-h.se { right: -11px; bottom: -11px; cursor: nwse-resize; }
