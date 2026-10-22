@@ -1922,3 +1922,72 @@ $("biGo").addEventListener("click", biRender);
 [biStyle, biPlat, biEmoji].forEach((el) => el.addEventListener("change", biRender));
 [biName, biInt].forEach((el) => el.addEventListener("input", biRender));
 biRender();
+
+// ---------- Générateur de mot de passe ----------
+const pwLen = $("pwLen"), pwLenVal = $("pwLenVal"), pwOut = $("pwOut");
+const pwBar = $("pwBar"), pwInfo = $("pwInfo"), pwStatus = $("pwStatus");
+const PW_SETS = {
+  pwUp: "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+  pwLow: "abcdefghijklmnopqrstuvwxyz",
+  pwNum: "0123456789",
+  pwSym: "!@#$%^&*()-_=+[]{};:,.?",
+};
+const PW_AMBIG = /[Il1O0o]/g;
+
+function pwRand(n) { // entier uniforme dans [0, n), sans biais
+  const max = Math.floor(0x100000000 / n) * n;
+  const buf = new Uint32Array(1);
+  do { crypto.getRandomValues(buf); } while (buf[0] >= max);
+  return buf[0] % n;
+}
+
+function pwMessage(msg, isError = false) {
+  pwStatus.textContent = msg;
+  pwStatus.classList.toggle("error", isError);
+}
+
+function pwGenerate() {
+  pwLenVal.textContent = pwLen.value;
+  const len = parseInt(pwLen.value, 10);
+  const sets = Object.keys(PW_SETS)
+    .filter((id) => $(id).checked)
+    .map((id) => ($("pwAmb").checked ? PW_SETS[id].replace(PW_AMBIG, "") : PW_SETS[id]));
+
+  if (!sets.length) {
+    pwOut.value = "";
+    pwBar.style.width = "0%";
+    pwInfo.textContent = "";
+    return pwMessage("Coche au moins un type de caractères.", true);
+  }
+  pwMessage("");
+
+  const all = sets.join("");
+  const chars = sets.map((s) => s[pwRand(s.length)]); // au moins un de chaque type
+  while (chars.length < len) chars.push(all[pwRand(all.length)]);
+  for (let i = chars.length - 1; i > 0; i--) { // mélange
+    const j = pwRand(i + 1);
+    [chars[i], chars[j]] = [chars[j], chars[i]];
+  }
+  pwOut.value = chars.join("");
+
+  const bits = len * Math.log2(all.length);
+  const level = bits < 45 ? "Faible" : bits < 65 ? "Moyen" : bits < 90 ? "Bon" : "Excellent";
+  pwBar.style.width = Math.min(100, Math.round((bits / 110) * 100)) + "%";
+  pwInfo.textContent = `Solidité : ${level}`;
+}
+
+$("pwCopy").addEventListener("click", async () => {
+  if (!pwOut.value) return pwMessage("Rien à copier.", true);
+  try {
+    await copyText(pwOut.value);
+    pwMessage("Copié !");
+  } catch {
+    pwOut.select();
+    pwMessage("Copie automatique impossible : le mot de passe est sélectionné, fais Ctrl + C.", true);
+  }
+});
+$("pwGo").addEventListener("click", pwGenerate);
+pwLen.addEventListener("input", pwGenerate);
+["pwUp", "pwLow", "pwNum", "pwSym", "pwAmb"].forEach((id) => $(id).addEventListener("change", pwGenerate));
+pwOut.addEventListener("focus", () => pwOut.select());
+pwGenerate();
