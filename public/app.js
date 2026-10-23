@@ -2146,3 +2146,202 @@ pwLen.addEventListener("input", pwGenerate);
 ["pwUp", "pwLow", "pwNum", "pwSym", "pwAmb"].forEach((id) => $(id).addEventListener("change", pwGenerate));
 pwOut.addEventListener("focus", () => pwOut.select());
 pwGenerate();
+
+// ---------- Fiche de révision (sur l'appareil) ----------
+const rvText = $("rvText"), rvFile = $("rvFile"), rvDrop = $("rvDrop"), rvGo = $("rvGo");
+const rvSetup = $("rvSetup"), rvOut = $("rvOut"), rvSheet = $("rvSheet"), rvStatus = $("rvStatus"), rvLen = $("rvLen");
+const RV_STOP = new Set("alors ainsi aussi autre autres avant avec avoir avait avaient apres beaucoup bien cela celle celles celui cependant certain certaine certains certaines cette chaque comme comment dans depuis donc dont elle elles encore entre etre etait etaient etant fait faire font leur leurs lors lorsque mais meme mieux moins notamment nous pour pourtant plus plusieurs puis quand quel quelle quelles quels sans selon sera seront seulement sont sous tout toute toutes tous tres vers votre vous avons ils ont peut peuvent permet permettent ensuite premier premiere seconde ceux ceci toujours souvent egalement ces ses".split(" "));
+const RV_PRON = new Set(["il", "elle", "ils", "elles", "ce", "cela", "ceci", "cette", "ces", "on", "ca", "qui", "que", "mais", "et", "donc"]);
+const RV_DEF = /^(.{2,60}?)\s+(est|sont|désigne|désignent|signifie|correspond|correspondent|s'appelle|s’appelle|se définit)\s+(.+)$/i;
+let rvData = null;
+
+function rvMessage(msg, isError = false) {
+  rvStatus.textContent = msg;
+  rvStatus.classList.toggle("error", isError);
+}
+function rvEl(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text !== undefined) e.textContent = text;
+  return e;
+}
+function rvNorm(s) { return String(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, ""); }
+
+// --- Photos (réutilise le lecteur du Quiz du cours) ---
+async function rvReadPhotos(list) {
+  const files = Array.from(list).filter((f) => f.type.startsWith("image/")).slice(0, 3);
+  if (!files.length) return;
+  if (typeof sqLoadOcr !== "function") return rvMessage("Le lecteur de photos est indisponible. Colle ton texte à la place.", true);
+  rvGo.disabled = true;
+  try {
+    rvMessage("Chargement du lecteur de texte… (la première fois, ça peut prendre une minute)");
+    await sqLoadOcr();
+    for (let i = 0; i < files.length; i++) {
+      const canvas = await sqToCanvas(files[i]);
+      const { data } = await window.Tesseract.recognize(canvas, "fra", {
+        logger: (m) => { if (m.status === "recognizing text") rvMessage(`Lecture de la photo ${i + 1}/${files.length}… ${Math.round(m.progress * 100)}%`); },
+      });
+      rvText.value = (rvText.value.trim() + "\n" + data.text.trim()).trim();
+    }
+    rvMessage(rvText.value.trim().length < 200
+      ? "Peu de texte lu. Essaie une photo plus nette, ou écris ton cours dans la case."
+      : "Terminé ! Relis le texte, corrige-le si besoin, puis crée ta fiche.");
+  } catch (e) {
+    console.error(e);
+    rvMessage(e.message || "La lecture de la photo a échoué.", true);
+  } finally {
+    rvGo.disabled = false;
+  }
+}
+rvFile.addEventListener("change", () => { const f = rvFile.files; rvReadPhotos(f).then(() => { rvFile.value = ""; }); });
+["dragenter", "dragover"].forEach((ev) => rvDrop.addEventListener(ev, (e) => { e.preventDefault(); rvDrop.classList.add("over"); }));
+["dragleave", "drop"].forEach((ev) => rvDrop.addEventListener(ev, (e) => { e.preventDefault(); rvDrop.classList.remove("over"); }));
+rvDrop.addEventListener("drop", (e) => rvReadPhotos(e.dataTransfer.files));
+
+// --- Analyse du cours ---
+function rvSentences(text) {
+  const out = [];
+  text.split(/\n+/).forEach((line) => {
+    line.replace(/\s+/g, " ").trim().split(/(?<=[.!?;])\s+/).forEach((raw) => {
+      const s = raw.trim().replace(/^[-•*–·]+\s*/, "").replace(/^\d{1,2}[.)]\s+/, "");
+      const n = s.split(" ").length;
+      if (n >= 4 && n <= 50) out.push(s);
+    });
+  });
+  return out;
+}
+
+function rvAnalyze(text, n) {
+  const sents = rvSentences(text);
+  if (sents.length < 3) return null;
+  const freq = new Map(), show = new Map();
+  const info = sents.map((s) => {
+    const words = s.match(/[A-Za-zÀ-ÿ0-9]+/g) || [];
+    const keys = [];
+    words.forEach((w) => {
+      const k = rvNorm(w);
+      if (k.length < 4 || /^\d+$/.test(k) || RV_STOP.has(k)) return;
+      freq.set(k, (freq.get(k) || 0) + 1);
+      if (!show.has(k)) show.set(k, w.toLowerCase());
+      keys.push(k);
+    });
+    return { s, keys: [...new Set(keys)], n: words.length };
+  });
+
+  const scored = info.map((o, i) => {
+    let score = o.keys.reduce((a, k) => a + (freq.get(k) > 1 ? freq.get(k) : 0.3), 0) / Math.sqrt(o.n + 4);
+    if (/\d{4}/.test(o.s)) score *= 1.15;
+    if (RV_DEF.test(o.s)) score *= 1.2;
+    if (i === 0) score *= 1.2;
+    return { i, score };
+  });
+  const picked = scored.slice().sort((a, b) => b.score - a.score).slice(0, n).sort((a, b) => a.i - b.i);
+  const essential = picked.map((p) => sents[p.i]);
+
+  const all = [...freq.entries()].sort((a, b) => b[1] - a[1] || b[0].length - a[0].length);
+  let kw = all.filter(([, c]) => c >= 2).slice(0, 12);
+  if (kw.length < 4) kw = all.slice(0, 8);
+  const keywords = kw.map(([k]) => ({ key: k, label: show.get(k) }));
+
+  const defs = [];
+  sents.forEach((s) => {
+    const m = RV_DEF.exec(s);
+    if (!m) return;
+    const term = m[1].trim(), tw = term.split(" ");
+    if (term.length < 3 || tw.length > 6 || RV_PRON.has(rvNorm(tw[0])) || /[,;:]/.test(term) || /\b(qui|que|dont)\b/i.test(term)) return;
+    if (m[3].split(" ").length < 3) return;
+    defs.push({ term, tail: m[2] + " " + m[3] });
+  });
+
+  const figures = sents.filter((s) => /\d{2,}/.test(s)).slice(0, 6);
+  return { essential, keywords, defs: defs.slice(0, 8), figures, total: sents.length };
+}
+
+// --- Affichage ---
+function rvMark(parent, text, keys) {
+  (text.match(/[A-Za-zÀ-ÿ0-9]+|[^A-Za-zÀ-ÿ0-9]+/g) || []).forEach((part) => {
+    if (keys.has(rvNorm(part))) parent.appendChild(rvEl("mark", "", part));
+    else parent.appendChild(document.createTextNode(part));
+  });
+}
+
+function rvRender() {
+  const d = rvData, keys = new Set(d.keywords.map((k) => k.key));
+  rvSheet.innerHTML = "";
+  rvSheet.appendChild(rvEl("h2", "rv-title", "Fiche de révision"));
+
+  rvSheet.appendChild(rvEl("h3", "rv-h", "L'essentiel"));
+  const ul = rvEl("ul", "rv-list");
+  d.essential.forEach((s) => { const li = rvEl("li"); rvMark(li, s, keys); ul.appendChild(li); });
+  rvSheet.appendChild(ul);
+
+  if (d.keywords.length) {
+    rvSheet.appendChild(rvEl("h3", "rv-h", "Mots-clés"));
+    const chips = rvEl("div", "rv-chips");
+    d.keywords.forEach((k) => chips.appendChild(rvEl("span", "rv-chip", k.label)));
+    rvSheet.appendChild(chips);
+  }
+  if (d.defs.length) {
+    rvSheet.appendChild(rvEl("h3", "rv-h", "Définitions"));
+    const dl = rvEl("ul", "rv-list");
+    d.defs.forEach((x) => {
+      const li = rvEl("li");
+      li.appendChild(rvEl("strong", "", x.term));
+      li.appendChild(document.createTextNode(" " + x.tail));
+      dl.appendChild(li);
+    });
+    rvSheet.appendChild(dl);
+  }
+  if (d.figures.length) {
+    rvSheet.appendChild(rvEl("h3", "rv-h", "Dates et chiffres"));
+    const fl = rvEl("ul", "rv-list");
+    d.figures.forEach((s) => fl.appendChild(rvEl("li", "", s)));
+    rvSheet.appendChild(fl);
+  }
+  rvSheet.appendChild(rvEl("p", "gr-note", `Fiche créée à partir de ${d.total} phrases de ton cours.`));
+  $("rvCards").hidden = !d.defs.length || typeof fcSave !== "function";
+}
+
+function rvPlain(d) {
+  const L = ["FICHE DE RÉVISION", "", "L'ESSENTIEL"];
+  d.essential.forEach((s) => L.push("• " + s));
+  if (d.keywords.length) L.push("", "MOTS-CLÉS", d.keywords.map((k) => k.label).join(", "));
+  if (d.defs.length) { L.push("", "DÉFINITIONS"); d.defs.forEach((x) => L.push("• " + x.term + " " + x.tail)); }
+  if (d.figures.length) { L.push("", "DATES ET CHIFFRES"); d.figures.forEach((s) => L.push("• " + s)); }
+  return L.join("\n");
+}
+
+// --- Boutons ---
+rvGo.addEventListener("click", () => {
+  const text = rvText.value.trim();
+  if (text.length < 200) return rvMessage("Le texte est trop court pour faire une fiche (200 caractères minimum).", true);
+  const d = rvAnalyze(text, parseInt(rvLen.value, 10));
+  if (!d) return rvMessage("Je n'ai pas trouvé assez de phrases. Vérifie la ponctuation du texte ou ajoute plus de cours.", true);
+  rvData = d;
+  rvRender();
+  rvMessage("");
+  rvSetup.hidden = true;
+  rvOut.hidden = false;
+  window.scrollTo({ top: 0, behavior: "smooth" });
+});
+$("rvCopy").addEventListener("click", async () => {
+  if (!rvData) return;
+  try { await copyText(rvPlain(rvData)); rvMessage("Fiche copiée !"); }
+  catch { rvMessage("Copie automatique impossible : sélectionne le texte de la fiche et fais Ctrl + C.", true); }
+});
+$("rvPrint").addEventListener("click", () => window.print());
+$("rvCards").addEventListener("click", () => {
+  if (!rvData || typeof fcSave !== "function") return;
+  let added = 0;
+  rvData.defs.forEach((x) => {
+    const q = ("Définis : " + x.term).slice(0, 200);
+    if (fcCards.length >= FC_MAX || fcCards.some((c) => c.q === q)) return;
+    fcCards.push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), q, a: (x.term + " " + x.tail).slice(0, 300), known: false });
+    added++;
+  });
+  fcSave();
+  fcRender();
+  rvMessage(added ? `${added} flashcard${added > 1 ? "s" : ""} ajoutée${added > 1 ? "s" : ""} dans l'outil Flashcards.` : "Ces flashcards existent déjà.");
+});
+$("rvBack").addEventListener("click", () => { rvOut.hidden = true; rvSetup.hidden = false; rvMessage(""); });
+$("rvNew").addEventListener("click", () => { rvText.value = ""; rvData = null; rvOut.hidden = true; rvSetup.hidden = false; rvMessage(""); });
