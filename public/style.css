@@ -539,3 +539,34 @@ button, label, a { -webkit-tap-highlight-color: transparent; touch-action: manip
 .cv-h.ne { right: -11px; top: -11px; cursor: nesw-resize; }
 .cv-h.sw { left: -11px; bottom: -11px; cursor: nesw-resize; }
 .cv-h.se { right: -11px; bottom: -11px; cursor: nwse-resize; }
+
+/* --- Fiche de révision --- */
+#revision h1, #revision .sub { text-align: center; }
+.rv-setup { display: grid; gap: 16px; }
+.rv-setup .primary { margin-left: 0; justify-self: center; }
+.rv-sheet { display: grid; gap: 10px; background: var(--ink-2); border-radius: 14px; padding: 18px 20px; }
+.rv-title { display: none; font: 800 1.6rem "Bricolage Grotesque", sans-serif; }
+.rv-h { font: 800 1.2rem "Bricolage Grotesque", sans-serif; margin-top: 8px; }
+.rv-title + .rv-h { margin-top: 0; }
+.rv-list { padding-left: 22px; display: grid; gap: 8px; }
+.rv-sheet mark { background: var(--sun); color: var(--ink); border-radius: 4px; padding: 0 3px; }
+.rv-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.rv-chip { background: rgba(46, 230, 214, .16); color: var(--aqua); border-radius: 999px; padding: 4px 12px; font-weight: 700; font-size: .9rem; }
+.rv-actions { justify-content: center; align-items: center; margin-top: 12px; }
+.rv-actions .primary { margin-left: 0; }
+@media (max-width: 700px) { .rv-setup .primary, .rv-actions .primary, .rv-actions .ghost-btn { width: 100%; } }
+
+/* Impression : seule la fiche est imprimée */
+@media print {
+  .bg, .top, .foot, #revision h1, #revision .sub, #rvSetup, .rv-actions, #revision .gr-note, #revision .status { display: none !important; }
+  .panel { display: none !important; }
+  #revision.active { display: block !important; }
+  body { background: #fff !important; color: #000 !important; }
+  #revision .card { background: none !important; border: 0 !important; padding: 0 !important; backdrop-filter: none !important; }
+  .rv-sheet { background: #fff !important; color: #000 !important; padding: 0 !important; }
+  .rv-title { display: block !important; color: #000 !important; }
+  .rv-h { color: #000 !important; }
+  .rv-sheet .gr-note { display: block !important; color: #555 !important; }
+  .rv-chip { background: none !important; color: #000 !important; border: 1px solid #000; }
+  .rv-sheet mark { background: #ffe066 !important; color: #000 !important; }
+}
