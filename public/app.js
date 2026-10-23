@@ -2788,3 +2788,38 @@ $("buClear").addEventListener("click", () => {
 buData = buLoad();
 buMonth = buThisMonth();
 buRender();
+
+// ---------- Accueil : recherche d'outils, défilement, compteur ----------
+const homeSearch = $("homeSearch"), homeEmpty = $("homeEmpty");
+const hmNorm = (s) => String(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+function homeFilter() {
+  const q = hmNorm(homeSearch.value.trim());
+  let total = 0;
+  document.querySelectorAll("#home .home-cat").forEach((cat) => {
+    let shown = 0;
+    cat.querySelectorAll(".tool-card").forEach((card) => {
+      const ok = !q || hmNorm(card.textContent).includes(q);
+      card.hidden = !ok;
+      if (ok) shown++;
+    });
+    cat.hidden = !shown;
+    total += shown;
+  });
+  homeEmpty.hidden = total > 0;
+}
+
+if (homeSearch) {
+  homeSearch.addEventListener("input", homeFilter);
+  homeSearch.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter") return;
+    const visible = [...document.querySelectorAll("#home .tool-card")].filter((c) => !c.hidden);
+    if (visible.length === 1) visible[0].click();
+    else $("tools").scrollIntoView({ behavior: "smooth" });
+  });
+  $("homeCount").textContent = document.querySelectorAll("#home .tool-card").length;
+}
+document.querySelectorAll("[data-scroll]").forEach((b) => b.addEventListener("click", () => {
+  const t = document.getElementById(b.dataset.scroll);
+  if (t) t.scrollIntoView({ behavior: "smooth" });
+}));
