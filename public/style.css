@@ -725,3 +725,28 @@ main:has(#home.active) { max-width: 1100px; }
   .home-tools .tool-grid { grid-template-columns: 1fr; }
 }
 @media (prefers-reduced-motion: reduce) { .hc-chip, .tc-go { transition: none; } }
+
+/* --- Générateur de hashtags --- */
+#hashtags h1, #hashtags .sub { text-align: center; }
+.ht-form { align-items: end; }
+.ht-form .primary { margin-left: 0; }
+#htNote { text-align: center; }
+.ht-groups { display: grid; gap: 18px; margin: 14px 0; }
+.ht-group { display: grid; gap: 6px; }
+.ht-group .tool-cat { margin: 0; }
+.ht-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.ht-chip {
+  border: 2px solid rgba(255,255,255,.18); background: var(--ink-2); color: var(--paper);
+  font: 500 .95rem "DM Sans", sans-serif; padding: 8px 14px; border-radius: 999px; cursor: pointer;
+  transition: transform .15s, border-color .15s, background .15s;
+}
+.ht-chip:hover { transform: translateY(-2px); border-color: var(--aqua); }
+.ht-chip.on { background: var(--sun); color: var(--ink); border-color: var(--sun); font-weight: 700; }
+#htOut { min-height: 80px; resize: vertical; }
+#htCount { text-align: center; }
+.ht-actions { justify-content: center; align-items: center; }
+.ht-actions .primary { margin-left: 0; }
+@media (max-width: 700px) {
+  .ht-form .primary, .ht-actions .primary, .ht-actions .ghost-btn { width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) { .ht-chip { transition: none; } }
