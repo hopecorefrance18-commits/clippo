@@ -617,3 +617,32 @@ button, label, a { -webkit-tap-highlight-color: transparent; touch-action: manip
   .cd-add .primary { width: 100%; }
   .cd-item { flex-wrap: wrap; }
 }
+
+/* --- Budget mensuel --- */
+#budget h1, #budget .sub { text-align: center; }
+.bu-nav { display: flex; align-items: center; justify-content: center; gap: 16px; }
+.bu-nav strong { font: 800 1.3rem "Bricolage Grotesque", sans-serif; min-width: 180px; text-align: center; }
+.bu-nav .ghost-btn { padding: 8px 16px; font-size: 1.2rem; }
+.bu-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.bu-box { background: var(--ink-2); border-radius: 14px; padding: 14px; display: grid; gap: 4px; justify-items: center; text-align: center; }
+.bu-box small { color: var(--muted); }
+.bu-box strong { font: 800 clamp(1.1rem, 4vw, 1.7rem) "Bricolage Grotesque", sans-serif; word-break: break-word; }
+.bu-in { color: var(--aqua); }
+.bu-out { color: var(--pink); }
+.bu-center { text-align: center; }
+.bu-add { align-items: end; }
+.bu-add .primary { margin-left: 0; }
+.bu-cat { display: grid; gap: 6px; }
+.bu-cat-head { display: flex; justify-content: space-between; gap: 10px; font-size: .95rem; }
+.bu-list { list-style: none; padding: 0; display: grid; gap: 8px; }
+.bu-item { display: flex; align-items: center; gap: 12px; background: var(--ink-2); border-radius: 14px; padding: 10px 12px; }
+.bu-info { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.bu-info strong { word-break: break-word; }
+.bu-info span { color: var(--muted); font-size: .85rem; }
+.bu-amt { font-weight: 800; white-space: nowrap; }
+.bu-foot { justify-content: space-between; }
+@media (max-width: 700px) {
+  .bu-add .primary { width: 100%; }
+  .bu-summary { grid-template-columns: 1fr; }
+  .bu-foot .ghost-btn { width: 100%; }
+}
