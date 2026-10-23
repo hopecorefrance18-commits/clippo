@@ -50,6 +50,7 @@
                     <button class="tab" data-tab="flashcards">Flashcards</button>
                                         <button class="tab" data-tab="scanquiz">Quiz du cours</button>
                     <button class="tab" data-tab="revision">Fiche de révision</button>
+                    <button class="tab" data-tab="countdown">Compte à rebours</button>
         
         </div>
         <div class="subgroup" data-cat="media" hidden>
@@ -97,6 +98,7 @@
                     <button class="tool-card" data-go="flashcards"><strong>Flashcards</strong><span>Crée des cartes et révise tes leçons.</span></button>
                     <button class="tool-card" data-go="scanquiz"><strong>Quiz du cours</strong><span>Scanne ton cours, Clippo crée un quiz.</span></button>
                     <button class="tool-card" data-go="revision"><strong>Fiche de révision</strong><span>Colle ou scanne ton cours, Clippo en tire l'essentiel.</span></button>
+                  <button class="tool-card" data-go="countdown"><strong>Compte à rebours</strong><span>Les jours qui restent avant ton examen.</span></button>
         </div>
 
         <h3 class="tool-cat">🎬 Médias</h3>
@@ -873,6 +875,40 @@ Hugo</textarea>
 
         <p id="ntStatus" class="status" role="status"></p>
         <p class="gr-note">Tes notes restent sur ton appareil (dans ce navigateur) et ne sont envoyées nulle part. Si tu vides les données du site, elles disparaissent : télécharge celles qui sont importantes. N'y écris pas de mots de passe.</p>
+      </div>
+    </section>
+      <!-- Compte à rebours -->
+    <section id="countdown" class="panel">
+      <h1>Compte à rebours.</h1>
+      <p class="sub">Ajoute tes examens et tes contrôles : Clippo compte les jours qui restent. Tout est gardé dans ton navigateur.</p>
+
+      <div class="card">
+        <div id="cdHero" class="cd-hero"></div>
+
+        <h2 class="fc-title">Ajouter une échéance</h2>
+        <div class="row cd-add">
+          <label class="select grow">
+            <span>Nom</span>
+            <input id="cdName" class="text-in" type="text" maxlength="60" placeholder="ex : Bac de français" autocomplete="off">
+          </label>
+          <label class="select">
+            <span>Date</span>
+            <input id="cdDate" class="text-in" type="date">
+          </label>
+          <label class="select">
+            <span>Heure (facultatif)</span>
+            <input id="cdTime" class="text-in" type="time" value="08:00">
+          </label>
+          <button id="cdAdd" class="primary">Ajouter</button>
+        </div>
+
+        <ul id="cdList" class="cd-list"></ul>
+        <div class="row">
+          <button id="cdClearPast" class="ghost-btn" hidden>Effacer les terminées</button>
+        </div>
+
+        <p id="cdStatus" class="status" role="status"></p>
+        <p class="gr-note">Tes échéances restent sur ton appareil (dans ce navigateur) et ne sont envoyées nulle part. Si tu vides les données du site, elles disparaissent.</p>
       </div>
     </section>
   </main>
