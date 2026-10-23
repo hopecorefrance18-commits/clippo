@@ -570,3 +570,27 @@ button, label, a { -webkit-tap-highlight-color: transparent; touch-action: manip
   .rv-chip { background: none !important; color: #000 !important; border: 1px solid #000; }
   .rv-sheet mark { background: #ffe066 !important; color: #000 !important; }
 }
+
+/* --- Bloc-notes --- */
+#notes h1, #notes .sub { text-align: center; }
+.nt-layout { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 18px; align-items: start; }
+.nt-side { display: grid; gap: 10px; }
+.nt-side .primary { margin-left: 0; width: 100%; padding: 12px 16px; font-size: 1rem; }
+.nt-side .text-in { width: 100%; min-width: 0; }
+.nt-list { list-style: none; padding: 0; display: grid; gap: 6px; max-height: 50vh; overflow-y: auto; }
+.nt-item {
+  width: 100%; text-align: left; cursor: pointer; border: 2px solid transparent; border-radius: 12px;
+  background: var(--ink-2); color: var(--paper); padding: 10px 12px; display: grid; gap: 2px; font: 400 .9rem "DM Sans", sans-serif;
+}
+.nt-item:hover { border-color: rgba(255,255,255,.25); }
+.nt-item.active { border-color: var(--aqua); }
+.nt-item strong { font: 700 1rem "DM Sans", sans-serif; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nt-item span { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nt-item small { color: var(--muted); font-size: .75rem; }
+.nt-editor { display: grid; gap: 10px; min-width: 0; }
+.nt-editor .text-in { width: 100%; font-weight: 700; }
+.nt-body { min-height: 280px; resize: vertical; }
+@media (max-width: 800px) {
+  .nt-layout { grid-template-columns: 1fr; }
+  .nt-list { max-height: 200px; }
+}
