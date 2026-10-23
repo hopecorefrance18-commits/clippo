@@ -41,6 +41,7 @@
         <button class="cat" data-cat="media">Médias</button>
         <button class="cat" data-cat="creators">Créateurs</button>
         <button class="cat" data-cat="practical">Pratique</button>
+                <button class="cat" data-cat="games">Jeux</button>
                 <button class="cat" data-tab="updates">Mises à jour</button>
       </nav>
       <nav class="subs" aria-label="Outils">
@@ -75,6 +76,12 @@
                     <button class="tab" data-tab="notes">Bloc-notes</button>
                     <button class="tab" data-tab="budget">Budget</button>
         </div>
+                      <div class="subgroup" data-cat="games" hidden>
+        <button class="tab" data-tab="tictactoe">Morpion</button>
+        <button class="tab" data-tab="memory">Mémoire</button>
+        <button class="tab" data-tab="mental">Calcul mental</button>
+        <button class="tab" data-tab="dice">Dés</button>
+      </div>
       </nav>
     </div>
   </header>
@@ -164,6 +171,15 @@
           </div>
         </div>
 
+                <div class="home-cat">
+          <h3 class="tool-cat">🎮 Jeux</h3>
+          <div class="tool-grid">
+            <button class="tool-card" data-go="tictactoe"><i class="tc-ico">⭕</i><strong>Morpion</strong><span>Joue contre l'ordinateur ou à deux.</span><em class="tc-go">→</em></button>
+            <button class="tool-card" data-go="memory"><i class="tc-ico">🧠</i><strong>Mémoire</strong><span>Retrouve toutes les paires.</span><em class="tc-go">→</em></button>
+            <button class="tool-card" data-go="mental"><i class="tc-ico">➗</i><strong>Calcul mental</strong><span>Un maximum de calculs en 60 secondes.</span><em class="tc-go">→</em></button>
+            <button class="tool-card" data-go="dice"><i class="tc-ico">🎲</i><strong>Dés et pile ou face</strong><span>Lance des dés ou tire un nombre au hasard.</span><em class="tc-go">→</em></button>
+          </div>
+        </div>
         <p id="homeEmpty" class="home-empty" hidden>Aucun outil ne correspond à ta recherche.</p>
       </div>
 
@@ -1061,6 +1077,154 @@ Hugo</textarea>
 
         <p id="htStatus" class="status" role="status"></p>
         <p class="gr-note">Ces hashtags sont des suggestions créées à partir de ton sujet et de listes par thème : Clippo ne connaît pas leur popularité réelle. Avant de publier, tape-les dans la barre de recherche du réseau pour voir s'ils sont utilisés et s'ils correspondent bien à ton contenu. Ce que tu écris reste sur ton appareil.</p>
+      </div>
+    </section>
+      <!-- Jeu : Morpion -->
+    <section id="tictactoe" class="panel">
+      <h1>Le morpion.</h1>
+      <p class="sub">Aligne trois symboles avant ton adversaire.</p>
+
+      <div class="card">
+        <div class="row gm-opts">
+          <label class="select">
+            <span>Mode</span>
+            <select id="ttMode">
+              <option value="cpu-easy">Contre l'ordinateur (facile)</option>
+              <option value="cpu-hard">Contre l'ordinateur (difficile)</option>
+              <option value="two">À deux</option>
+            </select>
+          </label>
+          <label id="ttSideBox" class="select">
+            <span>Tu joues</span>
+            <select id="ttSide">
+              <option value="X">X (tu commences)</option>
+              <option value="O">O (l'ordinateur commence)</option>
+            </select>
+          </label>
+        </div>
+
+        <p id="ttInfo" class="gm-info" role="status"></p>
+        <div id="ttBoard" class="tt-board"></div>
+
+        <div class="gm-score">
+          <div><small>X</small><strong id="ttSX">0</strong></div>
+          <div><small>Nuls</small><strong id="ttSD">0</strong></div>
+          <div><small>O</small><strong id="ttSO">0</strong></div>
+        </div>
+
+        <div class="row gm-actions">
+          <button id="ttNew" class="primary">Nouvelle partie</button>
+          <button id="ttReset" class="ghost-btn" type="button">Scores à zéro</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Jeu : Mémoire -->
+    <section id="memory" class="panel">
+      <h1>Le jeu de mémoire.</h1>
+      <p class="sub">Retourne deux cartes à la fois et retrouve toutes les paires, avec le moins de coups possible.</p>
+
+      <div class="card">
+        <div class="row gm-opts">
+          <label class="select">
+            <span>Niveau</span>
+            <select id="mmLevel">
+              <option value="4-6">Facile (12 cartes)</option>
+              <option value="4-8" selected>Moyen (16 cartes)</option>
+              <option value="6-12">Difficile (24 cartes)</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="gm-score">
+          <div><small>Coups</small><strong id="mmMoves">0</strong></div>
+          <div><small>Temps</small><strong id="mmTime">00:00</strong></div>
+        </div>
+
+        <div id="mmGrid" class="mm-grid"></div>
+        <p id="mmMsg" class="gm-info" role="status"></p>
+
+        <div class="row gm-actions">
+          <button id="mmNew" class="primary">Nouvelle partie</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Jeu : Calcul mental -->
+    <section id="mental" class="panel">
+      <h1>Le calcul mental.</h1>
+      <p class="sub">Réponds à un maximum de calculs en 60 secondes.</p>
+
+      <div class="card">
+        <div class="row gm-opts">
+          <label class="select">
+            <span>Niveau</span>
+            <select id="cmLevel">
+              <option value="easy">Facile</option>
+              <option value="mid" selected>Moyen</option>
+              <option value="hard">Difficile</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="cm-board">
+          <div class="gm-score">
+            <div><small>Temps</small><strong id="cmTime">60</strong></div>
+            <div><small>Bonnes réponses</small><strong id="cmScore">0</strong></div>
+          </div>
+          <div id="cmQ" class="cm-q">Prêt ?</div>
+          <input id="cmAns" class="text-in cm-in" type="text" inputmode="numeric" autocomplete="off" disabled placeholder="Ta réponse" aria-label="Ta réponse">
+          <button id="cmOk" class="ghost-btn" type="button" disabled>Valider</button>
+          <p id="cmFb" class="gm-info" role="status"></p>
+        </div>
+
+        <button id="cmGo" class="primary">Commencer</button>
+        <p id="cmEnd" class="status" role="status"></p>
+      </div>
+    </section>
+
+    <!-- Jeu : Dés et pile ou face -->
+    <section id="dice" class="panel">
+      <h1>Dés et pile ou face.</h1>
+      <p class="sub">Lance des dés, tire à pile ou face ou choisis un nombre au hasard.</p>
+
+      <div class="card">
+        <div class="chips" id="dcModes">
+          <button class="chip active" data-mode="dice" type="button">Dés</button>
+          <button class="chip" data-mode="coin" type="button">Pile ou face</button>
+          <button class="chip" data-mode="num" type="button">Nombre</button>
+        </div>
+
+        <div id="dcDice" class="row gm-opts">
+          <label class="select">
+            <span>Nombre de dés</span>
+            <select id="dcCount">
+              <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option>
+            </select>
+          </label>
+          <label class="select">
+            <span>Faces</span>
+            <select id="dcFaces">
+              <option>4</option><option selected>6</option><option>8</option><option>10</option><option>12</option><option>20</option><option>100</option>
+            </select>
+          </label>
+        </div>
+
+        <div id="dcNum" class="row gm-opts" hidden>
+          <label class="select">
+            <span>De</span>
+            <input id="dcMin" class="text-in" type="number" value="1" step="1">
+          </label>
+          <label class="select">
+            <span>À</span>
+            <input id="dcMax" class="text-in" type="number" value="100" step="1">
+          </label>
+        </div>
+
+        <div id="dcStage" class="dc-stage" aria-live="polite"></div>
+        <p id="dcSum" class="gm-info"></p>
+        <button id="dcGo" class="primary">Lancer</button>
+        <p id="dcMsg" class="status" role="status"></p>
       </div>
     </section>
   </main>
