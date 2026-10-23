@@ -49,6 +49,7 @@
           <button class="tab" data-tab="pomodoro">Pomodoro</button>
                     <button class="tab" data-tab="flashcards">Flashcards</button>
                                         <button class="tab" data-tab="scanquiz">Quiz du cours</button>
+                    <button class="tab" data-tab="revision">Fiche de révision</button>
         
         </div>
         <div class="subgroup" data-cat="media" hidden>
@@ -94,6 +95,7 @@
           <button class="tool-card" data-go="pomodoro"><strong>Pomodoro</strong><span>Travaille par sessions avec des pauses.</span></button>
                     <button class="tool-card" data-go="flashcards"><strong>Flashcards</strong><span>Crée des cartes et révise tes leçons.</span></button>
                     <button class="tool-card" data-go="scanquiz"><strong>Quiz du cours</strong><span>Scanne ton cours, Clippo crée un quiz.</span></button>
+                    <button class="tool-card" data-go="revision"><strong>Fiche de révision</strong><span>Colle ou scanne ton cours, Clippo en tire l'essentiel.</span></button>
         </div>
 
         <h3 class="tool-cat">🎬 Médias</h3>
@@ -791,6 +793,47 @@ Hugo</textarea>
 
         <p id="pwStatus" class="status" role="status"></p>
         <p class="gr-note">Utilise un mot de passe différent pour chaque compte et ne le partage avec personne. Pour les retenir, utilise un gestionnaire de mots de passe.</p>
+      </div>
+    </section>
+      <!-- Fiche de révision -->
+    <section id="revision" class="panel">
+      <h1>Ta fiche de révision.</h1>
+      <p class="sub">Colle ton cours ou prends-le en photo : Clippo en tire l'essentiel, les mots-clés, les définitions et les dates. Tout se fait sur ton appareil.</p>
+
+      <div class="card">
+        <div id="rvSetup" class="rv-setup">
+          <label id="rvDrop" class="drop">
+            <input id="rvFile" type="file" accept="image/*" multiple hidden>
+            <strong>Ajoute des photos de ton cours</strong>
+            <span>Facultatif · jusqu'à 3 photos, nettes et bien éclairées</span>
+          </label>
+          <textarea id="rvText" class="fancy-in" rows="9" placeholder="Colle ton cours ici (200 caractères minimum), ou ajoute des photos : le texte lu apparaîtra ici et tu pourras le corriger."></textarea>
+          <label class="select">
+            <span>Longueur de la fiche</span>
+            <select id="rvLen">
+              <option value="5">Courte (5 phrases)</option>
+              <option value="8" selected>Moyenne (8 phrases)</option>
+              <option value="12">Longue (12 phrases)</option>
+            </select>
+          </label>
+          <button id="rvGo" class="primary">Créer ma fiche</button>
+        </div>
+
+        <div id="rvOut" hidden>
+          <div id="rvSheet" class="rv-sheet"></div>
+          <div class="row rv-actions">
+            <button id="rvCopy" class="primary">Copier la fiche</button>
+            <button id="rvPrint" class="ghost-btn">🖨️ Imprimer / PDF</button>
+            <button id="rvCards" class="ghost-btn">🃏 Créer des flashcards</button>
+          </div>
+          <div class="row rv-actions">
+            <button id="rvBack" class="ghost-btn">← Modifier le texte</button>
+            <button id="rvNew" class="ghost-btn">Nouveau cours</button>
+          </div>
+        </div>
+
+        <p id="rvStatus" class="status" role="status"></p>
+        <p class="gr-note">Tes photos et ton texte restent sur ton appareil. La fiche est faite avec les phrases de ton cours : relis-la et complète-la avec ton cahier.</p>
       </div>
     </section>
   </main>
