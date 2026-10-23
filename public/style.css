@@ -668,3 +668,60 @@ button, label, a { -webkit-tap-highlight-color: transparent; touch-action: manip
   #countdown .cd-chip { max-width: 100%; white-space: normal; }
   #countdown .cd-hero { padding: 16px 12px; }
 }
+
+/* --- Nouvel accueil --- */
+main:has(#home.active) { max-width: 1100px; }
+.eyebrow { display: flex; align-items: center; gap: 12px; font: 700 .85rem "DM Sans", sans-serif; letter-spacing: .22em; color: var(--aqua); margin-bottom: 14px; }
+.eyebrow span { width: 28px; height: 2px; background: var(--aqua); border-radius: 2px; }
+.eyebrow.center { justify-content: center; }
+.grad { font-style: normal; background: linear-gradient(90deg, var(--aqua), var(--pink)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+.hero { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 40px; align-items: center; padding: 20px 0 10px; }
+.hero h1 { font-size: clamp(2.4rem, 6vw, 4rem); }
+.hero-sub { color: var(--muted); font-size: 1.15rem; margin: 18px 0 26px; max-width: 520px; }
+.hero-btns { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; }
+.hero-btns .primary { margin-left: 0; }
+
+.hero-card {
+  background: rgba(21, 17, 46, .72); backdrop-filter: blur(14px);
+  border: 1px solid rgba(255,255,255,.15); border-radius: 22px; padding: 18px; display: grid; gap: 14px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.35), 0 0 50px rgba(46,230,214,.12); transform: rotate(-1.5deg);
+}
+.hc-bar { display: flex; align-items: center; gap: 6px; }
+.hc-bar i { width: 11px; height: 11px; border-radius: 50%; background: var(--pink); }
+.hc-bar i:nth-child(2) { background: var(--sun); }
+.hc-bar i:nth-child(3) { background: var(--aqua); }
+.hc-bar span { margin-left: 8px; font: 800 1.1rem "Bricolage Grotesque", sans-serif; }
+.hc-search { display: flex; align-items: center; gap: 10px; background: var(--ink-2); border: 2px solid transparent; border-radius: 14px; padding: 4px 14px; }
+.hc-search:focus-within { border-color: var(--aqua); }
+.hc-search input { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--paper); font: 500 1rem "DM Sans", sans-serif; padding: 12px 0; outline: none; }
+.hc-label { color: var(--muted); font-size: .85rem; }
+.hc-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.hc-chip { border: 1px solid rgba(255,255,255,.18); background: rgba(255,255,255,.06); color: var(--paper); font: 500 .92rem "DM Sans", sans-serif; padding: 9px 14px; border-radius: 999px; cursor: pointer; transition: transform .15s, border-color .15s; }
+.hc-chip:hover { transform: translateY(-2px); border-color: var(--aqua); }
+
+.home-alert { margin: 26px 0 0; }
+.home-tools { margin-top: 56px; scroll-margin-top: 20px; }
+.home-h2 { font: 800 clamp(1.7rem, 4.5vw, 2.6rem) "Bricolage Grotesque", sans-serif; text-align: center; margin-bottom: 8px; letter-spacing: -.02em; }
+.home-cat { margin-top: 10px; }
+.home-tools .tool-grid { grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 14px; }
+.tool-card { position: relative; display: grid; gap: 6px; padding: 18px; padding-right: 54px; }
+.tool-card:hover { box-shadow: 0 10px 30px rgba(46,230,214,.15); }
+.tc-ico { font-style: normal; font-size: 1.6rem; width: 50px; height: 50px; display: grid; place-items: center; border-radius: 14px; background: linear-gradient(135deg, rgba(255,61,129,.35), rgba(46,230,214,.3)); margin-bottom: 6px; }
+.tc-go { position: absolute; right: 16px; bottom: 16px; font-style: normal; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; border: 1.5px solid var(--aqua); color: var(--aqua); transition: background .15s, color .15s; }
+.tool-card:hover .tc-go { background: var(--aqua); color: var(--ink); }
+.home-empty { text-align: center; color: var(--muted); padding: 30px 0; }
+
+.home-strip { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px 34px; margin-top: 50px; color: var(--muted); font-size: .95rem; }
+.home-strip span { display: flex; align-items: center; gap: 8px; }
+.home-strip span::before { content: ""; width: 22px; height: 2px; background: var(--aqua); border-radius: 2px; }
+.home-strip b { color: var(--paper); }
+
+@media (max-width: 800px) {
+  .hero { grid-template-columns: 1fr; gap: 28px; }
+  .hero-card { transform: none; }
+  .hero-btns .primary, .hero-btns .ghost-btn { width: 100%; }
+  .home-tools { margin-top: 40px; }
+  .home-tools .tool-grid { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) { .hc-chip, .tc-go { transition: none; } }
