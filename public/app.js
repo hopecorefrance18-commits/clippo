@@ -2621,3 +2621,170 @@ cdDate.min = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISO
 cdRender();
 setInterval(cdRender, 30000);
 document.addEventListener("visibilitychange", () => { if (!document.hidden) cdRender(); });
+
+// ---------- Budget mensuel ----------
+const BU_KEY = "clippo_budget", BU_MAX = 300;
+const BU_CATS = ["Logement", "Courses", "Transport", "Abonnements", "Loisirs", "Santé", "Autres"];
+const buType = $("buType"), buLabel = $("buLabel"), buAmount = $("buAmount"), buCat = $("buCat"), buCatBox = $("buCatBox");
+const buList = $("buList"), buBreak = $("buBreak"), buStatus = $("buStatus"), buInfo = $("buInfo"), buBar = $("buBar");
+let buData = {}, buMonth = "";
+
+function buThisMonth() {
+  const d = new Date();
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+}
+function buShift(key, delta) {
+  const [y, m] = key.split("-").map(Number);
+  const d = new Date(y, m - 1 + delta, 1);
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+}
+function buMonthName(key) {
+  const [y, m] = key.split("-").map(Number);
+  const s = new Date(y, m - 1, 1).toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+function buEur(n) {
+  return n.toLocaleString("fr-FR", { style: "currency", currency: "EUR", minimumFractionDigits: 0, maximumFractionDigits: 2 });
+}
+function buNum(v) {
+  const n = parseFloat(String(v).replace(/\s/g, "").replace(",", "."));
+  return Number.isFinite(n) ? Math.round(n * 100) / 100 : NaN;
+}
+function buMessage(msg, isError = false) {
+  buStatus.textContent = msg;
+  buStatus.classList.toggle("error", isError);
+}
+function buEl(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text !== undefined) e.textContent = text;
+  return e;
+}
+function buId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+
+function buLoad() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(BU_KEY) || "{}");
+    const out = {};
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) return out;
+    Object.keys(raw).forEach((k) => {
+      if (!/^\d{4}-\d{2}$/.test(k) || !Array.isArray(raw[k])) return;
+      out[k] = raw[k]
+        .filter((e) => e && (e.type === "in" || e.type === "out") && Number.isFinite(Number(e.amount)) && Number(e.amount) > 0)
+        .slice(0, BU_MAX)
+        .map((e) => ({ id: String(e.id), type: e.type, label: String(e.label || "").slice(0, 40), cat: BU_CATS.includes(e.cat) ? e.cat : "Autres", amount: Number(e.amount) }));
+    });
+    return out;
+  } catch { return {}; }
+}
+function buSave() {
+  try { localStorage.setItem(BU_KEY, JSON.stringify(buData)); }
+  catch { buMessage("Impossible d'enregistrer : le stockage du navigateur est plein ou bloqué.", true); }
+}
+
+function buRender() {
+  $("buMonth").textContent = buMonthName(buMonth);
+  const entries = buData[buMonth] || [];
+  const inc = entries.filter((e) => e.type === "in").reduce((a, e) => a + e.amount, 0);
+  const out = entries.filter((e) => e.type === "out").reduce((a, e) => a + e.amount, 0);
+  const left = Math.round((inc - out) * 100) / 100;
+
+  $("buIn").textContent = buEur(inc);
+  $("buOut").textContent = buEur(out);
+  const leftEl = $("buLeft");
+  leftEl.textContent = buEur(left);
+  leftEl.className = left < 0 ? "bu-out" : "bu-in";
+
+  const pct = inc > 0 ? Math.min(100, (out / inc) * 100) : out > 0 ? 100 : 0;
+  buBar.style.width = Math.round(pct) + "%";
+  if (!entries.length) buInfo.textContent = "Ajoute tes revenus et tes dépenses pour commencer.";
+  else if (inc === 0) buInfo.textContent = "Ajoute tes revenus pour voir ce qu'il te reste.";
+  else if (left < 0) buInfo.textContent = `Tu dépenses ${buEur(-left)} de plus que tes revenus ce mois-ci.`;
+  else buInfo.textContent = `Tu as dépensé ${Math.round(pct)} % de tes revenus.`;
+
+  // Répartition par catégorie
+  buBreak.innerHTML = "";
+  const byCat = {};
+  entries.filter((e) => e.type === "out").forEach((e) => { byCat[e.cat] = (byCat[e.cat] || 0) + e.amount; });
+  const cats = Object.entries(byCat).sort((a, b) => b[1] - a[1]);
+  if (cats.length) {
+    buBreak.appendChild(buEl("h2", "fc-title", "Où part ton argent"));
+    cats.forEach(([cat, sum]) => {
+      const share = out ? (sum / out) * 100 : 0;
+      const row = buEl("div", "bu-cat");
+      const head = buEl("div", "bu-cat-head");
+      head.append(buEl("span", "", cat), buEl("span", "", `${buEur(sum)} · ${Math.round(share)} %`));
+      const meter = buEl("div", "todo-meter");
+      const bar = buEl("div", "todo-bar");
+      bar.style.width = Math.round(share) + "%";
+      meter.appendChild(bar);
+      row.append(head, meter);
+      buBreak.appendChild(row);
+    });
+  }
+
+  // Liste des lignes
+  buList.innerHTML = "";
+  entries.slice().reverse().forEach((e) => {
+    const li = buEl("li", "bu-item");
+    const info = buEl("div", "bu-info");
+    info.appendChild(buEl("strong", "", e.label || (e.type === "in" ? "Revenu" : e.cat)));
+    info.appendChild(buEl("span", "", e.type === "in" ? "Revenu" : e.cat));
+    const amt = buEl("span", "bu-amt " + (e.type === "in" ? "bu-in" : "bu-out"), (e.type === "in" ? "+" : "−") + buEur(e.amount));
+    const del = buEl("button", "todo-btn", "×");
+    del.type = "button";
+    del.setAttribute("aria-label", "Supprimer : " + (e.label || e.cat));
+    del.addEventListener("click", () => {
+      buData[buMonth] = (buData[buMonth] || []).filter((x) => x.id !== e.id);
+      buSave();
+      buRender();
+    });
+    li.append(info, amt, del);
+    buList.appendChild(li);
+  });
+  $("buClear").hidden = !entries.length;
+  $("buCopy").hidden = !(buData[buShift(buMonth, -1)] || []).length;
+}
+
+$("buAdd").addEventListener("click", () => {
+  const amount = buNum(buAmount.value);
+  if (!(amount > 0)) return buMessage("Entre un montant supérieur à 0 (ex : 45,90).", true);
+  if (amount > 1e9) return buMessage("Ce montant est trop grand.", true);
+  const list = buData[buMonth] || (buData[buMonth] = []);
+  if (list.length >= BU_MAX) return buMessage(`Tu as atteint la limite de ${BU_MAX} lignes pour ce mois.`, true);
+  const type = buType.value;
+  list.push({ id: buId(), type, label: buLabel.value.trim().slice(0, 40), cat: type === "out" ? buCat.value : "Autres", amount });
+  buLabel.value = ""; buAmount.value = "";
+  buSave();
+  buMessage("");
+  buRender();
+  buLabel.focus();
+});
+[buLabel, buAmount].forEach((el) => el.addEventListener("keydown", (e) => { if (e.key === "Enter") $("buAdd").click(); }));
+buType.addEventListener("change", () => { buCatBox.hidden = buType.value === "in"; });
+
+$("buPrev").addEventListener("click", () => { buMonth = buShift(buMonth, -1); buMessage(""); buRender(); });
+$("buNext").addEventListener("click", () => { buMonth = buShift(buMonth, 1); buMessage(""); buRender(); });
+
+$("buCopy").addEventListener("click", () => {
+  const prev = buData[buShift(buMonth, -1)] || [];
+  if (!prev.length) return;
+  const cur = buData[buMonth] || [];
+  if (cur.length && !confirm("Ce mois contient déjà des lignes. Ajouter aussi celles du mois précédent ?")) return;
+  const copy = prev.map((e) => ({ ...e, id: buId() }));
+  buData[buMonth] = cur.concat(copy).slice(0, BU_MAX);
+  buSave();
+  buMessage(`${copy.length} ligne${copy.length > 1 ? "s" : ""} copiée${copy.length > 1 ? "s" : ""} depuis ${buMonthName(buShift(buMonth, -1))}.`);
+  buRender();
+});
+$("buClear").addEventListener("click", () => {
+  if (!(buData[buMonth] || []).length || !confirm("Effacer toutes les lignes de ce mois ?")) return;
+  buData[buMonth] = [];
+  buSave();
+  buMessage("");
+  buRender();
+});
+
+buData = buLoad();
+buMonth = buThisMonth();
+buRender();
