@@ -646,3 +646,25 @@ button, label, a { -webkit-tap-highlight-color: transparent; touch-action: manip
   .bu-summary { grid-template-columns: 1fr; }
   .bu-foot .ghost-btn { width: 100%; }
 }
+
+/* --- Compte à rebours : correction mobile --- */
+#countdown .card { min-width: 0; }
+#countdown .cd-add .text-in,
+#countdown .cd-add .select { min-width: 0; max-width: 100%; }
+#countdown input[type="date"],
+#countdown input[type="time"] {
+  -webkit-appearance: none; appearance: none;
+  width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box;
+  min-height: 46px; text-align: left;
+}
+#countdown input[type="date"]::-webkit-date-and-time-value,
+#countdown input[type="time"]::-webkit-date-and-time-value { text-align: left; }
+@media (max-width: 700px) {
+  #countdown .cd-add { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: end; }
+  #countdown .cd-add .grow { grid-column: 1 / -1; }
+  #countdown .cd-add .primary { grid-column: 1 / -1; width: 100%; }
+  #countdown .cd-item { flex-wrap: wrap; gap: 8px; }
+  #countdown .cd-info { flex: 1 1 100%; }
+  #countdown .cd-chip { max-width: 100%; white-space: normal; }
+  #countdown .cd-hero { padding: 16px 12px; }
+}
