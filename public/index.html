@@ -70,6 +70,7 @@
           <button class="tab" data-tab="wheel">Roue</button>
           <button class="tab" data-tab="todo">Tâches</button>
                     <button class="tab" data-tab="password">Mot de passe</button>
+                    <button class="tab" data-tab="notes">Bloc-notes</button>
         </div>
       </nav>
     </div>
@@ -121,6 +122,7 @@
           <button class="tool-card" data-go="wheel"><strong>Roue de la chance</strong><span>Tire au sort un nom ou une idée.</span></button>
           <button class="tool-card" data-go="todo"><strong>Liste de tâches</strong><span>Note tes tâches et coche-les.</span></button>
                     <button class="tool-card" data-go="password"><strong>Mot de passe</strong><span>Crée un mot de passe solide, à copier.</span></button>
+                    <button class="tool-card" data-go="notes"><strong>Bloc-notes</strong><span>Écris tes notes, elles sont gardées dans ton navigateur.</span></button>
         </div>
       </div>
 
@@ -842,6 +844,35 @@ Hugo</textarea>
 
         <p id="rvStatus" class="status" role="status"></p>
         <p class="gr-note">Tes photos et ton texte restent sur ton appareil. La fiche est faite avec les phrases de ton cours : relis-la et complète-la avec ton cahier.</p>
+      </div>
+    </section>
+      <!-- Bloc-notes -->
+    <section id="notes" class="panel">
+      <h1>Ton bloc-notes.</h1>
+      <p class="sub">Écris tes notes, elles s'enregistrent toutes seules dans ton navigateur.</p>
+
+      <div class="card">
+        <div class="nt-layout">
+          <div class="nt-side">
+            <button id="ntNew" class="primary">+ Nouvelle note</button>
+            <input id="ntSearch" class="text-in" type="text" placeholder="Rechercher…" maxlength="60" autocomplete="off" aria-label="Rechercher dans les notes">
+            <ul id="ntList" class="nt-list"></ul>
+          </div>
+
+          <div id="ntEditor" class="nt-editor" hidden>
+            <input id="ntTitle" class="text-in" type="text" maxlength="80" placeholder="Titre de la note" autocomplete="off" aria-label="Titre">
+            <textarea id="ntBody" class="fancy-in nt-body" maxlength="20000" placeholder="Écris ici…" aria-label="Contenu de la note"></textarea>
+            <p id="ntInfo" class="gr-note"></p>
+            <div class="row">
+              <button id="ntCopy" class="ghost-btn" type="button">Copier</button>
+              <button id="ntDownload" class="ghost-btn" type="button">Télécharger (.txt)</button>
+              <button id="ntDelete" class="ghost-btn" type="button">🗑 Supprimer</button>
+            </div>
+          </div>
+        </div>
+
+        <p id="ntStatus" class="status" role="status"></p>
+        <p class="gr-note">Tes notes restent sur ton appareil (dans ce navigateur) et ne sont envoyées nulle part. Si tu vides les données du site, elles disparaissent : télécharge celles qui sont importantes. N'y écris pas de mots de passe.</p>
       </div>
     </section>
   </main>
