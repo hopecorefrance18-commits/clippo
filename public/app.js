@@ -2823,3 +2823,187 @@ document.querySelectorAll("[data-scroll]").forEach((b) => b.addEventListener("cl
   const t = document.getElementById(b.dataset.scroll);
   if (t) t.scrollIntoView({ behavior: "smooth" });
 }));
+
+// ---------- Générateur de hashtags ----------
+const HT_THEMES = [
+  { k: ["gaming", "jeu", "jeux", "gamer", "jeuxvideo", "fortnite", "minecraft", "valorant", "roblox", "fifa"],
+    t: ["gamer", "gaming", "jeuxvideo", "gamingcommunity", "gamerfrance", "gameplay", "streamer", "twitch", "console", "pcgaming", "playstation", "xbox"] },
+  { k: ["cuisine", "recette", "recettes", "cuisiner", "patisserie", "gateau", "food", "repas"],
+    t: ["cuisine", "recette", "recettefacile", "foodie", "faitmaison", "cuisinemaison", "gourmand", "patisserie", "foodlover", "ideerepas", "recettesimple"] },
+  { k: ["sport", "fitness", "musculation", "running", "gym", "entrainement", "workout", "foot", "football"],
+    t: ["sport", "fitness", "musculation", "entrainement", "motivation", "running", "gym", "workout", "coachsportif", "santeetsport"] },
+  { k: ["mode", "fashion", "style", "outfit", "tenue", "vetement", "streetwear"],
+    t: ["mode", "fashion", "ootd", "style", "outfit", "tendance", "look", "streetwear", "shopping", "modefemme", "modehomme"] },
+  { k: ["voyage", "voyages", "travel", "vacances", "tourisme", "roadtrip"],
+    t: ["voyage", "travel", "vacances", "aventure", "explorer", "tourisme", "roadtrip", "bonsplans", "decouverte", "paysage"] },
+  { k: ["musique", "music", "chanson", "rap", "concert", "playlist", "chanteur"],
+    t: ["musique", "music", "chanson", "rapfr", "concert", "playlist", "newmusic", "artiste", "chanteur", "musicien"] },
+  { k: ["etudes", "etude", "etudiant", "revisions", "revision", "bac", "examen", "cours", "lycee", "fac", "ecole", "apprendre"],
+    t: ["etudes", "etudiant", "revisions", "bac", "examen", "apprendre", "studygram", "studywithme", "lycee", "fac", "organisation", "motivationetudes"] },
+  { k: ["beaute", "makeup", "maquillage", "skincare", "cheveux", "soin", "coiffure"],
+    t: ["beaute", "makeup", "maquillage", "skincare", "soinsdupeau", "cheveux", "routinebeaute", "beauty", "tutomaquillage", "coiffure"] },
+  { k: ["humour", "drole", "meme", "blague", "rire", "comedie", "sketch"],
+    t: ["humour", "drole", "meme", "blague", "rire", "funny", "comedie", "sketch", "lol", "humourfrancais"] },
+  { k: ["animaux", "animal", "chien", "chat", "chiot", "chaton"],
+    t: ["animaux", "chien", "chat", "chiot", "chaton", "petlovers", "animauxmignons", "dog", "cat", "amoureuxdesanimaux"] },
+  { k: ["photo", "photos", "photographie", "retouche", "portrait", "lightroom"],
+    t: ["photo", "photographie", "photooftheday", "retouche", "lightroom", "portrait", "paysage", "photographe", "astucephoto", "photomobile"] },
+  { k: ["tech", "technologie", "informatique", "smartphone", "iphone", "android", "ordinateur", "ia"],
+    t: ["tech", "technologie", "informatique", "astuce", "smartphone", "iphone", "android", "gadget", "high tech".replace(" ", ""), "applications"] },
+  { k: ["business", "entrepreneur", "argent", "marketing", "investissement", "budget", "freelance"],
+    t: ["business", "entrepreneur", "argent", "marketing", "reussite", "budget", "freelance", "autoentrepreneur", "indépendant".normalize("NFD").replace(/[\u0300-\u036f]/g, ""), "astucesargent"] },
+  { k: ["auto", "voiture", "moto", "mecanique", "tuning"],
+    t: ["auto", "voiture", "moto", "mecanique", "tuning", "passionauto", "carlovers", "automobile", "garage", "conduite"] },
+];
+const HT_GENERIC = {
+  tiktok: ["fyp", "pourtoi", "foryou", "foryoupage", "viral", "tiktokfrance", "trending", "pourtoipage"],
+  instagram: ["instagood", "reels", "instadaily", "explorepage", "instagramfrance", "photooftheday", "reelsinstagram", "love"],
+  x: ["tendance", "actu", "thread", "france", "astuce"],
+  youtube: ["shorts", "youtubeshorts", "youtubefrance", "tuto", "astuces", "video"],
+};
+const HT_NET = {
+  tiktok: { rec: 5, max: 10, note: "Conseil TikTok : 3 à 5 hashtags bien choisis suffisent, plus devient vite du spam." },
+  instagram: { rec: 15, max: 30, note: "Instagram accepte 30 hashtags au maximum. Entre 5 et 15, bien ciblés, c'est un bon réglage." },
+  x: { rec: 2, max: 3, note: "Sur X, 1 à 2 hashtags suffisent : au-delà, le post paraît surchargé." },
+  youtube: { rec: 5, max: 15, note: "YouTube ignore tous les hashtags d'une vidéo si elle en contient plus de 15." },
+};
+const HT_SUFFIX = ["france", "fr", "astuces", "idees", "tips", "debutant", "tuto", "addict", "lovers", "communaute", "life", "daily"];
+const HT_LABELS = [
+  ["large", "Très larges", "Beaucoup de monde les utilise : bonne portée, mais beaucoup de concurrence."],
+  ["mid", "Moyens", "Liés à ton thème : un bon équilibre entre portée et précision."],
+  ["niche", "De niche", "Précis et plus rares : moins de concurrence, public plus ciblé."],
+];
+
+const htTopic = $("htTopic"), htNet = $("htNet"), htResult = $("htResult"), htGroups = $("htGroups");
+const htOut = $("htOut"), htCount = $("htCount"), htStatus = $("htStatus"), htNote = $("htNote");
+let htData = { large: [], mid: [], niche: [] }, htSel = new Set();
+
+function htMessage(msg, isError = false) {
+  htStatus.textContent = msg;
+  htStatus.classList.toggle("error", isError);
+}
+function htClean(s) { return String(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, ""); }
+function htShuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function htBuild(topic, net) {
+  const words = topic.split(/[\s,;/+]+/).map(htClean).filter((w) => w.length >= 2).slice(0, 4);
+  if (!words.length) return null;
+  const joined = words.join("");
+  const bases = [...new Set([...(words.length > 1 && joined.length <= 24 ? [joined] : []), ...words])];
+  const seen = new Set();
+  const take = (list, max) => {
+    const out = [];
+    list.forEach((t) => {
+      if (out.length >= max || t.length < 3 || t.length > 30 || seen.has(t)) return;
+      seen.add(t);
+      out.push(t);
+    });
+    return out;
+  };
+
+  const theme = [];
+  HT_THEMES.forEach((th) => {
+    const hit = words.some((w) => th.k.some((k) => k === w || (w.length >= 4 && k.length >= 4 && (k.includes(w) || w.includes(k)))));
+    if (hit) theme.push(...th.t.map(htClean));
+  });
+
+  const niche = [];
+  bases.slice(0, 3).forEach((b) => HT_SUFFIX.forEach((s) => niche.push(b + s)));
+
+  const mid = take([...bases, ...htShuffle(theme)], 12);
+  const nicheTags = take(htShuffle(niche), 14);
+  const large = take(htShuffle(HT_GENERIC[net]), 6);
+  return { large, mid, niche: nicheTags, themed: theme.length > 0 };
+}
+
+function htPreselect(net) {
+  const rec = HT_NET[net].rec;
+  const nL = Math.round(rec * 0.25), nM = Math.round(rec * 0.4), nN = Math.max(0, rec - nL - nM);
+  htSel = new Set([...htData.large.slice(0, nL), ...htData.mid.slice(0, nM), ...htData.niche.slice(0, nN)]);
+}
+
+function htOrdered() {
+  return [...htData.large, ...htData.mid, ...htData.niche].filter((t) => htSel.has(t));
+}
+
+function htUpdateOut() {
+  const tags = htOrdered().map((t) => "#" + t);
+  const text = tags.join(" ");
+  const net = HT_NET[htNet.value];
+  htOut.value = text;
+  htCount.textContent = `${tags.length} hashtag${tags.length > 1 ? "s" : ""} sélectionné${tags.length > 1 ? "s" : ""} · ${text.length} caractères`;
+  if (tags.length > net.max) htMessage(`Tu as sélectionné ${tags.length} hashtags : au-delà de ${net.max}, c'est trop pour ce réseau.`, true);
+  else htMessage("");
+  htGroups.querySelectorAll(".ht-chip").forEach((b) => {
+    const on = htSel.has(b.dataset.tag);
+    b.classList.toggle("on", on);
+    b.setAttribute("aria-pressed", String(on));
+  });
+}
+
+function htRender() {
+  htGroups.innerHTML = "";
+  HT_LABELS.forEach(([key, title, desc]) => {
+    const list = htData[key];
+    if (!list.length) return;
+    const box = document.createElement("div");
+    box.className = "ht-group";
+    const h = document.createElement("h3");
+    h.className = "tool-cat";
+    h.textContent = title;
+    const p = document.createElement("p");
+    p.className = "gr-note";
+    p.textContent = desc;
+    const chips = document.createElement("div");
+    chips.className = "ht-chips";
+    list.forEach((tag) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "ht-chip";
+      b.dataset.tag = tag;
+      b.textContent = "#" + tag;
+      b.addEventListener("click", () => {
+        if (htSel.has(tag)) htSel.delete(tag); else htSel.add(tag);
+        htUpdateOut();
+      });
+      chips.appendChild(b);
+    });
+    box.append(h, p, chips);
+    htGroups.appendChild(box);
+  });
+  htNote.textContent = HT_NET[htNet.value].note;
+  htUpdateOut();
+}
+
+function htGenerate() {
+  const topic = htTopic.value.trim();
+  if (!topic) { htResult.hidden = true; return htMessage("Écris un sujet (ex : cuisine, gaming, révisions bac).", true); }
+  const data = htBuild(topic, htNet.value);
+  if (!data) { htResult.hidden = true; return htMessage("Utilise des lettres ou des chiffres pour ton sujet.", true); }
+  htData = data;
+  htPreselect(htNet.value);
+  htResult.hidden = false;
+  htRender();
+  if (!data.themed) htMessage("Je ne connais pas de liste pour ce thème : les hashtags viennent surtout de tes mots. Essaie un sujet plus courant pour plus d'idées.");
+}
+
+async function htCopy(tags, okMsg) {
+  if (!tags.length) return htMessage("Sélectionne au moins un hashtag.", true);
+  try { await copyText(tags.map((t) => "#" + t).join(" ")); htMessage(okMsg); }
+  catch { htMessage("Copie automatique impossible : sélectionne le texte dans la case et fais Ctrl + C.", true); }
+}
+
+$("htGo").addEventListener("click", htGenerate);
+htTopic.addEventListener("keydown", (e) => { if (e.key === "Enter") htGenerate(); });
+htNet.addEventListener("change", () => { if (htTopic.value.trim()) htGenerate(); });
+$("htShuffle").addEventListener("click", htGenerate);
+$("htCopySel").addEventListener("click", () => htCopy(htOrdered(), "Hashtags copiés !"));
+$("htCopyAll").addEventListener("click", () => htCopy([...htData.large, ...htData.mid, ...htData.niche], "Tous les hashtags copiés !"));
+$("htClear").addEventListener("click", () => { htSel.clear(); htUpdateOut(); });
