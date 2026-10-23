@@ -72,6 +72,7 @@
           <button class="tab" data-tab="todo">Tâches</button>
                     <button class="tab" data-tab="password">Mot de passe</button>
                     <button class="tab" data-tab="notes">Bloc-notes</button>
+                    <button class="tab" data-tab="budget">Budget</button>
         </div>
       </nav>
     </div>
@@ -125,6 +126,7 @@
           <button class="tool-card" data-go="todo"><strong>Liste de tâches</strong><span>Note tes tâches et coche-les.</span></button>
                     <button class="tool-card" data-go="password"><strong>Mot de passe</strong><span>Crée un mot de passe solide, à copier.</span></button>
                     <button class="tool-card" data-go="notes"><strong>Bloc-notes</strong><span>Écris tes notes, elles sont gardées dans ton navigateur.</span></button>
+                  <button class="tool-card" data-go="budget"><strong>Budget mensuel</strong><span>Revenus, dépenses et reste à vivre.</span></button>
         </div>
       </div>
 
@@ -910,6 +912,70 @@ Hugo</textarea>
 
         <p id="cdStatus" class="status" role="status"></p>
         <p class="gr-note">Tes échéances restent sur ton appareil (dans ce navigateur) et ne sont envoyées nulle part. Si tu vides les données du site, elles disparaissent.</p>
+      </div>
+    </section>
+      <!-- Budget mensuel -->
+    <section id="budget" class="panel">
+      <h1>Ton budget du mois.</h1>
+      <p class="sub">Note tes revenus et tes dépenses : Clippo te montre ce qu'il te reste et où part ton argent. Tout est gardé dans ton navigateur.</p>
+
+      <div class="card">
+        <div class="bu-nav">
+          <button id="buPrev" class="ghost-btn" type="button" aria-label="Mois précédent">‹</button>
+          <strong id="buMonth"></strong>
+          <button id="buNext" class="ghost-btn" type="button" aria-label="Mois suivant">›</button>
+        </div>
+
+        <div class="bu-summary">
+          <div class="bu-box"><small>Revenus</small><strong id="buIn" class="bu-in">0 €</strong></div>
+          <div class="bu-box"><small>Dépenses</small><strong id="buOut" class="bu-out">0 €</strong></div>
+          <div class="bu-box"><small>Reste</small><strong id="buLeft">0 €</strong></div>
+        </div>
+        <div class="todo-meter"><div id="buBar" class="todo-bar"></div></div>
+        <p id="buInfo" class="gr-info bu-center"></p>
+
+        <h2 class="fc-title">Ajouter une ligne</h2>
+        <div class="row bu-add">
+          <label class="select">
+            <span>Type</span>
+            <select id="buType">
+              <option value="out" selected>Dépense</option>
+              <option value="in">Revenu</option>
+            </select>
+          </label>
+          <label class="select grow">
+            <span>Nom (facultatif)</span>
+            <input id="buLabel" class="text-in" type="text" maxlength="40" placeholder="ex : Loyer, Salaire…" autocomplete="off">
+          </label>
+          <label class="select">
+            <span>Montant (€)</span>
+            <input id="buAmount" class="text-in" type="text" inputmode="decimal" placeholder="0,00" autocomplete="off">
+          </label>
+          <label id="buCatBox" class="select">
+            <span>Catégorie</span>
+            <select id="buCat">
+              <option>Logement</option>
+              <option>Courses</option>
+              <option>Transport</option>
+              <option>Abonnements</option>
+              <option>Loisirs</option>
+              <option>Santé</option>
+              <option selected>Autres</option>
+            </select>
+          </label>
+          <button id="buAdd" class="primary">Ajouter</button>
+        </div>
+
+        <div id="buBreak"></div>
+        <ul id="buList" class="bu-list"></ul>
+
+        <div class="row bu-foot">
+          <button id="buCopy" class="ghost-btn" type="button">Copier le mois précédent</button>
+          <button id="buClear" class="ghost-btn" type="button">Effacer ce mois</button>
+        </div>
+
+        <p id="buStatus" class="status" role="status"></p>
+        <p class="gr-note">Tes chiffres restent sur ton appareil (dans ce navigateur) et ne sont envoyés nulle part. Si tu vides les données du site, ils disparaissent. N'y écris pas de numéros de compte. Cet outil fait des calculs simples : ce n'est pas un conseil financier.</p>
       </div>
     </section>
   </main>
