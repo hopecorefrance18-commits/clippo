@@ -2345,3 +2345,142 @@ $("rvCards").addEventListener("click", () => {
 });
 $("rvBack").addEventListener("click", () => { rvOut.hidden = true; rvSetup.hidden = false; rvMessage(""); });
 $("rvNew").addEventListener("click", () => { rvText.value = ""; rvData = null; rvOut.hidden = true; rvSetup.hidden = false; rvMessage(""); });
+
+// ---------- Bloc-notes ----------
+const ntList = $("ntList"), ntSearch = $("ntSearch"), ntEditor = $("ntEditor");
+const ntTitle = $("ntTitle"), ntBody = $("ntBody"), ntInfo = $("ntInfo"), ntStatus = $("ntStatus");
+const NT_KEY = "clippo_notes", NT_MAX = 100;
+let notes = [], ntCur = null, ntTimer = null;
+
+function ntMessage(msg, isError = false) {
+  ntStatus.textContent = msg;
+  ntStatus.classList.toggle("error", isError);
+}
+
+function ntLoad() {
+  try {
+    const data = JSON.parse(localStorage.getItem(NT_KEY) || "[]");
+    return Array.isArray(data)
+      ? data.filter((n) => n && typeof n.body === "string").slice(0, NT_MAX)
+          .map((n) => ({ id: String(n.id), title: String(n.title || "").slice(0, 80), body: n.body.slice(0, 20000), t: Number(n.t) || Date.now() }))
+      : [];
+  } catch { return []; }
+}
+function ntSave() {
+  try { localStorage.setItem(NT_KEY, JSON.stringify(notes)); }
+  catch { ntMessage("Impossible d'enregistrer : le stockage du navigateur est plein ou bloqué.", true); }
+}
+
+function ntFind(id) { return notes.find((n) => n.id === id); }
+
+function ntInfoUpdate() {
+  const n = ntFind(ntCur);
+  if (!n) { ntInfo.textContent = ""; return; }
+  const words = n.body.trim() ? n.body.trim().split(/\s+/).length : 0;
+  ntInfo.textContent = `${words} mot${words > 1 ? "s" : ""} · ${n.body.length} caractère${n.body.length > 1 ? "s" : ""}`;
+}
+
+function ntRenderList() {
+  const q = ntSearch.value.trim().toLowerCase();
+  const shown = notes
+    .filter((n) => !q || n.title.toLowerCase().includes(q) || n.body.toLowerCase().includes(q))
+    .sort((a, b) => b.t - a.t);
+  ntList.innerHTML = "";
+  if (!shown.length) {
+    const li = document.createElement("li");
+    li.className = "todo-empty";
+    li.textContent = notes.length ? "Aucune note trouvée." : "Aucune note pour l'instant.";
+    ntList.appendChild(li);
+    return;
+  }
+  shown.forEach((n) => {
+    const li = document.createElement("li");
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "nt-item" + (n.id === ntCur ? " active" : "");
+    const t = document.createElement("strong");
+    t.textContent = n.title || "Sans titre";
+    const p = document.createElement("span");
+    p.textContent = n.body.replace(/\s+/g, " ").slice(0, 60) || "(vide)";
+    const d = document.createElement("small");
+    d.textContent = new Date(n.t).toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+    b.append(t, p, d);
+    b.addEventListener("click", () => ntOpen(n.id));
+    li.appendChild(b);
+    ntList.appendChild(li);
+  });
+}
+
+function ntOpen(id) {
+  const n = ntFind(id);
+  if (!n) { ntCur = null; ntEditor.hidden = true; ntRenderList(); return; }
+  ntCur = id;
+  ntTitle.value = n.title;
+  ntBody.value = n.body;
+  ntEditor.hidden = false;
+  ntInfoUpdate();
+  ntRenderList();
+}
+
+$("ntNew").addEventListener("click", () => {
+  if (notes.length >= NT_MAX) return ntMessage(`Tu as atteint la limite de ${NT_MAX} notes. Supprime-en une.`, true);
+  ntMessage("");
+  ntSearch.value = "";
+  const n = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), title: "", body: "", t: Date.now() };
+  notes.unshift(n);
+  ntSave();
+  ntOpen(n.id);
+  ntBody.focus();
+});
+
+function ntEdited() {
+  const n = ntFind(ntCur);
+  if (!n) return;
+  n.title = ntTitle.value.slice(0, 80);
+  n.body = ntBody.value;
+  n.t = Date.now();
+  ntInfoUpdate();
+  ntRenderList();
+  clearTimeout(ntTimer);
+  ntTimer = setTimeout(ntSave, 300);
+}
+ntTitle.addEventListener("input", ntEdited);
+ntBody.addEventListener("input", ntEdited);
+ntSearch.addEventListener("input", ntRenderList);
+window.addEventListener("pagehide", () => { clearTimeout(ntTimer); if (notes.length) ntSave(); });
+
+$("ntCopy").addEventListener("click", async () => {
+  const n = ntFind(ntCur);
+  if (!n) return;
+  try { await copyText((n.title ? n.title + "\n\n" : "") + n.body); ntMessage("Note copiée !"); }
+  catch { ntMessage("Copie automatique impossible : sélectionne le texte et fais Ctrl + C.", true); }
+});
+
+$("ntDownload").addEventListener("click", () => {
+  const n = ntFind(ntCur);
+  if (!n) return;
+  const name = (n.title || "note").replace(/[^\w\u00C0-\u017F -]+/g, "").trim().slice(0, 40) || "note";
+  const url = URL.createObjectURL(new Blob([(n.title ? n.title + "\n\n" : "") + n.body], { type: "text/plain;charset=utf-8" }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = name + ".txt";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+});
+
+$("ntDelete").addEventListener("click", () => {
+  const n = ntFind(ntCur);
+  if (!n || !confirm("Supprimer cette note ?")) return;
+  notes = notes.filter((x) => x.id !== n.id);
+  ntSave();
+  ntMessage("");
+  const next = notes.slice().sort((a, b) => b.t - a.t)[0];
+  if (next) ntOpen(next.id);
+  else { ntCur = null; ntEditor.hidden = true; ntRenderList(); }
+});
+
+notes = ntLoad();
+if (notes.length) ntOpen(notes.slice().sort((a, b) => b.t - a.t)[0].id);
+else ntRenderList();
