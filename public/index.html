@@ -65,6 +65,7 @@
           <button class="tab" data-tab="pseudo">Pseudos</button>
           <button class="tab" data-tab="emoji">Émojis</button>
                     <button class="tab" data-tab="bio">Bio</button>
+                    <button class="tab" data-tab="hashtags">Hashtags</button>
         </div>
         <div class="subgroup" data-cat="practical" hidden>
           <button class="tab" data-tab="qr">QR code</button>
@@ -147,6 +148,7 @@
             <button class="tool-card" data-go="pseudo"><i class="tc-ico">🎭</i><strong>Pseudos</strong><span>Des idées de pseudos à copier.</span><em class="tc-go">→</em></button>
             <button class="tool-card" data-go="emoji"><i class="tc-ico">😎</i><strong>Émojis</strong><span>Émojis et symboles à copier-coller.</span><em class="tc-go">→</em></button>
             <button class="tool-card" data-go="bio"><i class="tc-ico">💬</i><strong>Générateur de bio</strong><span>Des bios prêtes à copier pour TikTok, Instagram, Discord.</span><em class="tc-go">→</em></button>
+                      <button class="tool-card" data-go="hashtags"><i class="tc-ico">#️⃣</i><strong>Générateur de hashtags</strong><span>Des hashtags prêts à copier pour ton sujet.</span><em class="tc-go">→</em></button>
           </div>
         </div>
 
@@ -1017,6 +1019,48 @@ Hugo</textarea>
 
         <p id="buStatus" class="status" role="status"></p>
         <p class="gr-note">Tes chiffres restent sur ton appareil (dans ce navigateur) et ne sont envoyés nulle part. Si tu vides les données du site, ils disparaissent. N'y écris pas de numéros de compte. Cet outil fait des calculs simples : ce n'est pas un conseil financier.</p>
+      </div>
+    </section>
+      <!-- Générateur de hashtags -->
+    <section id="hashtags" class="panel">
+      <h1>Les bons hashtags.</h1>
+      <p class="sub">Tape ton sujet et choisis ton réseau : Clippo te propose des hashtags larges, moyens et de niche, à copier d'un clic.</p>
+
+      <div class="card">
+        <div class="row ht-form">
+          <label class="select grow">
+            <span>Ton sujet</span>
+            <input id="htTopic" class="text-in" type="text" maxlength="40" placeholder="ex : cuisine, gaming, révisions bac" autocomplete="off">
+          </label>
+          <label class="select">
+            <span>Réseau</span>
+            <select id="htNet">
+              <option value="tiktok">TikTok</option>
+              <option value="instagram">Instagram</option>
+              <option value="x">X</option>
+              <option value="youtube">YouTube</option>
+            </select>
+          </label>
+          <button id="htGo" class="primary">Générer</button>
+        </div>
+
+        <div id="htResult" hidden>
+          <p id="htNote" class="gr-info"></p>
+          <div id="htGroups" class="ht-groups"></div>
+
+          <h2 class="fc-title">Ta sélection</h2>
+          <textarea id="htOut" class="fancy-in" rows="3" readonly aria-label="Hashtags sélectionnés"></textarea>
+          <p id="htCount" class="gr-info"></p>
+          <div class="row ht-actions">
+            <button id="htCopySel" class="primary">Copier la sélection</button>
+            <button id="htCopyAll" class="ghost-btn" type="button">Tout copier</button>
+            <button id="htShuffle" class="ghost-btn" type="button">🔀 Autres idées</button>
+            <button id="htClear" class="ghost-btn" type="button">Tout désélectionner</button>
+          </div>
+        </div>
+
+        <p id="htStatus" class="status" role="status"></p>
+        <p class="gr-note">Ces hashtags sont des suggestions créées à partir de ton sujet et de listes par thème : Clippo ne connaît pas leur popularité réelle. Avant de publier, tape-les dans la barre de recherche du réseau pour voir s'ils sont utilisés et s'ils correspondent bien à ton contenu. Ce que tu écris reste sur ton appareil.</p>
       </div>
     </section>
   </main>
