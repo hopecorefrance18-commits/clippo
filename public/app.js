@@ -3007,3 +3007,326 @@ $("htShuffle").addEventListener("click", htGenerate);
 $("htCopySel").addEventListener("click", () => htCopy(htOrdered(), "Hashtags copiés !"));
 $("htCopyAll").addEventListener("click", () => htCopy([...htData.large, ...htData.mid, ...htData.niche], "Tous les hashtags copiés !"));
 $("htClear").addEventListener("click", () => { htSel.clear(); htUpdateOut(); });
+
+// ---------- Jeux : outils communs ----------
+function gmRand(n) { // entier uniforme dans [0, n), sans biais
+  const max = Math.floor(0x100000000 / n) * n;
+  const buf = new Uint32Array(1);
+  do { crypto.getRandomValues(buf); } while (buf[0] >= max);
+  return buf[0] % n;
+}
+function gmShuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = gmRand(i + 1);
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// ---------- Jeu : Morpion ----------
+const ttBoard = $("ttBoard"), ttInfo = $("ttInfo"), ttMode = $("ttMode"), ttSide = $("ttSide");
+const TT_LINES = [[0, 1, 2], [3, 4, 5], [6, 7, 8], [0, 3, 6], [1, 4, 7], [2, 5, 8], [0, 4, 8], [2, 4, 6]];
+const ttScore = { X: 0, O: 0, D: 0 };
+const ttBtns = [];
+let ttCells = Array(9).fill(""), ttTurn = "X", ttOver = false, ttTimer = null;
+
+function ttCpuTurn() { return ttMode.value !== "two" && ttTurn !== ttSide.value; }
+
+function ttResult(c) {
+  for (const l of TT_LINES) {
+    if (c[l[0]] && c[l[0]] === c[l[1]] && c[l[0]] === c[l[2]]) return { w: c[l[0]], line: l };
+  }
+  return c.every(Boolean) ? { w: "draw" } : null;
+}
+
+function ttMinimax(c, turn, cpu) {
+  const r = ttResult(c);
+  if (r) return r.w === "draw" ? 0 : r.w === cpu ? 1 : -1;
+  let best = turn === cpu ? -2 : 2;
+  for (let i = 0; i < 9; i++) {
+    if (c[i]) continue;
+    c[i] = turn;
+    const s = ttMinimax(c, turn === "X" ? "O" : "X", cpu);
+    c[i] = "";
+    best = turn === cpu ? Math.max(best, s) : Math.min(best, s);
+  }
+  return best;
+}
+
+function ttPick() {
+  const me = ttSide.value, cpu = me === "X" ? "O" : "X";
+  const free = ttCells.map((v, i) => (v ? -1 : i)).filter((i) => i >= 0);
+  if (ttMode.value === "cpu-easy") {
+    const win = free.find((i) => { ttCells[i] = cpu; const r = ttResult(ttCells); ttCells[i] = ""; return r && r.w === cpu; });
+    return win !== undefined ? win : free[gmRand(free.length)];
+  }
+  let best = -2, picks = [];
+  free.forEach((i) => {
+    ttCells[i] = cpu;
+    const s = ttMinimax(ttCells, me, cpu);
+    ttCells[i] = "";
+    if (s > best) { best = s; picks = [i]; } else if (s === best) picks.push(i);
+  });
+  return picks[gmRand(picks.length)];
+}
+
+function ttRender(line) {
+  ttCells.forEach((v, i) => {
+    const b = ttBtns[i];
+    b.textContent = v;
+    b.className = "tt-cell" + (v ? " " + v.toLowerCase() : "") + (line && line.includes(i) ? " win" : "");
+    b.disabled = ttOver || !!v || ttCpuTurn();
+    b.setAttribute("aria-label", "Case " + (i + 1) + (v ? " : " + v : ""));
+  });
+  $("ttSX").textContent = ttScore.X;
+  $("ttSO").textContent = ttScore.O;
+  $("ttSD").textContent = ttScore.D;
+  if (!ttOver) ttInfo.textContent = ttMode.value === "two" ? `Au tour de ${ttTurn}` : ttCpuTurn() ? "L'ordinateur réfléchit…" : "À toi de jouer !";
+}
+
+function ttMove(i) {
+  ttCells[i] = ttTurn;
+  const r = ttResult(ttCells);
+  if (r) {
+    ttOver = true;
+    if (r.w === "draw") { ttScore.D++; ttInfo.textContent = "Match nul !"; }
+    else {
+      ttScore[r.w]++;
+      ttInfo.textContent = ttMode.value === "two" ? `${r.w} a gagné ! 🎉` : r.w === ttSide.value ? "Tu as gagné ! 🎉" : "L'ordinateur a gagné.";
+    }
+    return ttRender(r.line);
+  }
+  ttTurn = ttTurn === "X" ? "O" : "X";
+  ttRender();
+  if (ttCpuTurn()) ttTimer = setTimeout(() => { if (!ttOver) ttMove(ttPick()); }, 450);
+}
+
+function ttNew() {
+  clearTimeout(ttTimer);
+  ttCells = Array(9).fill("");
+  ttTurn = "X";
+  ttOver = false;
+  $("ttSideBox").hidden = ttMode.value === "two";
+  ttRender();
+  if (ttCpuTurn()) ttTimer = setTimeout(() => { if (!ttOver) ttMove(ttPick()); }, 450);
+}
+
+for (let i = 0; i < 9; i++) {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.addEventListener("click", () => { if (!ttOver && !ttCells[i] && !ttCpuTurn()) ttMove(i); });
+  ttBoard.appendChild(b);
+  ttBtns.push(b);
+}
+$("ttNew").addEventListener("click", ttNew);
+$("ttReset").addEventListener("click", () => { ttScore.X = ttScore.O = ttScore.D = 0; ttNew(); });
+[ttMode, ttSide].forEach((el) => el.addEventListener("change", ttNew));
+ttNew();
+
+// ---------- Jeu : Mémoire ----------
+const MM_EMO = ["🍎", "🐶", "🚀", "🎸", "🌈", "⚽", "🍕", "🐱", "🌻", "🎲", "🍩", "🦊", "🎧", "🌙", "🍒", "🐼", "⭐", "🏀"];
+const mmGrid = $("mmGrid"), mmLevel = $("mmLevel"), mmMoves = $("mmMoves"), mmTime = $("mmTime"), mmMsg = $("mmMsg");
+let mmFirst = null, mmLock = false, mmCount = 0, mmFound = 0, mmPairs = 0, mmStart = 0, mmTick = null;
+
+function mmClock() {
+  const s = mmStart ? Math.floor((Date.now() - mmStart) / 1000) : 0;
+  const t = String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0");
+  mmTime.textContent = t;
+  return t;
+}
+
+function mmNew() {
+  clearInterval(mmTick);
+  mmTick = null; mmStart = 0; mmFirst = null; mmLock = false; mmCount = 0; mmFound = 0;
+  mmMoves.textContent = "0";
+  mmMsg.textContent = "";
+  mmClock();
+  const [cols, pairs] = mmLevel.value.split("-").map(Number);
+  mmPairs = pairs;
+  const deck = gmShuffle([...gmShuffle(MM_EMO).slice(0, pairs), ...gmShuffle(MM_EMO).slice(0, 0)].flatMap((e) => [e, e]));
+  mmGrid.style.setProperty("--cols", cols);
+  mmGrid.innerHTML = "";
+  deck.forEach((e) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "mm-card";
+    b.dataset.e = e;
+    b.setAttribute("aria-label", "Carte cachée");
+    const front = document.createElement("span");
+    front.className = "mm-front";
+    front.textContent = "?";
+    const back = document.createElement("span");
+    back.className = "mm-back";
+    back.textContent = e;
+    b.append(front, back);
+    b.addEventListener("click", () => mmFlip(b));
+    mmGrid.appendChild(b);
+  });
+}
+
+function mmFlip(b) {
+  if (mmLock || b.classList.contains("open") || b.classList.contains("done")) return;
+  if (!mmStart) { mmStart = Date.now(); mmTick = setInterval(mmClock, 500); }
+  b.classList.add("open");
+  b.setAttribute("aria-label", "Carte " + b.dataset.e);
+  if (!mmFirst) { mmFirst = b; return; }
+  mmCount++;
+  mmMoves.textContent = String(mmCount);
+  const a = mmFirst;
+  mmFirst = null;
+  if (a.dataset.e === b.dataset.e) {
+    a.classList.add("done");
+    b.classList.add("done");
+    mmFound++;
+    if (mmFound === mmPairs) {
+      clearInterval(mmTick);
+      mmMsg.textContent = `Bravo ! Tu as trouvé toutes les paires en ${mmCount} coups et ${mmClock()}. 🎉`;
+    }
+  } else {
+    mmLock = true;
+    setTimeout(() => {
+      a.classList.remove("open");
+      b.classList.remove("open");
+      a.setAttribute("aria-label", "Carte cachée");
+      b.setAttribute("aria-label", "Carte cachée");
+      mmLock = false;
+    }, 800);
+  }
+}
+$("mmNew").addEventListener("click", mmNew);
+mmLevel.addEventListener("change", mmNew);
+mmNew();
+
+// ---------- Jeu : Calcul mental ----------
+const cmLevel = $("cmLevel"), cmQ = $("cmQ"), cmAns = $("cmAns"), cmFb = $("cmFb"), cmEnd = $("cmEnd"), cmGo = $("cmGo"), cmOk = $("cmOk");
+let cmTimer = null, cmLeft = 60, cmGood = 0, cmDone = 0, cmCur = null;
+
+function cmMake(level) {
+  const r = (a, b) => a + gmRand(b - a + 1);
+  if (level === "easy") {
+    if (gmRand(2)) { const a = r(2, 20), b = r(2, 20); return { q: `${a} + ${b}`, a: a + b }; }
+    const a = r(5, 25), b = r(1, a);
+    return { q: `${a} − ${b}`, a: a - b };
+  }
+  if (level === "mid") {
+    const t = gmRand(3);
+    if (t === 0) { const a = r(2, 9), b = r(2, 9); return { q: `${a} × ${b}`, a: a * b }; }
+    if (t === 1) { const a = r(20, 99), b = r(11, 99); return { q: `${a} + ${b}`, a: a + b }; }
+    const a = r(40, 150), b = r(11, 39);
+    return { q: `${a} − ${b}`, a: a - b };
+  }
+  const t = gmRand(4);
+  if (t === 0) { const a = r(11, 19), b = r(6, 19); return { q: `${a} × ${b}`, a: a * b }; }
+  if (t === 1) { const a = r(100, 999), b = r(100, 999); return { q: `${a} + ${b}`, a: a + b }; }
+  if (t === 2) { const a = r(200, 999), b = r(100, 199); return { q: `${a} − ${b}`, a: a - b }; }
+  const b = r(2, 12), res = r(2, 12);
+  return { q: `${b * res} ÷ ${b}`, a: res };
+}
+
+function cmNext() {
+  cmCur = cmMake(cmLevel.value);
+  cmQ.textContent = cmCur.q + " = ?";
+  cmAns.value = "";
+  cmAns.focus();
+}
+
+function cmStop() {
+  clearInterval(cmTimer);
+  cmTimer = null;
+  cmAns.disabled = true;
+  cmOk.disabled = true;
+  cmGo.disabled = false;
+  cmGo.textContent = "Rejouer";
+  cmLevel.disabled = false;
+  cmQ.textContent = "Terminé !";
+  const mention = cmGood >= 15 ? "Excellent !" : cmGood >= 10 ? "Très bien !" : cmGood >= 5 ? "Pas mal !" : "Continue à t'entraîner !";
+  cmEnd.textContent = `${mention} Tu as trouvé ${cmGood} bonne${cmGood > 1 ? "s" : ""} réponse${cmGood > 1 ? "s" : ""} sur ${cmDone} calcul${cmDone > 1 ? "s" : ""}.`;
+}
+
+function cmStart() {
+  cmGood = 0; cmDone = 0; cmLeft = 60;
+  $("cmScore").textContent = "0";
+  $("cmTime").textContent = "60";
+  cmFb.textContent = "";
+  cmEnd.textContent = "";
+  cmAns.disabled = false;
+  cmOk.disabled = false;
+  cmGo.disabled = true;
+  cmLevel.disabled = true;
+  cmNext();
+  cmTimer = setInterval(() => {
+    cmLeft--;
+    $("cmTime").textContent = String(Math.max(0, cmLeft));
+    if (cmLeft <= 0) cmStop();
+  }, 1000);
+}
+
+function cmSubmit() {
+  if (!cmTimer) return;
+  const v = parseInt(cmAns.value.trim(), 10);
+  if (!Number.isFinite(v)) return;
+  cmDone++;
+  if (v === cmCur.a) {
+    cmGood++;
+    $("cmScore").textContent = String(cmGood);
+    cmFb.textContent = "✅ Bravo !";
+  } else {
+    cmFb.textContent = `❌ C'était ${cmCur.a}`;
+  }
+  cmNext();
+}
+cmGo.addEventListener("click", cmStart);
+cmOk.addEventListener("click", cmSubmit);
+cmAns.addEventListener("keydown", (e) => { if (e.key === "Enter") cmSubmit(); });
+
+// ---------- Jeu : Dés et pile ou face ----------
+const dcStage = $("dcStage"), dcSum = $("dcSum"), dcMsg = $("dcMsg");
+let dcMode = "dice";
+
+function dcSet(mode) {
+  dcMode = mode;
+  document.querySelectorAll("#dcModes .chip").forEach((c) => c.classList.toggle("active", c.dataset.mode === mode));
+  $("dcDice").hidden = mode !== "dice";
+  $("dcNum").hidden = mode !== "num";
+  dcStage.innerHTML = "";
+  dcSum.textContent = "";
+  dcMsg.textContent = "";
+  dcMsg.classList.remove("error");
+}
+
+function dcRoll() {
+  dcStage.innerHTML = "";
+  dcSum.textContent = "";
+  dcMsg.textContent = "";
+  dcMsg.classList.remove("error");
+  if (dcMode === "dice") {
+    const count = parseInt($("dcCount").value, 10), faces = parseInt($("dcFaces").value, 10);
+    const vals = Array.from({ length: count }, () => gmRand(faces) + 1);
+    vals.forEach((v) => {
+      const d = document.createElement("div");
+      d.className = "dc-die";
+      d.textContent = v;
+      dcStage.appendChild(d);
+    });
+    if (count > 1) dcSum.textContent = `Total : ${vals.reduce((a, b) => a + b, 0)}`;
+  } else if (dcMode === "coin") {
+    const d = document.createElement("div");
+    d.className = "dc-big";
+    d.textContent = "🪙 " + (gmRand(2) ? "Pile" : "Face");
+    dcStage.appendChild(d);
+  } else {
+    const min = parseInt($("dcMin").value, 10), max = parseInt($("dcMax").value, 10);
+    if (!Number.isFinite(min) || !Number.isFinite(max) || max <= min || max - min > 1e9 || Math.abs(min) > 1e9 || Math.abs(max) > 1e9) {
+      dcMsg.textContent = "Choisis deux nombres entiers, le deuxième plus grand que le premier (écart de 1 milliard maximum).";
+      dcMsg.classList.add("error");
+      return;
+    }
+    const d = document.createElement("div");
+    d.className = "dc-big";
+    d.textContent = min + gmRand(max - min + 1);
+    dcStage.appendChild(d);
+  }
+}
+document.querySelectorAll("#dcModes .chip").forEach((c) => c.addEventListener("click", () => dcSet(c.dataset.mode)));
+$("dcGo").addEventListener("click", dcRoll);
