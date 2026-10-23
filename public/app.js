@@ -2484,3 +2484,140 @@ $("ntDelete").addEventListener("click", () => {
 notes = ntLoad();
 if (notes.length) ntOpen(notes.slice().sort((a, b) => b.t - a.t)[0].id);
 else ntRenderList();
+
+// ---------- Compte à rebours ----------
+const cdName = $("cdName"), cdDate = $("cdDate"), cdTime = $("cdTime"), cdList = $("cdList");
+const cdHero = $("cdHero"), cdStatus = $("cdStatus"), cdClearPast = $("cdClearPast");
+const CD_KEY = "clippo_countdowns", CD_MAX = 30;
+let cdItems = [];
+
+function cdMessage(msg, isError = false) {
+  cdStatus.textContent = msg;
+  cdStatus.classList.toggle("error", isError);
+}
+
+function cdLoad() {
+  try {
+    const data = JSON.parse(localStorage.getItem(CD_KEY) || "[]");
+    return Array.isArray(data)
+      ? data.filter((x) => x && typeof x.name === "string" && Number.isFinite(Number(x.at))).slice(0, CD_MAX)
+          .map((x) => ({ id: String(x.id), name: x.name.slice(0, 60), at: Number(x.at), created: Number(x.created) || Date.now() }))
+      : [];
+  } catch { return []; }
+}
+function cdSave() {
+  try { localStorage.setItem(CD_KEY, JSON.stringify(cdItems)); } catch { /* stockage indisponible */ }
+}
+
+function cdParse(date, time) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
+  if (!m) return NaN;
+  const t = /^(\d{2}):(\d{2})$/.exec(time || "") || [null, "08", "00"];
+  return new Date(+m[1], +m[2] - 1, +m[3], +t[1], +t[2]).getTime();
+}
+
+function cdDays(at) { // jours calendaires entre aujourd'hui et la date (insensible à l'heure d'été)
+  const now = new Date(), a = new Date(at);
+  const d0 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const d1 = new Date(a.getFullYear(), a.getMonth(), a.getDate());
+  return Math.round((d1 - d0) / 86400000);
+}
+
+function cdFormatDate(at) {
+  return new Date(at).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+}
+function cdFormatTime(at) {
+  return new Date(at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }).replace(":", " h ");
+}
+
+function cdRemaining(at) { // texte court pour une échéance
+  const now = Date.now();
+  if (at <= now) return { done: true, big: "Terminé", unit: "" };
+  const days = cdDays(at);
+  if (days === 0) {
+    const mins = Math.max(1, Math.ceil((at - now) / 60000));
+    return { done: false, big: "Aujourd'hui", unit: `encore ${Math.floor(mins / 60)} h ${mins % 60} min` };
+  }
+  return { done: false, big: String(days), unit: days > 1 ? "jours" : "jour" };
+}
+
+function cdEl(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text !== undefined) e.textContent = text;
+  return e;
+}
+
+function cdRender() {
+  const now = Date.now();
+  const sorted = cdItems.slice().sort((a, b) => {
+    const ad = a.at <= now, bd = b.at <= now;
+    return ad !== bd ? (ad ? 1 : -1) : ad ? b.at - a.at : a.at - b.at;
+  });
+  const next = sorted.find((x) => x.at > now);
+
+  cdHero.innerHTML = "";
+  if (next) {
+    const r = cdRemaining(next.at);
+    cdHero.appendChild(cdEl("small", "", "Prochaine échéance"));
+    cdHero.appendChild(cdEl("strong", "cd-name", next.name));
+    cdHero.appendChild(cdEl("div", "cd-big", r.big));
+    if (r.unit) cdHero.appendChild(cdEl("div", "cd-unit", r.unit));
+    const days = cdDays(next.at);
+    const weeks = days >= 14 ? ` · soit ${Math.floor(days / 7)} semaines` : "";
+    cdHero.appendChild(cdEl("p", "gr-info", `${cdFormatDate(next.at)} à ${cdFormatTime(next.at)}${weeks}`));
+    const span = next.at - next.created;
+    const pct = span > 0 ? Math.max(0, Math.min(100, ((now - next.created) / span) * 100)) : 0;
+    const meter = cdEl("div", "todo-meter");
+    const bar = cdEl("div", "todo-bar");
+    bar.style.width = Math.round(pct) + "%";
+    meter.appendChild(bar);
+    cdHero.appendChild(meter);
+    cdHero.appendChild(cdEl("small", "", `${Math.round(pct)} % du temps écoulé depuis l'ajout`));
+  } else {
+    cdHero.appendChild(cdEl("p", "", cdItems.length ? "Toutes tes échéances sont terminées. Ajoutes-en une nouvelle ci-dessous." : "Aucune échéance pour l'instant. Ajoute ton prochain examen ci-dessous."));
+  }
+
+  cdList.innerHTML = "";
+  sorted.forEach((x) => {
+    const r = cdRemaining(x.at);
+    const li = cdEl("li", "cd-item" + (r.done ? " done" : ""));
+    const left = cdEl("div", "cd-info");
+    left.appendChild(cdEl("strong", "", x.name));
+    left.appendChild(cdEl("span", "", `${cdFormatDate(x.at)} · ${cdFormatTime(x.at)}`));
+    const chip = cdEl("span", "cd-chip", r.done ? "Terminé" : r.unit && r.big === "Aujourd'hui" ? "Aujourd'hui" : `${r.big} ${r.unit}`);
+    const del = cdEl("button", "todo-btn", "×");
+    del.type = "button";
+    del.setAttribute("aria-label", "Supprimer : " + x.name);
+    del.addEventListener("click", () => { cdItems = cdItems.filter((y) => y.id !== x.id); cdSave(); cdRender(); });
+    li.append(left, chip, del);
+    cdList.appendChild(li);
+  });
+  cdClearPast.hidden = !cdItems.some((x) => x.at <= now);
+}
+
+$("cdAdd").addEventListener("click", () => {
+  const name = cdName.value.trim() || "Examen";
+  const at = cdParse(cdDate.value, cdTime.value);
+  if (!Number.isFinite(at)) return cdMessage("Choisis une date.", true);
+  if (at <= Date.now()) return cdMessage("Cette date est déjà passée. Choisis une date à venir.", true);
+  if (cdItems.length >= CD_MAX) return cdMessage(`Tu as atteint la limite de ${CD_MAX} échéances. Supprime-en une.`, true);
+  cdItems.push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), name: name.slice(0, 60), at, created: Date.now() });
+  cdName.value = "";
+  cdSave();
+  cdMessage("Échéance ajoutée !");
+  cdRender();
+});
+cdName.addEventListener("keydown", (e) => { if (e.key === "Enter") $("cdAdd").click(); });
+cdClearPast.addEventListener("click", () => {
+  const now = Date.now();
+  cdItems = cdItems.filter((x) => x.at > now);
+  cdSave();
+  cdRender();
+});
+
+cdItems = cdLoad();
+cdDate.min = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+cdRender();
+setInterval(cdRender, 30000);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) cdRender(); });
