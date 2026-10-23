@@ -594,3 +594,26 @@ button, label, a { -webkit-tap-highlight-color: transparent; touch-action: manip
   .nt-layout { grid-template-columns: 1fr; }
   .nt-list { max-height: 200px; }
 }
+
+/* --- Compte à rebours --- */
+#countdown h1, #countdown .sub { text-align: center; }
+.cd-hero { background: var(--ink-2); border-radius: 14px; padding: 20px; display: grid; gap: 6px; justify-items: center; text-align: center; }
+.cd-hero small { color: var(--muted); }
+.cd-name { font: 800 1.3rem "Bricolage Grotesque", sans-serif; word-break: break-word; }
+.cd-big { font: 800 clamp(3rem, 14vw, 5.5rem) "Bricolage Grotesque", sans-serif; line-height: 1; color: var(--sun); }
+.cd-unit { font: 700 1.2rem "Bricolage Grotesque", sans-serif; }
+.cd-hero .todo-meter { width: min(100%, 420px); margin-top: 6px; }
+.cd-add { align-items: end; }
+.cd-add .primary { margin-left: 0; }
+.cd-list { list-style: none; padding: 0; display: grid; gap: 8px; }
+.cd-item { display: flex; align-items: center; gap: 12px; background: var(--ink-2); border-radius: 14px; padding: 10px 12px; }
+.cd-item.done { opacity: .6; }
+.cd-info { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.cd-info strong { word-break: break-word; }
+.cd-info span { color: var(--muted); font-size: .85rem; }
+.cd-chip { flex-shrink: 0; background: rgba(255, 216, 77, .18); color: var(--sun); border-radius: 999px; padding: 4px 12px; font-weight: 700; font-size: .85rem; white-space: nowrap; }
+.cd-item.done .cd-chip { background: rgba(255,255,255,.1); color: var(--muted); }
+@media (max-width: 700px) {
+  .cd-add .primary { width: 100%; }
+  .cd-item { flex-wrap: wrap; }
+}
