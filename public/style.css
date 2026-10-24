@@ -1028,3 +1028,11 @@ body:not(:has(#home.active)) .back-home { display: inline-block; }
 #bnGo { margin-left: 0; justify-self: start; }
 #brandname .status { text-align: left; }
 @media (max-width: 700px) { #bnGo { width: 100%; } }
+
+/* --- Générateur de description --- */
+#descgen h1, #descgen .sub { text-align: center; }
+#dsGo { margin-left: 0; justify-self: start; }
+#dsNote { text-align: center; }
+#dsList .fancy-row span { white-space: pre-wrap; display: block; }
+#dsList .fancy-row { align-items: flex-start; }
+@media (max-width: 700px) { #dsGo { width: 100%; } }
