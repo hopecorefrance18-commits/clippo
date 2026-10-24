@@ -3512,3 +3512,15 @@ svGoals = svLoad();
 svDate.min = svToday();
 svRender();
 document.addEventListener("visibilitychange", () => { if (!document.hidden) svRender(); });
+
+// ---------- Bouton « remonter en haut » ----------
+const toTopBtn = $("toTop");
+if (toTopBtn) {
+  const toTopCheck = () => { toTopBtn.hidden = window.scrollY < 400; };
+  window.addEventListener("scroll", toTopCheck, { passive: true });
+  toTopBtn.addEventListener("click", () => {
+    const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    window.scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" });
+  });
+  toTopCheck();
+}
