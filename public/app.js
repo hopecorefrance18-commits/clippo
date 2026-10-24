@@ -2807,6 +2807,8 @@ function homeFilter() {
     total += shown;
   });
   homeEmpty.hidden = total > 0;
+    const feat = $("tools");
+  if (feat) feat.hidden = !!q;
 }
 
 if (homeSearch) {
@@ -2815,7 +2817,7 @@ if (homeSearch) {
     if (e.key !== "Enter") return;
     const visible = [...document.querySelectorAll("#home .tool-card")].filter((c) => !c.hidden);
     if (visible.length === 1) visible[0].click();
-    else $("tools").scrollIntoView({ behavior: "smooth" });
+    else $("alltools").scrollIntoView({ behavior: "smooth" });
   });
   $("homeCount").textContent = document.querySelectorAll("#home .tool-card").length;
 }
