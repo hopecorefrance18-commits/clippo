@@ -969,3 +969,12 @@ body:has(#home.active) .primary:active { box-shadow: 0 2px 0 #0840a0; }
 .back-home { display: none; margin-bottom: 14px; color: var(--aqua); font-weight: 700; text-decoration: none; }
 body:not(:has(#home.active)) .back-home { display: inline-block; }
 .back-home:hover { text-decoration: underline; }
+
+/* --- Thème bleu sur tout le site --- */
+:root {
+  --ink: #050b1a; --ink-2: #0c1730; --pink: #1f7bff; --aqua: #29b6ff; --sun: #6fd3ff; --muted: #9db4d9;
+}
+.primary { background: linear-gradient(90deg, #0b63ff, #1fb6ff); box-shadow: 0 6px 0 #0840a0; }
+.primary:active { box-shadow: 0 2px 0 #0840a0; }
+.tc-ico { background: linear-gradient(135deg, rgba(31, 123, 255, .4), rgba(41, 182, 255, .3)); }
+.pd-clock .pd-progress { stroke: var(--pink); }
