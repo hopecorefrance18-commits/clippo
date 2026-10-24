@@ -88,44 +88,82 @@
   </header>
 
   <main>
-    <!-- Accueil -->
-        <!-- Accueil -->
+    
+            <!-- Accueil -->
     <section id="home" class="panel active">
-      <div class="hero">
-        <div class="hero-text">
-          <p class="eyebrow"><span></span>CLIPPO</p>
-          <h1>Tes outils en ligne.<br>Simples. <em class="grad">Gratuits.</em></h1>
-          <p class="hero-sub">Des outils pratiques pour tes études, tes images, ton audio et ton quotidien. Sans compte, directement dans ton navigateur.</p>
-          <div class="hero-btns">
+      <div class="hm-hero">
+        <div class="hm-text">
+          <p class="hm-badge">🚀 Outils en ligne gratuits</p>
+          <h1>Clippo<br>Tes outils en ligne.<br><em class="grad">Simples. Rapides. Gratuits.</em></h1>
+          <p class="hm-sub">Extrais le son d'une vidéo, détoure une image, crée un QR code, révise tes cours et bien plus encore. Tout ça en un seul site, sans installation et sans compte.</p>
+          <div class="hm-btns">
             <button class="primary" data-scroll="tools">Commencer maintenant →</button>
-            <button class="ghost-btn" data-scroll="tools">Voir les outils</button>
+            <button class="ghost-btn" data-scroll="alltools">Voir tous les outils</button>
           </div>
         </div>
 
-        <div class="hero-card">
-          <div class="hc-bar"><i></i><i></i><i></i><span>Clippo</span></div>
-          <label class="hc-search">
-            <span aria-hidden="true">🔍</span>
-            <input id="homeSearch" type="search" placeholder="Cherche un outil… (QR code, flou, quiz…)" autocomplete="off" aria-label="Chercher un outil">
-          </label>
-          <p class="hc-label">Les plus utilisés</p>
-          <div class="hc-chips">
-            <button class="hc-chip" data-go="qr">📱 QR code</button>
-            <button class="hc-chip" data-go="scanquiz">📝 Quiz du cours</button>
-            <button class="hc-chip" data-go="blur">🫥 Flouter</button>
-            <button class="hc-chip" data-go="convert">🖼️ Compresser</button>
-            <button class="hc-chip" data-go="password">🔐 Mot de passe</button>
-            <button class="hc-chip" data-go="budget">💶 Budget</button>
-                        <button class="tool-card" data-go="savings"><i class="tc-ico">🐷</i><strong>Objectif d'épargne</strong><span>Combien mettre de côté chaque mois.</span><em class="tc-go">→</em></button>
+        <div class="hm-visual">
+          <span class="hm-float hm-f1" aria-hidden="true">🎵</span>
+          <span class="hm-float hm-f2" aria-hidden="true">🖼️</span>
+          <span class="hm-float hm-f3" aria-hidden="true">📱</span>
+          <div class="hm-card">
+            <div class="hc-bar"><i></i><i></i><i></i><span>Clippo</span></div>
+            <label class="hc-search">
+              <span aria-hidden="true">🔍</span>
+              <input id="homeSearch" type="search" placeholder="Cherche un outil… (QR code, flou, quiz…)" autocomplete="off" aria-label="Chercher un outil">
+            </label>
+            <p class="hc-label">Les plus utilisés</p>
+            <div class="hc-chips">
+              <button class="hc-chip" data-go="qr">📱 QR code</button>
+              <button class="hc-chip" data-go="scanquiz">📝 Quiz du cours</button>
+              <button class="hc-chip" data-go="blur">🫥 Flouter</button>
+              <button class="hc-chip" data-go="convert">🖼️ Compresser</button>
+              <button class="hc-chip" data-go="password">🔐 Mot de passe</button>
+              <button class="hc-chip" data-go="budget">💶 Budget</button>
+            </div>
           </div>
+          <p class="hm-note" aria-hidden="true">Rapide<br>et facile ! ↙</p>
         </div>
       </div>
 
       <div class="alert calm home-alert"><span>📢</span><div>Aucune alerte pour le moment.</div></div>
 
-      <div id="tools" class="home-tools">
-        <p class="eyebrow center"><span></span>NOS OUTILS<span></span></p>
-        <h2 class="home-h2">Des outils utiles, <em class="grad">au même endroit</em></h2>
+      <div id="tools" class="hm-sec">
+        <div class="hm-sechead">
+          <div>
+            <p class="eyebrow"><span></span>NOS OUTILS</p>
+            <h2>Des outils puissants, pour tous tes besoins.</h2>
+          </div>
+          <button class="hm-link" data-scroll="alltools">Voir tous les outils →</button>
+        </div>
+
+        <div class="hm-grid">
+          <button class="hm-feat" data-go="mp3"><i class="hm-ico i1">🎵</i><strong>Extraire le MP3</strong><span>Récupère le son d'une vidéo et télécharge-le en MP3.</span><em class="hm-go">→</em></button>
+          <button class="hm-feat" data-go="cutout"><i class="hm-ico i2">✂️</i><strong>Détourer une image</strong><span>Dépose une photo, Clippo retire le fond et te rend un PNG transparent.</span><em class="hm-go">→</em></button>
+          <button class="hm-feat" data-go="convert"><i class="hm-ico i3">🖼️</i><strong>Convertir et compresser</strong><span>Réduis le poids de tes images, recadre-les, change leur format.</span><em class="hm-go">→</em></button>
+          <button class="hm-feat" data-go="scanquiz"><i class="hm-ico i4">📝</i><strong>Quiz du cours</strong><span>Scanne ton cours, Clippo crée un quiz et te note.</span><em class="hm-go">→</em></button>
+          <button class="hm-feat" data-go="qr"><i class="hm-ico i5">📱</i><strong>QR code</strong><span>Transforme un lien en QR code à télécharger.</span><em class="hm-go">→</em></button>
+          <button class="hm-feat" data-scroll="alltools"><i class="hm-ico i6">🧰</i><strong>Et bien plus encore…</strong><span>Flou, mot de passe, budget, hashtags, jeux… Découvre tous les outils.</span><em class="hm-go">→</em></button>
+        </div>
+      </div>
+
+      <div class="hm-discord">
+        <i class="hm-dico" aria-hidden="true">💬</i>
+        <div class="hm-dtext">
+          <strong>Rejoins notre Discord !</strong>
+          <span>Propose tes idées, signale des bugs et aide-nous à améliorer Clippo.</span>
+        </div>
+        <div class="hm-dfeat">
+          <span>💡<br>Idées et suggestions</span>
+          <span>🐞<br>Signaler un bug</span>
+          <span>👥<br>Communauté</span>
+        </div>
+        <a class="primary" href="https://discord.gg/jsqZRpvMG" target="_blank" rel="noopener">Rejoindre →</a>
+      </div>
+
+      <div id="alltools" class="home-tools">
+        <p class="eyebrow center"><span></span>TOUS LES OUTILS<span></span></p>
+        <h2 class="home-h2">Tout est <em class="grad">au même endroit</em></h2>
 
         <div class="home-cat">
           <h3 class="tool-cat">📚 Éducatif</h3>
@@ -157,7 +195,7 @@
             <button class="tool-card" data-go="pseudo"><i class="tc-ico">🎭</i><strong>Pseudos</strong><span>Des idées de pseudos à copier.</span><em class="tc-go">→</em></button>
             <button class="tool-card" data-go="emoji"><i class="tc-ico">😎</i><strong>Émojis</strong><span>Émojis et symboles à copier-coller.</span><em class="tc-go">→</em></button>
             <button class="tool-card" data-go="bio"><i class="tc-ico">💬</i><strong>Générateur de bio</strong><span>Des bios prêtes à copier pour TikTok, Instagram, Discord.</span><em class="tc-go">→</em></button>
-                      <button class="tool-card" data-go="hashtags"><i class="tc-ico">#️⃣</i><strong>Générateur de hashtags</strong><span>Des hashtags prêts à copier pour ton sujet.</span><em class="tc-go">→</em></button>
+            <button class="tool-card" data-go="hashtags"><i class="tc-ico">#️⃣</i><strong>Générateur de hashtags</strong><span>Des hashtags prêts à copier pour ton sujet.</span><em class="tc-go">→</em></button>
           </div>
         </div>
 
@@ -170,10 +208,11 @@
             <button class="tool-card" data-go="password"><i class="tc-ico">🔐</i><strong>Mot de passe</strong><span>Crée un mot de passe solide, à copier.</span><em class="tc-go">→</em></button>
             <button class="tool-card" data-go="notes"><i class="tc-ico">🗒️</i><strong>Bloc-notes</strong><span>Écris tes notes, elles sont gardées dans ton navigateur.</span><em class="tc-go">→</em></button>
             <button class="tool-card" data-go="budget"><i class="tc-ico">💶</i><strong>Budget mensuel</strong><span>Revenus, dépenses et reste à vivre.</span><em class="tc-go">→</em></button>
+            <button class="tool-card" data-go="savings"><i class="tc-ico">🐷</i><strong>Objectif d'épargne</strong><span>Combien mettre de côté chaque mois.</span><em class="tc-go">→</em></button>
           </div>
         </div>
 
-                <div class="home-cat">
+        <div class="home-cat">
           <h3 class="tool-cat">🎮 Jeux</h3>
           <div class="tool-grid">
             <button class="tool-card" data-go="tictactoe"><i class="tc-ico">⭕</i><strong>Morpion</strong><span>Joue contre l'ordinateur ou à deux.</span><em class="tc-go">→</em></button>
@@ -182,13 +221,15 @@
             <button class="tool-card" data-go="dice"><i class="tc-ico">🎲</i><strong>Dés et pile ou face</strong><span>Lance des dés ou tire un nombre au hasard.</span><em class="tc-go">→</em></button>
           </div>
         </div>
+
         <p id="homeEmpty" class="home-empty" hidden>Aucun outil ne correspond à ta recherche.</p>
       </div>
 
-      <div class="home-strip">
-        <span><b id="homeCount">0</b> outils gratuits</span>
-        <span>Sans compte</span>
-        <span>Sur ton appareil</span>
+      <div class="hm-stats">
+        <div class="hm-stat"><i>🧰</i><strong id="homeCount">0</strong><span>Outils gratuits</span></div>
+        <div class="hm-stat"><i>⭐</i><strong>100 %</strong><span>Gratuit</span></div>
+        <div class="hm-stat"><i>⚡</i><strong>0</strong><span>Inscription</span></div>
+        <div class="hm-stat"><i>🔒</i><strong>Local</strong><span>Sur ton appareil</span></div>
       </div>
     </section>
                   
