@@ -75,6 +75,7 @@
                     <button class="tab" data-tab="password">Mot de passe</button>
                     <button class="tab" data-tab="notes">Bloc-notes</button>
                     <button class="tab" data-tab="budget">Budget</button>
+                    <button class="tab" data-tab="savings">Épargne</button>
         </div>
                       <div class="subgroup" data-cat="games" hidden>
         <button class="tab" data-tab="tictactoe">Morpion</button>
@@ -115,6 +116,7 @@
             <button class="hc-chip" data-go="convert">🖼️ Compresser</button>
             <button class="hc-chip" data-go="password">🔐 Mot de passe</button>
             <button class="hc-chip" data-go="budget">💶 Budget</button>
+                        <button class="tool-card" data-go="savings"><i class="tc-ico">🐷</i><strong>Objectif d'épargne</strong><span>Combien mettre de côté chaque mois.</span><em class="tc-go">→</em></button>
           </div>
         </div>
       </div>
@@ -1228,6 +1230,43 @@ Hugo</textarea>
         <p id="dcSum" class="gm-info"></p>
         <button id="dcGo" class="primary">Lancer</button>
         <p id="dcMsg" class="status" role="status"></p>
+      </div>
+    </section>
+      <!-- Objectif d'épargne -->
+    <section id="savings" class="panel">
+      <h1>Ton objectif d'épargne.</h1>
+      <p class="sub">Choisis une somme et une date : Clippo calcule combien mettre de côté chaque mois. Tout est gardé dans ton navigateur.</p>
+
+      <div class="card">
+        <h2 class="fc-title">Nouvel objectif</h2>
+        <div class="sv-add">
+          <label class="select sv-wide">
+            <span>Nom</span>
+            <input id="svName" class="text-in" type="text" maxlength="60" placeholder="ex : Vacances d'été, Apport voiture" autocomplete="off">
+          </label>
+          <label class="select">
+            <span>Objectif (€)</span>
+            <input id="svTarget" class="text-in" type="text" inputmode="decimal" placeholder="1500" autocomplete="off">
+          </label>
+          <label class="select">
+            <span>Déjà épargné (€)</span>
+            <input id="svSaved" class="text-in" type="text" inputmode="decimal" placeholder="0" autocomplete="off">
+          </label>
+          <label class="select">
+            <span>Date limite</span>
+            <input id="svDate" class="text-in" type="date">
+          </label>
+          <label class="select">
+            <span>Taux annuel % (facultatif)</span>
+            <input id="svRate" class="text-in" type="text" inputmode="decimal" placeholder="0" autocomplete="off">
+          </label>
+          <button id="svAdd" class="primary sv-wide">Ajouter l'objectif</button>
+        </div>
+
+        <ul id="svList" class="sv-list"></ul>
+
+        <p id="svStatus" class="status" role="status"></p>
+        <p class="gr-note">Tes objectifs restent sur ton appareil (dans ce navigateur) et ne sont envoyés nulle part. Si tu vides les données du site, ils disparaissent. Le calcul est une estimation simple : avec un taux, les intérêts sont ajoutés chaque mois, sans impôts ni frais. Ce n'est pas un conseil financier.</p>
       </div>
     </section>
   </main>
