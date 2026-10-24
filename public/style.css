@@ -811,3 +811,33 @@ main:has(#home.active) { max-width: 1100px; }
   .mm-front { font-size: 1.1rem; }
 }
 @media (prefers-reduced-motion: reduce) { .dc-die, .dc-big, .tt-cell, .mm-card { animation: none; transition: none; } }
+
+/* --- Objectif d'épargne --- */
+#savings h1, #savings .sub { text-align: center; }
+#savings .card { min-width: 0; }
+.sv-add { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; align-items: end; }
+.sv-add .sv-wide { grid-column: 1 / -1; }
+.sv-add .primary { margin-left: 0; justify-self: start; }
+#savings .text-in { min-width: 0; max-width: 100%; width: 100%; }
+#savings input[type="date"] {
+  -webkit-appearance: none; appearance: none; width: 100%; min-width: 0; max-width: 100%;
+  box-sizing: border-box; min-height: 46px; text-align: left;
+}
+.sv-list { list-style: none; padding: 0; display: grid; gap: 14px; }
+.sv-item { background: var(--ink-2); border-radius: 16px; padding: 16px; display: grid; gap: 10px; border: 2px solid transparent; }
+.sv-item.reached { border-color: var(--aqua); }
+.sv-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.sv-head strong { font: 800 1.2rem "Bricolage Grotesque", sans-serif; word-break: break-word; }
+.sv-amounts { font-weight: 700; }
+.sv-when { color: var(--muted); font-size: .9rem; text-transform: capitalize; }
+.sv-plan { background: rgba(255, 216, 77, .12); border-radius: 12px; padding: 10px 12px; }
+.sv-item.reached .sv-plan { background: rgba(46, 230, 214, .14); }
+.sv-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.sv-actions .text-in { flex: 1 1 140px; width: auto; }
+.sv-date { max-width: 260px; }
+@media (max-width: 700px) {
+  .sv-add { grid-template-columns: 1fr 1fr; }
+  .sv-add .primary { width: 100%; }
+  .sv-actions .ghost-btn { flex: 1 1 auto; }
+  .sv-date { max-width: none; }
+}
