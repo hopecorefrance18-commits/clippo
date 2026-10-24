@@ -962,3 +962,7 @@ body:has(#home.active) .primary:active { box-shadow: 0 2px 0 #0840a0; }
 .to-top:active { transform: translateY(1px); }
 @media (max-width: 700px) { .to-top { right: 14px; bottom: 14px; width: 46px; height: 46px; } }
 @media (prefers-reduced-motion: reduce) { .to-top { transition: none; } }
+
+/* --- Menu du haut masqué --- */
+.navs { display: none; }
+.top { justify-content: flex-start; }
