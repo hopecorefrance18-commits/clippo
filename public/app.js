@@ -3524,3 +3524,61 @@ if (toTopBtn) {
   });
   toTopCheck();
 }
+
+// ---------- Journal des mises à jour (pastille rouge) ----------
+const jrBtn = $("jrBtn"), jrBadge = $("jrBadge"), jrPanel = $("jrPanel"), jrOverlay = $("jrOverlay"), jrBody = $("jrBody");
+const JR_KEY = "clippo_updates_seen";
+
+function jrKeys() { // une clé par entrée : date + titre, de la plus récente à la plus ancienne
+  return [...document.querySelectorAll("#updates .upd-item")].map((a) => {
+    const t = a.querySelector("time"), h = a.querySelector("h3");
+    return (t ? t.getAttribute("datetime") : "") + "|" + (h ? h.textContent.trim() : "");
+  });
+}
+function jrUnread() {
+  const keys = jrKeys();
+  if (!keys.length) return 0;
+  let seen = null;
+  try { seen = localStorage.getItem(JR_KEY); } catch { /* stockage indisponible */ }
+  if (seen === null) return 1; // première visite
+  const i = keys.indexOf(seen);
+  return i < 0 ? 1 : i;
+}
+function jrRefresh() {
+  const n = jrUnread();
+  jrBadge.hidden = n === 0;
+  jrBadge.textContent = n > 9 ? "9+" : String(n);
+}
+function jrMarkSeen() {
+  const keys = jrKeys();
+  if (keys.length) { try { localStorage.setItem(JR_KEY, keys[0]); } catch { /* ignoré */ } }
+  jrRefresh();
+}
+
+function jrOpen() {
+  jrBody.innerHTML = "";
+  const tl = document.querySelector("#updates .timeline");
+  if (tl) jrBody.appendChild(tl.cloneNode(true));
+  jrPanel.classList.add("open");
+  jrOverlay.classList.add("open");
+  jrPanel.setAttribute("aria-hidden", "false");
+  jrBtn.setAttribute("aria-expanded", "true");
+  jrMarkSeen();
+  $("jrClose").focus();
+}
+function jrClose() {
+  jrPanel.classList.remove("open");
+  jrOverlay.classList.remove("open");
+  jrPanel.setAttribute("aria-hidden", "true");
+  jrBtn.setAttribute("aria-expanded", "false");
+  jrBtn.focus();
+}
+
+if (jrBtn) {
+  jrBtn.addEventListener("click", jrOpen);
+  $("jrClose").addEventListener("click", jrClose);
+  jrOverlay.addEventListener("click", jrClose);
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && jrPanel.classList.contains("open")) jrClose(); });
+  document.querySelectorAll("[data-journal]").forEach((el) => el.addEventListener("click", (e) => { e.preventDefault(); jrOpen(); }));
+  jrRefresh();
+}
