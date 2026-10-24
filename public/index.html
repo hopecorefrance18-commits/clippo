@@ -68,6 +68,7 @@
                     <button class="tab" data-tab="bio">Bio</button>
                     <button class="tab" data-tab="hashtags">Hashtags</button>
                     <button class="tab" data-tab="brandname">Noms de chaîne</button>
+                    <button class="tab" data-tab="descgen">Description</button>
         </div>
         <div class="subgroup" data-cat="practical" hidden>
           <button class="tab" data-tab="qr">QR code</button>
@@ -207,6 +208,7 @@
             <button class="tool-card" data-go="bio"><i class="tc-ico">💬</i><strong>Générateur de bio</strong><span>Des bios prêtes à copier pour TikTok, Instagram, Discord.</span><em class="tc-go">→</em></button>
             <button class="tool-card" data-go="hashtags"><i class="tc-ico">#️⃣</i><strong>Générateur de hashtags</strong><span>Des hashtags prêts à copier pour ton sujet.</span><em class="tc-go">→</em></button>
                       <button class="tool-card" data-go="brandname"><i class="tc-ico">🏷️</i><strong>Noms de chaîne</strong><span>Des idées de noms pour ta chaîne, ta page ou ta boutique.</span><em class="tc-go">→</em></button>
+                      <button class="tool-card" data-go="descgen"><i class="tc-ico">📝</i><strong>Générateur de description</strong><span>Des descriptions prêtes à copier pour tes vidéos.</span><em class="tc-go">→</em></button>
           </div>
         </div>
 
@@ -1364,6 +1366,57 @@ Hugo</textarea>
         <p id="bnStatus" class="status" role="status"></p>
         <div id="bnList" class="fancy-list"></div>
         <p class="gr-note">Ces noms sont des suggestions : Clippo ne sait pas s'ils sont déjà pris. Avant de choisir, cherche-le sur le réseau et sur Google, et évite les noms proches d'une marque connue. Ce que tu écris reste sur ton appareil.</p>
+      </div>
+    </section>
+      <!-- Générateur de description -->
+    <section id="descgen" class="panel">
+      <h1>Une description qui donne envie.</h1>
+      <p class="sub">Écris le titre de ta vidéo et choisis ton réseau : Clippo te propose des descriptions prêtes à copier.</p>
+
+      <div class="card">
+        <label class="select">
+          <span>Titre ou sujet de ta vidéo</span>
+          <input id="dsTitle" class="text-in" type="text" maxlength="90" placeholder="ex : Mes 5 astuces pour réviser le bac" autocomplete="off">
+        </label>
+        <label class="select">
+          <span>Mots-clés (facultatif, séparés par une virgule)</span>
+          <input id="dsKw" class="text-in" type="text" maxlength="80" placeholder="ex : révisions, bac, organisation" autocomplete="off">
+        </label>
+        <div class="row">
+          <label class="select">
+            <span>Réseau</span>
+            <select id="dsPlat">
+              <option value="youtube">YouTube</option>
+              <option value="tiktok">TikTok</option>
+              <option value="instagram">Instagram</option>
+              <option value="x">X</option>
+            </select>
+          </label>
+          <label class="select">
+            <span>Ton</span>
+            <select id="dsTone">
+              <option value="info">Informatif</option>
+              <option value="fun">Fun</option>
+              <option value="motive">Motivant</option>
+              <option value="pro">Professionnel</option>
+            </select>
+          </label>
+        </div>
+        <div class="row">
+          <label class="check"><input id="dsCta" type="checkbox" checked> Appel à s'abonner</label>
+          <label class="check"><input id="dsTags" type="checkbox" checked> Hashtags</label>
+          <label id="dsChapBox" class="check"><input id="dsChap" type="checkbox"> Chapitres (à compléter)</label>
+        </div>
+        <label class="select">
+          <span>Tes liens (facultatif : réseaux, site…)</span>
+          <textarea id="dsLinks" class="fancy-in" rows="3" maxlength="300" placeholder="ex : Discord : https://discord.gg/…"></textarea>
+        </label>
+
+        <button id="dsGo" class="primary">Générer d'autres descriptions</button>
+        <p id="dsNote" class="gr-info"></p>
+        <p id="dsStatus" class="status" role="status"></p>
+        <div id="dsList" class="fancy-list"></div>
+        <p class="gr-note">Ces textes sont créés à partir de modèles de phrases, avec ton titre et tes mots-clés : relis-les et adapte-les avant de publier. Ce que tu écris reste sur ton appareil.</p>
       </div>
     </section>
   </main>
