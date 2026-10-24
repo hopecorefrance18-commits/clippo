@@ -67,6 +67,7 @@
           <button class="tab" data-tab="emoji">Émojis</button>
                     <button class="tab" data-tab="bio">Bio</button>
                     <button class="tab" data-tab="hashtags">Hashtags</button>
+                    <button class="tab" data-tab="brandname">Noms de chaîne</button>
         </div>
         <div class="subgroup" data-cat="practical" hidden>
           <button class="tab" data-tab="qr">QR code</button>
@@ -205,6 +206,7 @@
             <button class="tool-card" data-go="emoji"><i class="tc-ico">😎</i><strong>Émojis</strong><span>Émojis et symboles à copier-coller.</span><em class="tc-go">→</em></button>
             <button class="tool-card" data-go="bio"><i class="tc-ico">💬</i><strong>Générateur de bio</strong><span>Des bios prêtes à copier pour TikTok, Instagram, Discord.</span><em class="tc-go">→</em></button>
             <button class="tool-card" data-go="hashtags"><i class="tc-ico">#️⃣</i><strong>Générateur de hashtags</strong><span>Des hashtags prêts à copier pour ton sujet.</span><em class="tc-go">→</em></button>
+                      <button class="tool-card" data-go="brandname"><i class="tc-ico">🏷️</i><strong>Noms de chaîne</strong><span>Des idées de noms pour ta chaîne, ta page ou ta boutique.</span><em class="tc-go">→</em></button>
           </div>
         </div>
 
@@ -1317,6 +1319,51 @@ Hugo</textarea>
 
         <p id="svStatus" class="status" role="status"></p>
         <p class="gr-note">Tes objectifs restent sur ton appareil (dans ce navigateur) et ne sont envoyés nulle part. Si tu vides les données du site, ils disparaissent. Le calcul est une estimation simple : avec un taux, les intérêts sont ajoutés chaque mois, sans impôts ni frais. Ce n'est pas un conseil financier.</p>
+      </div>
+    </section>
+      <!-- Noms de chaîne -->
+    <section id="brandname" class="panel">
+      <h1>Trouve le bon nom.</h1>
+      <p class="sub">Écris tes mots-clés et choisis un type : Clippo te propose des noms pour ta chaîne, ta page ou ta boutique.</p>
+
+      <div class="card">
+        <label class="select">
+          <span>Tes mots-clés (1 à 3, séparés par une virgule)</span>
+          <input id="bnKw" class="text-in" type="text" maxlength="50" placeholder="ex : cuisine, gaming, voyage" autocomplete="off">
+        </label>
+        <div class="row">
+          <label class="select">
+            <span>Type</span>
+            <select id="bnType">
+              <option value="channel">Chaîne YouTube / TikTok</option>
+              <option value="shop">Boutique</option>
+              <option value="blog">Blog ou site</option>
+              <option value="team">Équipe gaming</option>
+            </select>
+          </label>
+          <label class="select">
+            <span>Style</span>
+            <select id="bnStyle">
+              <option value="moderne">Moderne</option>
+              <option value="mignon">Mignon</option>
+              <option value="serieux">Sérieux</option>
+              <option value="fun">Fun</option>
+            </select>
+          </label>
+          <label class="select">
+            <span>Longueur maximale</span>
+            <select id="bnMax">
+              <option value="12">12 caractères</option>
+              <option value="16" selected>16 caractères</option>
+              <option value="22">22 caractères</option>
+            </select>
+          </label>
+          <label class="check"><input id="bnNum" type="checkbox"> Ajouter un chiffre</label>
+        </div>
+        <button id="bnGo" class="primary">Générer d'autres noms</button>
+        <p id="bnStatus" class="status" role="status"></p>
+        <div id="bnList" class="fancy-list"></div>
+        <p class="gr-note">Ces noms sont des suggestions : Clippo ne sait pas s'ils sont déjà pris. Avant de choisir, cherche-le sur le réseau et sur Google, et évite les noms proches d'une marque connue. Ce que tu écris reste sur ton appareil.</p>
       </div>
     </section>
   </main>
