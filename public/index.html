@@ -1325,6 +1325,19 @@ Hugo</textarea>
   </footer>
   
   <button id="toTop" class="to-top" type="button" aria-label="Remonter en haut de la page" hidden>↑</button>
+  
+  <button id="jrBtn" class="jr-btn" type="button" aria-label="Ouvrir le journal des mises à jour" aria-expanded="false">
+    <span aria-hidden="true">📰</span>
+    <span id="jrBadge" class="jr-badge" hidden>1</span>
+  </button>
+  <div id="jrOverlay" class="jr-overlay"></div>
+  <aside id="jrPanel" class="jr-panel" aria-hidden="true" aria-label="Journal des mises à jour">
+    <div class="jr-head">
+      <strong>📰 Mises à jour</strong>
+      <button id="jrClose" class="jr-close" type="button" aria-label="Fermer">×</button>
+    </div>
+    <div id="jrBody" class="jr-body"></div>
+  </aside>
 
   <script type="module" src="app.js"></script>
 </body>
