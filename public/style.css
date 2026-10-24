@@ -841,3 +841,93 @@ main:has(#home.active) { max-width: 1100px; }
   .sv-actions .ghost-btn { flex: 1 1 auto; }
   .sv-date { max-width: none; }
 }
+
+/* --- Accueil bleu (maquette) --- */
+body:has(#home.active) {
+  --ink: #050b1a; --ink-2: #0c1730; --pink: #1f7bff; --aqua: #29b6ff; --sun: #6fd3ff; --muted: #9db4d9;
+}
+body:has(#home.active) .primary { background: linear-gradient(90deg, #0b63ff, #1fb6ff); box-shadow: 0 6px 0 #0840a0; }
+body:has(#home.active) .primary:active { box-shadow: 0 2px 0 #0840a0; }
+
+.hm-hero { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 44px; align-items: center; padding: 24px 0 8px; }
+.hm-badge { display: inline-flex; align-items: center; gap: 8px; border: 1px solid rgba(255,255,255,.2); background: rgba(255,255,255,.06); border-radius: 999px; padding: 6px 14px; font-size: .85rem; color: var(--muted); margin-bottom: 18px; }
+.hm-hero h1 { font-size: clamp(2.1rem, 5.6vw, 3.7rem); line-height: 1.04; }
+.hm-sub { color: var(--muted); font-size: 1.1rem; margin: 18px 0 26px; max-width: 520px; }
+.hm-btns { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; }
+.hm-btns .primary { margin-left: 0; }
+
+.hm-visual { position: relative; padding: 28px 14px 34px; }
+.hm-card {
+  position: relative; background: rgba(12, 23, 48, .8); backdrop-filter: blur(14px);
+  border: 1px solid rgba(80, 150, 255, .35); border-radius: 22px; padding: 18px; display: grid; gap: 14px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.45), 0 0 60px rgba(31, 123, 255, .25); transform: rotate(-2deg);
+}
+.hm-float { position: absolute; z-index: 2; width: 56px; height: 56px; border-radius: 16px; display: grid; place-items: center; font-size: 1.7rem; box-shadow: 0 10px 30px rgba(0,0,0,.4); animation: hmFloat 5s ease-in-out infinite alternate; }
+.hm-f1 { top: 0; right: 16%; background: linear-gradient(135deg, #0a6cff, #6a5cff); }
+.hm-f2 { top: 14px; right: -2px; background: linear-gradient(135deg, #f97316, #ec4899); animation-delay: -1.5s; }
+.hm-f3 { bottom: 14px; left: -4px; background: linear-gradient(135deg, #16a34a, #29b6ff); animation-delay: -3s; }
+@keyframes hmFloat { to { transform: translateY(-8px) rotate(4deg); } }
+.hm-note { position: absolute; right: 0; bottom: -4px; font: italic 700 1rem "Bricolage Grotesque", sans-serif; color: var(--aqua); text-align: right; transform: rotate(-5deg); }
+
+.hm-sec { margin-top: 64px; scroll-margin-top: 20px; }
+.hm-sechead { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin-bottom: 22px; }
+.hm-sechead h2 { font: 800 clamp(1.5rem, 4vw, 2.3rem) "Bricolage Grotesque", sans-serif; letter-spacing: -.02em; max-width: 640px; }
+.hm-sechead .eyebrow { margin-bottom: 8px; }
+.hm-link { background: none; border: 0; cursor: pointer; color: var(--aqua); font: 700 .95rem "DM Sans", sans-serif; }
+.hm-link:hover { text-decoration: underline; }
+
+.hm-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.hm-feat {
+  position: relative; text-align: left; cursor: pointer; color: var(--paper); font: 400 .95rem "DM Sans", sans-serif;
+  background: rgba(12, 23, 48, .72); backdrop-filter: blur(14px); border: 1px solid rgba(255,255,255,.12);
+  border-radius: var(--radius); padding: 20px; display: grid; gap: 8px; align-content: start;
+  transition: transform .15s, border-color .15s, box-shadow .15s;
+}
+.hm-feat:hover { transform: translateY(-3px); border-color: var(--aqua); box-shadow: 0 10px 30px rgba(31, 123, 255, .25); }
+.hm-ico { width: 58px; height: 58px; border-radius: 16px; display: grid; place-items: center; font-size: 1.8rem; font-style: normal; margin-bottom: 6px; }
+.hm-ico.i1 { background: linear-gradient(135deg, #0a6cff, #34b8ff); }
+.hm-ico.i2 { background: linear-gradient(135deg, #6a5cff, #a77bff); }
+.hm-ico.i3 { background: linear-gradient(135deg, #16a34a, #4ade80); }
+.hm-ico.i4 { background: linear-gradient(135deg, #f97316, #fbbf24); }
+.hm-ico.i5 { background: linear-gradient(135deg, #0891b2, #22d3ee); }
+.hm-ico.i6 { background: linear-gradient(135deg, #db2777, #f472b6); }
+.hm-feat strong { font: 800 1.1rem "Bricolage Grotesque", sans-serif; }
+.hm-feat span { color: var(--muted); padding-right: 44px; }
+.hm-go { position: absolute; right: 18px; bottom: 18px; font-style: normal; width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; border: 1.5px solid var(--aqua); color: var(--aqua); transition: background .15s, color .15s; }
+.hm-feat:hover .hm-go { background: var(--aqua); color: var(--ink); }
+
+.hm-discord {
+  margin-top: 46px; display: flex; align-items: center; gap: 18px 22px; flex-wrap: wrap;
+  background: rgba(12, 23, 48, .72); backdrop-filter: blur(14px); border: 1px solid rgba(80, 150, 255, .3);
+  border-radius: var(--radius); padding: 18px 22px;
+}
+.hm-dico { width: 56px; height: 56px; border-radius: 16px; background: #5865f2; display: grid; place-items: center; font-size: 1.7rem; font-style: normal; flex-shrink: 0; }
+.hm-dtext { flex: 1 1 260px; display: grid; gap: 4px; }
+.hm-dtext strong { font: 800 1.2rem "Bricolage Grotesque", sans-serif; }
+.hm-dtext span { color: var(--muted); font-size: .95rem; }
+.hm-dfeat { display: flex; gap: 22px; flex-wrap: wrap; color: var(--muted); font-size: .82rem; text-align: center; line-height: 1.3; }
+.hm-discord .primary { margin-left: 0; padding: 12px 24px; font-size: 1rem; }
+
+.hm-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 44px; text-align: center; }
+.hm-stat { padding: 14px 8px; display: grid; gap: 4px; justify-items: center; border-left: 1px solid rgba(255,255,255,.1); }
+.hm-stat:first-child { border-left: 0; }
+.hm-stat i { font-style: normal; font-size: 1.4rem; }
+.hm-stat strong { font: 800 1.6rem "Bricolage Grotesque", sans-serif; }
+.hm-stat span { color: var(--muted); font-size: .95rem; }
+
+@media (max-width: 900px) { .hm-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 800px) {
+  .hm-hero { grid-template-columns: 1fr; gap: 24px; }
+  .hm-card { transform: none; }
+  .hm-float, .hm-note { display: none; }
+  .hm-visual { padding: 0; }
+  .hm-btns .primary, .hm-btns .ghost-btn { width: 100%; }
+  .hm-stats { grid-template-columns: 1fr 1fr; }
+  .hm-stat:nth-child(3) { border-left: 0; }
+  .hm-discord .primary { width: 100%; text-align: center; }
+}
+@media (max-width: 560px) {
+  .hm-grid { grid-template-columns: 1fr; }
+  .hm-sec { margin-top: 44px; }
+}
+@media (prefers-reduced-motion: reduce) { .hm-float { animation: none; } .hm-feat, .hm-go { transition: none; } }
