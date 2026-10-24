@@ -3682,3 +3682,127 @@ function bnRender() {
 $("bnGo").addEventListener("click", bnRender);
 [bnType, bnStyle, bnMax, bnNum].forEach((el) => el.addEventListener("change", () => { if (bnKw.value.trim()) bnRender(); }));
 bnKw.addEventListener("input", () => { if (bnKw.value.trim()) bnRender(); else { bnList.innerHTML = ""; bnMessage(""); } });
+
+// ---------- Générateur de description ----------
+const DS_LIMITS = { youtube: 5000, tiktok: 4000, instagram: 2200, x: 280 };
+const DS_TAGN = { youtube: 3, tiktok: 5, instagram: 8, x: 2 };
+const DS_NOTES = {
+  youtube: "Sur YouTube, seules les premières lignes (environ 100 à 150 caractères) se voient avant « Afficher plus » : l'accroche compte.",
+  tiktok: "Sur TikTok, une légende courte avec 3 à 5 hashtags fonctionne le mieux.",
+  instagram: "Sur Instagram, seul le début (environ 125 caractères) se voit avant « plus » : mets l'accroche en premier.",
+  x: "Sur X, la limite est de 280 caractères.",
+};
+const DS_TONES = {
+  info: {
+    hook: ["Dans cette vidéo, on parle de {t}.", "Tout ce qu'il faut savoir sur {t}.", "{t} : on fait le point.", "Tu veux comprendre {t} ? Voici l'essentiel."],
+    body: ["On passe en revue {k} pour que tu repartes avec des idées claires et faciles à appliquer.", "Au programme : {k}, expliqués simplement, étape par étape.", "Je te montre {k} avec des exemples concrets."],
+    gen: ["Tout est expliqué simplement, étape par étape.", "Je te montre l'essentiel avec des exemples concrets."],
+    cta: ["Si la vidéo t'a aidé, laisse un like et abonne-toi pour ne rien rater.", "Dis-moi en commentaire ce que tu aimerais voir ensuite."],
+  },
+  fun: {
+    hook: ["Tu n'es pas prêt pour {t} 🔥", "{t} : prépare-toi, ça va être drôle ! 😂", "On a testé {t}, et c'était n'importe quoi 🤪", "{t}, mais en mode chaos ! 😎"],
+    body: ["Au programme : {k}, avec beaucoup de bonne humeur.", "On parle de {k} et on se marre en route.", "{k} : on y va sans prise de tête !"],
+    gen: ["On y va sans prise de tête, avec beaucoup de bonne humeur.", "Prépare-toi à rigoler, ça vaut le détour !"],
+    cta: ["Un like si tu as rigolé, et abonne-toi pour la suite ! 👇", "Dis-moi en commentaire ton moment préféré 😎"],
+  },
+  motive: {
+    hook: ["{t} : c'est le moment de passer à l'action 💪", "Si tu veux progresser, regarde ça : {t}.", "{t} : un pas de plus vers tes objectifs 🚀"],
+    body: ["On voit {k} ensemble, avec des conseils simples à appliquer dès aujourd'hui.", "{k} : tout ce qu'il faut pour avancer, étape par étape.", "Je partage {k} pour t'aider à te lancer sans attendre."],
+    gen: ["Des conseils simples à appliquer dès aujourd'hui pour avancer.", "Lance-toi sans attendre, un pas après l'autre."],
+    cta: ["Abonne-toi pour ne pas lâcher et progresser avec moi 🔥", "Commente « Go » si tu es motivé(e) !"],
+  },
+  pro: {
+    hook: ["{t} : notre guide complet.", "Découvrez {t} en détail.", "{t} : ce qu'il faut retenir."],
+    body: ["Nous abordons {k} avec une approche claire et professionnelle.", "Vous trouverez ici une analyse de {k}, avec des conseils pratiques.", "Un tour d'horizon de {k} pour vous aider à avancer."],
+    gen: ["Une approche claire et des conseils pratiques pour avancer.", "Un tour d'horizon complet, accessible à tous."],
+    cta: ["Abonnez-vous pour suivre nos prochains contenus.", "N'hésitez pas à partager votre avis en commentaire."],
+  },
+};
+
+const dsTitle = $("dsTitle"), dsKw = $("dsKw"), dsPlat = $("dsPlat"), dsTone = $("dsTone");
+const dsCta = $("dsCta"), dsTags = $("dsTags"), dsChap = $("dsChap"), dsChapBox = $("dsChapBox");
+const dsLinks = $("dsLinks"), dsList = $("dsList"), dsNote = $("dsNote"), dsStatus = $("dsStatus");
+
+function dsMessage(msg, isError = false) {
+  dsStatus.textContent = msg;
+  dsStatus.classList.toggle("error", isError);
+}
+function dsClean(s) { return String(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, ""); }
+function dsJoin(list) {
+  if (list.length === 1) return list[0];
+  return list.slice(0, -1).join(", ") + " et " + list[list.length - 1];
+}
+
+function dsBuild() {
+  const title = dsTitle.value.trim().replace(/[.!?…\s]+$/, "");
+  if (!title) return null;
+  const kws = dsKw.value.split(",").map((s) => s.trim()).filter(Boolean).slice(0, 5);
+  const plat = dsPlat.value, tone = DS_TONES[dsTone.value], limit = DS_LIMITS[plat];
+  const short = plat === "tiktok" || plat === "x";
+  const kText = kws.length ? dsJoin(kws) : "";
+  const links = dsLinks.value.trim();
+
+  const tagSet = [];
+  const addTag = (t) => { if (t.length >= 3 && t.length <= 30 && !tagSet.includes(t)) tagSet.push(t); };
+  kws.forEach((k) => addTag(dsClean(k)));
+  title.split(/\s+/).forEach((w) => { const c = dsClean(w); if (c.length >= 5) addTag(c); });
+  const tagLine = dsTags.checked && tagSet.length ? tagSet.slice(0, DS_TAGN[plat]).map((t) => "#" + t).join(" ") : "";
+  const chap = plat === "youtube" && dsChap.checked ? "Chapitres :\n00:00 Introduction\n01:00 Première partie\n02:00 Deuxième partie\n03:00 Conclusion" : "";
+
+  const out = new Set();
+  for (let tries = 0; out.size < 4 && tries < 80; tries++) {
+    const hook = pick(tone.hook).split("{t}").join(title);
+    const body = kText ? pick(tone.body).split("{k}").join(kText) : pick(tone.gen);
+    const cta = dsCta.checked ? pick(tone.cta) : "";
+    const variants = [
+      short ? [hook, cta, tagLine] : [hook, body, chap, cta, links, tagLine],
+      [hook, cta, tagLine],
+      [hook, tagLine],
+      [hook],
+    ].map((v) => v.filter(Boolean).join("\n\n"));
+    let text = variants.find((v) => v.length <= limit);
+    if (!text) text = variants[3].slice(0, limit - 1) + "…";
+    out.add(text);
+  }
+  return [...out];
+}
+
+function dsRender() {
+  dsList.innerHTML = "";
+  dsChapBox.hidden = dsPlat.value !== "youtube";
+  dsNote.textContent = DS_NOTES[dsPlat.value];
+  if (!dsTitle.value.trim()) return dsMessage("Écris le titre ou le sujet de ta vidéo.", true);
+  const list = dsBuild();
+  dsMessage("");
+  list.forEach((text) => {
+    const row = document.createElement("div");
+    row.className = "fancy-row";
+    const box = document.createElement("div");
+    const label = document.createElement("small");
+    label.textContent = `${text.length} / ${DS_LIMITS[dsPlat.value]} caractères`;
+    const out = document.createElement("span");
+    out.textContent = text;
+    box.append(label, out);
+    const btn = document.createElement("button");
+    btn.className = "copy-btn";
+    btn.textContent = "Copier";
+    btn.addEventListener("click", async () => {
+      try {
+        await copyText(text);
+        btn.textContent = "Copié !";
+        btn.classList.add("done");
+      } catch {
+        btn.textContent = "Erreur";
+      }
+      setTimeout(() => { btn.textContent = "Copier"; btn.classList.remove("done"); }, 1500);
+    });
+    row.append(box, btn);
+    dsList.appendChild(row);
+  });
+}
+
+$("dsGo").addEventListener("click", dsRender);
+[dsPlat, dsTone, dsCta, dsTags, dsChap].forEach((el) => el.addEventListener("change", dsRender));
+[dsTitle, dsKw, dsLinks].forEach((el) => el.addEventListener("input", () => { if (dsTitle.value.trim()) dsRender(); else { dsList.innerHTML = ""; dsMessage(""); } }));
+dsChapBox.hidden = dsPlat.value !== "youtube";
+dsNote.textContent = DS_NOTES[dsPlat.value];
