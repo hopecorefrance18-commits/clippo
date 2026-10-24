@@ -1015,3 +1015,10 @@ body:not(:has(#home.active)) .back-home { display: inline-block; }
   .jr-btn:hover { transform: none; }
 }
 @media (prefers-reduced-motion: reduce) { .jr-btn, .jr-overlay, .jr-panel { transition: none; } }
+
+/* --- Journal : en haut à droite --- */
+.jr-btn { top: 14px; right: 14px; border-radius: 50%; border-right: 1px solid rgba(255,255,255,.2); }
+.jr-btn:hover { transform: none; }
+@media (max-width: 700px) {
+  .jr-btn { top: 12px; bottom: auto; right: 12px; }
+}
