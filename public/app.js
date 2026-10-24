@@ -3582,3 +3582,103 @@ if (jrBtn) {
   document.querySelectorAll("[data-journal]").forEach((el) => el.addEventListener("click", (e) => { e.preventDefault(); jrOpen(); }));
   jrRefresh();
 }
+
+// ---------- Générateur de noms de chaîne ----------
+const BN_PRE = {
+  moderne: ["Neo", "Next", "Pixel", "Flow", "Zen", "Nova", "Ultra", "Hyper", "Meta", "Alpha"],
+  mignon: ["Petit", "Mini", "Doux", "Joli", "Happy", "Cosy", "Mochi", "Pop", "Sweet"],
+  serieux: ["Pro", "Expert", "Maitre", "Prime", "Elite", "Smart", "Atelier", "Studio"],
+  fun: ["Super", "Mega", "Crazy", "Turbo", "Gros", "Capitaine", "Docteur", "Fun"],
+};
+const BN_SUF = {
+  channel: ["TV", "Studio", "Lab", "Club", "Zone", "Univers", "Media", "Show", "Vlog", "Game"],
+  shop: ["Shop", "Store", "Boutique", "Market", "Atelier", "Corner", "Factory", "House", "Co"],
+  blog: ["Blog", "Mag", "Notes", "Journal", "Hub", "Lab", "Guide", "Facts"],
+  team: ["Esport", "Squad", "Team", "Gaming", "Clan", "Crew", "Legends", "Army"],
+};
+const BN_END = {
+  moderne: ["ly", "io", "ify", "hub", "go"],
+  mignon: ["land", "club", "time", "party", "friends"],
+  serieux: ["pro", "expert", "academy", "works"],
+  fun: ["mania", "party", "land", "delire", "zone"],
+};
+
+const bnKw = $("bnKw"), bnType = $("bnType"), bnStyle = $("bnStyle"), bnMax = $("bnMax");
+const bnNum = $("bnNum"), bnList = $("bnList"), bnStatus = $("bnStatus");
+
+function bnMessage(msg, isError = false) {
+  bnStatus.textContent = msg;
+  bnStatus.classList.toggle("error", isError);
+}
+function bnClean(s) { return String(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, ""); }
+function bnCap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+function bnBlend(a, b) {
+  return a.slice(0, Math.max(3, Math.ceil(a.length * 0.6))) + b.slice(Math.floor(b.length * 0.4));
+}
+
+function bnGenerate() {
+  const words = bnKw.value.split(/[\s,;/+]+/).map(bnClean).filter((w) => w.length >= 2).slice(0, 3);
+  if (!words.length) return null;
+  const pre = BN_PRE[bnStyle.value], suf = BN_SUF[bnType.value], end = BN_END[bnStyle.value];
+  const max = parseInt(bnMax.value, 10);
+  const patterns = [
+    () => bnCap(pick(words)) + pick(suf),
+    () => bnCap(pick(words)) + pick(suf),
+    () => pick(pre) + bnCap(pick(words)),
+    () => pick(pre) + bnCap(pick(words)),
+    () => bnCap(pick(words)) + pick(end),
+  ];
+  if (words.length > 1) {
+    patterns.push(
+      () => { const a = pick(words); let b = pick(words); if (b === a) b = words.find((w) => w !== a); return bnCap(a) + bnCap(b); },
+      () => { const a = pick(words); let b = pick(words); if (b === a) b = words.find((w) => w !== a); return bnCap(bnBlend(a, b)); },
+      () => bnCap(words[0]) + bnCap(words[1]) + pick(suf)
+    );
+  }
+  const seen = new Set();
+  for (let tries = 0; seen.size < 12 && tries < 300; tries++) {
+    let name = pick(patterns)();
+    if (bnNum.checked) name += String(10 + Math.floor(Math.random() * 90));
+    if (name.length >= 3 && name.length <= max) seen.add(name);
+  }
+  return [...seen];
+}
+
+function bnRender() {
+  bnList.innerHTML = "";
+  if (!bnKw.value.trim()) return bnMessage("Écris au moins un mot-clé (ex : cuisine).", true);
+  const names = bnGenerate();
+  if (!names) return bnMessage("Utilise des lettres ou des chiffres pour tes mots-clés.", true);
+  if (!names.length) return bnMessage("Aucun nom assez court. Choisis une longueur plus grande ou des mots plus courts.", true);
+  bnMessage("");
+  names.forEach((name) => {
+    const row = document.createElement("div");
+    row.className = "fancy-row";
+    const box = document.createElement("div");
+    const label = document.createElement("small");
+    const tag = name.length <= 12 ? "très court" : name.length <= 16 ? "court" : "long";
+    label.textContent = `@${name.toLowerCase()} · ${name.length} caractères · ${tag}`;
+    const out = document.createElement("span");
+    out.textContent = name;
+    box.append(label, out);
+    const btn = document.createElement("button");
+    btn.className = "copy-btn";
+    btn.textContent = "Copier";
+    btn.addEventListener("click", async () => {
+      try {
+        await copyText(name);
+        btn.textContent = "Copié !";
+        btn.classList.add("done");
+      } catch {
+        btn.textContent = "Erreur";
+      }
+      setTimeout(() => { btn.textContent = "Copier"; btn.classList.remove("done"); }, 1500);
+    });
+    row.append(box, btn);
+    bnList.appendChild(row);
+  });
+}
+
+$("bnGo").addEventListener("click", bnRender);
+[bnType, bnStyle, bnMax, bnNum].forEach((el) => el.addEventListener("change", () => { if (bnKw.value.trim()) bnRender(); }));
+bnKw.addEventListener("input", () => { if (bnKw.value.trim()) bnRender(); else { bnList.innerHTML = ""; bnMessage(""); } });
