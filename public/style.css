@@ -950,3 +950,15 @@ body:has(#home.active) .primary:active { box-shadow: 0 2px 0 #0840a0; }
   .sb-btn { width: 100%; text-align: center; }
 }
 @media (prefers-reduced-motion: reduce) { .sb-btn { transition: none; } }
+
+/* --- Bouton « remonter en haut » --- */
+.to-top {
+  position: fixed; right: 18px; bottom: 18px; z-index: 50;
+  width: 48px; height: 48px; border: 0; border-radius: 50%; cursor: pointer;
+  background: var(--aqua); color: var(--ink); font: 800 1.5rem "Bricolage Grotesque", sans-serif; line-height: 1;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, .4); transition: transform .15s;
+}
+.to-top:hover { transform: translateY(-3px); }
+.to-top:active { transform: translateY(1px); }
+@media (max-width: 700px) { .to-top { right: 14px; bottom: 14px; width: 46px; height: 46px; } }
+@media (prefers-reduced-motion: reduce) { .to-top { transition: none; } }
