@@ -3330,3 +3330,183 @@ function dcRoll() {
 }
 document.querySelectorAll("#dcModes .chip").forEach((c) => c.addEventListener("click", () => dcSet(c.dataset.mode)));
 $("dcGo").addEventListener("click", dcRoll);
+
+// ---------- Objectif d'épargne ----------
+const SV_KEY = "clippo_savings", SV_MAX = 20;
+const svName = $("svName"), svTarget = $("svTarget"), svSaved = $("svSaved"), svDate = $("svDate"), svRate = $("svRate");
+const svList = $("svList"), svStatus = $("svStatus");
+let svGoals = [];
+
+function svMessage(msg, isError = false) {
+  svStatus.textContent = msg;
+  svStatus.classList.toggle("error", isError);
+}
+function svEl(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text !== undefined) e.textContent = text;
+  return e;
+}
+function svNum(v) {
+  const n = parseFloat(String(v).replace(/\s/g, "").replace(",", "."));
+  return Number.isFinite(n) ? Math.round(n * 100) / 100 : NaN;
+}
+function svEur(n) {
+  return n.toLocaleString("fr-FR", { style: "currency", currency: "EUR", minimumFractionDigits: 0, maximumFractionDigits: 2 });
+}
+function svId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+function svToday() { return new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10); }
+function svFmtDate(iso) {
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+}
+
+function svLoad() {
+  try {
+    const data = JSON.parse(localStorage.getItem(SV_KEY) || "[]");
+    return Array.isArray(data)
+      ? data.filter((g) => g && typeof g.name === "string" && Number(g.target) > 0 && /^\d{4}-\d{2}-\d{2}$/.test(String(g.date)))
+          .slice(0, SV_MAX)
+          .map((g) => ({
+            id: String(g.id), name: g.name.slice(0, 60), target: Number(g.target),
+            saved: Math.max(0, Number(g.saved) || 0), date: String(g.date),
+            rate: Math.min(20, Math.max(0, Number(g.rate) || 0)),
+          }))
+      : [];
+  } catch { return []; }
+}
+function svSave() {
+  try { localStorage.setItem(SV_KEY, JSON.stringify(svGoals)); }
+  catch { svMessage("Impossible d'enregistrer : le stockage du navigateur est plein ou bloqué.", true); }
+}
+
+function svPlan(g) {
+  const remaining = Math.max(0, Math.round((g.target - g.saved) * 100) / 100);
+  const pct = Math.min(100, (g.saved / g.target) * 100);
+  const now = new Date();
+  const d0 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const [y, m, d] = g.date.split("-").map(Number);
+  const days = Math.round((new Date(y, m - 1, d) - d0) / 86400000);
+  const plan = { remaining, pct, days, done: g.saved >= g.target, passed: days < 0, byInterest: false, n: 0, perMonth: 0, perWeek: 0 };
+  if (plan.done || days <= 0) return plan;
+
+  plan.n = Math.max(1, Math.ceil(days / 30.4375));
+  const mr = g.rate > 0 ? Math.pow(1 + g.rate / 100, 1 / 12) - 1 : 0;
+  let need;
+  if (mr > 0) {
+    const grow = Math.pow(1 + mr, plan.n);
+    need = ((g.target - g.saved * grow) * mr) / (grow - 1);
+  } else {
+    need = remaining / plan.n;
+  }
+  if (need <= 0) { plan.byInterest = true; return plan; }
+  plan.perMonth = Math.ceil(need * 100) / 100;
+  plan.perWeek = Math.ceil(((plan.perMonth * 12) / 52) * 100) / 100;
+  return plan;
+}
+
+function svRender() {
+  svList.innerHTML = "";
+  if (!svGoals.length) {
+    svList.appendChild(svEl("li", "todo-empty", "Aucun objectif pour l'instant. Ajoute le premier ci-dessus."));
+    return;
+  }
+  svGoals.slice().sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0)).forEach((g) => {
+    const p = svPlan(g);
+    const li = svEl("li", "sv-item" + (p.done ? " reached" : ""));
+
+    const head = svEl("div", "sv-head");
+    head.appendChild(svEl("strong", "", g.name));
+    const del = svEl("button", "todo-btn", "×");
+    del.type = "button";
+    del.setAttribute("aria-label", "Supprimer : " + g.name);
+    del.addEventListener("click", () => {
+      if (!confirm(`Supprimer l'objectif « ${g.name} » ?`)) return;
+      svGoals = svGoals.filter((x) => x.id !== g.id);
+      svSave();
+      svRender();
+    });
+    head.appendChild(del);
+    li.appendChild(head);
+
+    li.appendChild(svEl("p", "sv-amounts", `${svEur(g.saved)} sur ${svEur(g.target)} · ${Math.round(p.pct)} %`));
+    const meter = svEl("div", "todo-meter");
+    const bar = svEl("div", "todo-bar");
+    bar.style.width = Math.round(p.pct) + "%";
+    meter.appendChild(bar);
+    li.appendChild(meter);
+
+    let when = svFmtDate(g.date);
+    if (!p.done) when += p.passed ? " · date passée" : p.days === 0 ? " · aujourd'hui" : ` · ${p.days} jour${p.days > 1 ? "s" : ""} restant${p.days > 1 ? "s" : ""}`;
+    li.appendChild(svEl("p", "sv-when", when));
+
+    let text;
+    if (p.done) text = "🎉 Objectif atteint ! Bravo.";
+    else if (p.passed) text = `La date limite est passée : il reste ${svEur(p.remaining)}. Choisis une nouvelle date ci-dessous.`;
+    else if (p.days === 0) text = `C'est aujourd'hui : il reste ${svEur(p.remaining)} à mettre de côté.`;
+    else if (p.byInterest) text = "Avec les intérêts, ton épargne actuelle suffit pour atteindre l'objectif à la date prévue.";
+    else text = `Mets de côté environ ${svEur(p.perMonth)} par mois (≈ ${svEur(p.perWeek)} par semaine) pendant ${p.n} mois. Il reste ${svEur(p.remaining)}.`;
+    li.appendChild(svEl("p", "sv-plan", text));
+
+    const row = svEl("div", "sv-actions");
+    const amt = document.createElement("input");
+    amt.type = "text"; amt.inputMode = "decimal"; amt.className = "text-in"; amt.placeholder = "Montant (€)"; amt.autocomplete = "off";
+    amt.setAttribute("aria-label", "Montant du versement pour " + g.name);
+    const change = (sign) => {
+      const v = svNum(amt.value);
+      if (!(v > 0)) return svMessage("Entre un montant supérieur à 0 (ex : 50).", true);
+      g.saved = Math.min(1e9, Math.max(0, Math.round((g.saved + sign * v) * 100) / 100));
+      svSave();
+      svMessage("");
+      svRender();
+    };
+    const plus = svEl("button", "ghost-btn", "+ Ajouter");
+    plus.type = "button";
+    plus.addEventListener("click", () => change(1));
+    const minus = svEl("button", "ghost-btn", "− Retirer");
+    minus.type = "button";
+    minus.addEventListener("click", () => change(-1));
+    amt.addEventListener("keydown", (e) => { if (e.key === "Enter") change(1); });
+    row.append(amt, plus, minus);
+    li.appendChild(row);
+
+    const dateRow = svEl("label", "select sv-date");
+    dateRow.appendChild(svEl("span", "", "Date limite"));
+    const di = document.createElement("input");
+    di.type = "date"; di.className = "text-in"; di.value = g.date; di.min = svToday();
+    di.addEventListener("change", () => {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(di.value) || di.value <= svToday()) return svMessage("Choisis une date à venir.", true);
+      g.date = di.value;
+      svSave();
+      svMessage("");
+      svRender();
+    });
+    dateRow.appendChild(di);
+    li.appendChild(dateRow);
+
+    svList.appendChild(li);
+  });
+}
+
+$("svAdd").addEventListener("click", () => {
+  const target = svNum(svTarget.value);
+  if (!(target > 0)) return svMessage("Entre la somme à atteindre (ex : 1500).", true);
+  if (target > 1e9) return svMessage("Cette somme est trop grande.", true);
+  const saved = svSaved.value.trim() === "" ? 0 : svNum(svSaved.value);
+  if (!Number.isFinite(saved) || saved < 0) return svMessage("La somme déjà épargnée doit être un nombre positif (ou vide).", true);
+  const rate = svRate.value.trim() === "" ? 0 : svNum(svRate.value);
+  if (!Number.isFinite(rate) || rate < 0 || rate > 20) return svMessage("Le taux annuel doit être compris entre 0 et 20 %.", true);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(svDate.value) || svDate.value <= svToday()) return svMessage("Choisis une date limite à venir.", true);
+  if (svGoals.length >= SV_MAX) return svMessage(`Tu as atteint la limite de ${SV_MAX} objectifs. Supprime-en un.`, true);
+  svGoals.push({ id: svId(), name: svName.value.trim().slice(0, 60) || "Mon objectif", target, saved: Math.min(saved, 1e9), date: svDate.value, rate });
+  svName.value = ""; svTarget.value = ""; svSaved.value = ""; svRate.value = "";
+  svSave();
+  svMessage("Objectif ajouté !");
+  svRender();
+});
+[svName, svTarget, svSaved, svRate].forEach((el) => el.addEventListener("keydown", (e) => { if (e.key === "Enter") $("svAdd").click(); }));
+
+svGoals = svLoad();
+svDate.min = svToday();
+svRender();
+document.addEventListener("visibilitychange", () => { if (!document.hidden) svRender(); });
