@@ -966,3 +966,6 @@ body:has(#home.active) .primary:active { box-shadow: 0 2px 0 #0840a0; }
 /* --- Menu du haut masqué --- */
 .navs { display: none; }
 .top { justify-content: flex-start; }
+.back-home { display: none; margin-bottom: 14px; color: var(--aqua); font-weight: 700; text-decoration: none; }
+body:not(:has(#home.active)) .back-home { display: inline-block; }
+.back-home:hover { text-decoration: underline; }
