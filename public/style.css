@@ -931,3 +931,22 @@ body:has(#home.active) .primary:active { box-shadow: 0 2px 0 #0840a0; }
   .hm-sec { margin-top: 44px; }
 }
 @media (prefers-reduced-motion: reduce) { .hm-float { animation: none; } .hm-feat, .hm-go { transition: none; } }
+
+/* --- Encadré « Soutenir Clippo » --- */
+.support-box {
+  max-width: 860px; margin: 6px auto 0; padding: 12px 18px;
+  display: flex; align-items: center; justify-content: center; gap: 12px 18px; flex-wrap: wrap;
+  background: rgba(255, 216, 77, .12); border: 1px solid rgba(255, 216, 77, .55); border-radius: 16px;
+  text-align: center;
+}
+.sb-text { color: #f6f3ff; font-size: .95rem; }
+.sb-btn {
+  display: inline-block; background: #ffd84d; color: #15112e; font-weight: 700; text-decoration: none;
+  padding: 8px 20px; border-radius: 999px; box-shadow: 0 3px 0 #b89a1f; transition: transform .15s;
+}
+.sb-btn:hover { transform: translateY(-2px); }
+@media (max-width: 700px) {
+  .support-box { margin: 4px 16px 0; padding: 12px 14px; }
+  .sb-btn { width: 100%; text-align: center; }
+}
+@media (prefers-reduced-motion: reduce) { .sb-btn { transition: none; } }
