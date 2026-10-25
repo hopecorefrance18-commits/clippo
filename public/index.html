@@ -587,28 +587,62 @@ Hugo</textarea>
       </div>
     </section>
 
-    <!-- Liste de tâches -->
+        <!-- Liste de tâches -->
     <section id="todo" class="panel">
       <h1>Ta liste de tâches.</h1>
-      <p class="sub">Ajoute tes tâches et coche-les quand c'est fait. Elles sont gardées dans ton navigateur.</p>
+      <p class="sub">Ajoute tes tâches avec une date, une heure et une priorité, puis coche-les quand c'est fait. Elles sont gardées dans ton navigateur.</p>
 
       <div class="card">
-        <div class="todo-add">
-          <input id="todoInput" type="text" class="text-in" maxlength="120" placeholder="Nouvelle tâche (ex. Réviser les maths)" autocomplete="off">
+        <div class="todo-form">
+          <input id="todoInput" type="text" class="text-in" maxlength="120" placeholder="Nouvelle tâche (ex. Réviser les maths)" autocomplete="off" aria-label="Nouvelle tâche">
+          <div class="todo-opts">
+            <label class="select">
+              <span>Date (facultatif)</span>
+              <input id="todoDate" class="text-in" type="date">
+            </label>
+            <label class="select">
+              <span>Heure (facultatif)</span>
+              <input id="todoTime" class="text-in" type="time">
+            </label>
+            <label class="select">
+              <span>Priorité</span>
+              <select id="todoPrio">
+                <option value="1">Basse</option>
+                <option value="2" selected>Normale</option>
+                <option value="3">Haute</option>
+              </select>
+            </label>
+          </div>
+          <input id="todoNote" type="text" class="text-in" maxlength="200" placeholder="Détails (facultatif)" autocomplete="off" aria-label="Détails de la tâche">
           <button id="todoAdd" class="primary">Ajouter</button>
         </div>
+
         <div class="todo-meter"><div id="todoBar" class="todo-bar"></div></div>
-        <div class="chips" id="todoFilters">
-          <button class="chip active" data-filter="all">Toutes</button>
-          <button class="chip" data-filter="open">À faire</button>
-          <button class="chip" data-filter="done">Terminées</button>
+
+        <div class="todo-tools">
+          <div class="chips" id="todoFilters">
+            <button class="chip active" data-filter="all">Toutes</button>
+            <button class="chip" data-filter="open">À faire</button>
+            <button class="chip" data-filter="late">En retard</button>
+            <button class="chip" data-filter="done">Terminées</button>
+          </div>
+          <label class="select">
+            <span>Trier par</span>
+            <select id="todoSort">
+              <option value="added">Ordre d'ajout</option>
+              <option value="date">Date</option>
+              <option value="prio">Priorité</option>
+            </select>
+          </label>
         </div>
+
         <ul id="todoList" class="todo-list"></ul>
         <div class="row todo-foot">
           <span id="todoCount" class="todo-count"></span>
           <button id="todoClear" class="ghost-btn">Effacer les terminées</button>
         </div>
-        <p class="gr-note">Tes tâches restent sur ton appareil (dans ce navigateur) et ne sont envoyées nulle part. Si tu vides les données du site, elles disparaissent.</p>
+        <p id="todoStatus" class="status" role="status"></p>
+        <p class="gr-note">Tes tâches restent sur ton appareil (dans ce navigateur) et ne sont envoyées nulle part. Si tu vides les données du site, elles disparaissent. L'outil ne sonne pas : ouvre la liste pour voir ce qui est en retard.</p>
       </div>
     </section>
 
