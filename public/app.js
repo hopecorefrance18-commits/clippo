@@ -3713,3 +3713,138 @@ spWeekendEl.checked = spInit.weekend;
 spDate.min = spIso(spAddDays(spToday(), 1));
 spRender();
 document.addEventListener("visibilitychange", () => { if (!document.hidden) spRender(); });
+
+// ---------- Favoris et derniers outils utilisés ----------
+const fvBox = $("fvBox");
+if (fvBox) {
+  const FV_FAV_KEY = "clippo_favs", FV_REC_KEY = "clippo_recent", FV_FAV_MAX = 12, FV_REC_MAX = 8, FV_REC_SHOW = 5;
+  const fvSearch = document.getElementById("homeSearch");
+  const fvTools = {};
+
+  // Noms et icônes : lus dans les cartes de l'accueil
+  document.querySelectorAll("#home .tool-card[data-go]").forEach((c) => {
+    const id = c.dataset.go;
+    if (fvTools[id]) return;
+    const ico = c.querySelector(".tc-ico"), name = c.querySelector("strong");
+    fvTools[id] = { name: name ? name.textContent.trim() : id, icon: ico ? ico.textContent.trim() : "🧰" };
+  });
+
+  function fvRead(key, max) {
+    try {
+      const d = JSON.parse(localStorage.getItem(key) || "[]");
+      return Array.isArray(d) ? [...new Set(d.map(String))].filter((id) => fvTools[id]).slice(0, max) : [];
+    } catch { return []; }
+  }
+  function fvWrite(key, list) {
+    try { localStorage.setItem(key, JSON.stringify(list)); } catch { /* stockage indisponible */ }
+  }
+  let fvFavs = fvRead(FV_FAV_KEY, FV_FAV_MAX), fvRecent = fvRead(FV_REC_KEY, FV_REC_MAX);
+
+  function fvOpen(id) {
+    const tab = document.querySelector(`.tab[data-tab="${id}"]`);
+    if (tab) tab.click(); else openTab(id);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function fvItem(id) {
+    const t = fvTools[id];
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "fv-item";
+    const i = document.createElement("span");
+    i.textContent = t.icon;
+    i.setAttribute("aria-hidden", "true");
+    const n = document.createElement("span");
+    n.textContent = t.name;
+    b.append(i, n);
+    b.addEventListener("click", () => fvOpen(id));
+    return b;
+  }
+
+  function fvMark() { // met à jour toutes les étoiles
+    document.querySelectorAll(".fv-star, .fv-pbtn").forEach((b) => {
+      const on = fvFavs.includes(b.dataset.id), name = fvTools[b.dataset.id].name;
+      b.classList.toggle("on", on);
+      b.setAttribute("aria-pressed", String(on));
+      if (b.classList.contains("fv-star")) {
+        b.textContent = on ? "★" : "☆";
+        b.setAttribute("aria-label", (on ? "Retirer des favoris : " : "Ajouter aux favoris : ") + name);
+      } else {
+        b.textContent = on ? "★ Dans mes favoris" : "☆ Ajouter aux favoris";
+      }
+    });
+  }
+
+  function fvRender() {
+    const searching = !!(fvSearch && fvSearch.value.trim());
+    const favEl = $("fvFavs"), recEl = $("fvRec");
+    favEl.innerHTML = "";
+    recEl.innerHTML = "";
+    fvFavs.forEach((id) => favEl.appendChild(fvItem(id)));
+    const rec = fvRecent.filter((id) => !fvFavs.includes(id)).slice(0, FV_REC_SHOW);
+    rec.forEach((id) => recEl.appendChild(fvItem(id)));
+    $("fvFavsBox").hidden = !fvFavs.length;
+    $("fvRecBox").hidden = !rec.length;
+    fvBox.hidden = searching || (!fvFavs.length && !rec.length);
+    fvMark();
+  }
+
+  function fvToggle(id) {
+    if (fvFavs.includes(id)) fvFavs = fvFavs.filter((x) => x !== id);
+    else if (fvFavs.length >= FV_FAV_MAX) return alert(`Tu as déjà ${FV_FAV_MAX} favoris. Retire-en un pour en ajouter un autre.`);
+    else fvFavs.push(id);
+    fvWrite(FV_FAV_KEY, fvFavs);
+    fvRender();
+  }
+
+  function fvTrack(id) {
+    if (!fvTools[id]) return;
+    fvRecent = [id, ...fvRecent.filter((x) => x !== id)].slice(0, FV_REC_MAX);
+    fvWrite(FV_REC_KEY, fvRecent);
+    fvRender();
+  }
+
+  // Étoile dans le coin de chaque carte de « Tous les outils »
+  document.querySelectorAll("#home .tool-card[data-go]").forEach((card) => {
+    const id = card.dataset.go;
+    const wrap = document.createElement("div");
+    wrap.className = "fv-wrap";
+    card.parentNode.insertBefore(wrap, card);
+    wrap.appendChild(card);
+    const star = document.createElement("button");
+    star.type = "button";
+    star.className = "fv-star";
+    star.dataset.id = id;
+    star.addEventListener("click", () => fvToggle(id));
+    wrap.appendChild(star);
+  });
+
+  // Bouton « Ajouter aux favoris » dans chaque outil
+  Object.keys(fvTools).forEach((id) => {
+    const panel = document.getElementById(id);
+    if (!panel || !panel.classList.contains("panel")) return;
+    const anchor = panel.querySelector(".sub") || panel.querySelector("h1");
+    if (!anchor) return;
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "fv-pbtn";
+    b.dataset.id = id;
+    b.addEventListener("click", () => fvToggle(id));
+    anchor.insertAdjacentElement("afterend", b);
+  });
+
+  $("fvClear").addEventListener("click", () => {
+    fvRecent = [];
+    fvWrite(FV_REC_KEY, fvRecent);
+    fvRender();
+  });
+  if (fvSearch) fvSearch.addEventListener("input", fvRender);
+
+  // Chaque ouverture d'outil est notée (menu, cartes, raccourcis, liens directs)
+  const fvOriginalOpen = openTab;
+  openTab = (id) => { fvOriginalOpen(id); fvTrack(id); };
+  const fvStart = location.hash.slice(1);
+  if (fvTools[fvStart]) fvTrack(fvStart);
+
+  fvRender();
+}
