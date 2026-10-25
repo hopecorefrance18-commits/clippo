@@ -1101,61 +1101,155 @@ openFromHash();
 
 // ---------- Liste de tâches ----------
 const todoInput = $("todoInput"), todoAdd = $("todoAdd"), todoList = $("todoList"), todoCount = $("todoCount");
-const todoBar = $("todoBar"), todoClear = $("todoClear");
-const TODO_KEY = "clippo_todos", TODO_MAX = 200;
+const todoBar = $("todoBar"), todoClear = $("todoClear"), todoStatus = $("todoStatus");
+const todoDate = $("todoDate"), todoTime = $("todoTime"), todoPrio = $("todoPrio"), todoNote = $("todoNote"), todoSort = $("todoSort");
+const TODO_KEY = "clippo_todos", TODO_MAX = 200, TODO_BIG = Number.MAX_SAFE_INTEGER;
+const TODO_PRIO = { 1: "Basse", 2: "Normale", 3: "Haute" };
 let todoFilter = "all";
 let todos = [];
+
+function todoMessage(msg, isError = false) {
+  todoStatus.textContent = msg;
+  todoStatus.classList.toggle("error", isError);
+}
+function todoMk(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text !== undefined) e.textContent = text;
+  return e;
+}
+function todoParseDate(s) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s || ""));
+  if (!m) return null;
+  const d = new Date(+m[1], +m[2] - 1, +m[3]);
+  return d.getMonth() === +m[2] - 1 ? d : null;
+}
+function todoValidTime(s) { return /^([01]\d|2[0-3]):[0-5]\d$/.test(String(s || "")); }
 
 function todoLoad() {
   try {
     const data = JSON.parse(localStorage.getItem(TODO_KEY) || "[]");
     return Array.isArray(data)
-      ? data.filter((t) => t && typeof t.text === "string").slice(0, TODO_MAX).map((t) => ({ id: String(t.id), text: t.text.slice(0, 120), done: !!t.done }))
+      ? data.filter((t) => t && typeof t.text === "string").slice(0, TODO_MAX).map((t) => {
+          const date = todoParseDate(t.date) ? String(t.date) : "";
+          return {
+            id: String(t.id), text: t.text.slice(0, 120), done: !!t.done,
+            date, time: date && todoValidTime(t.time) ? String(t.time) : "",
+            prio: [1, 2, 3].includes(Number(t.prio)) ? Number(t.prio) : 2,
+            note: String(t.note || "").slice(0, 200),
+          };
+        })
       : [];
   } catch { return []; }
 }
 function todoSave() {
-  try { localStorage.setItem(TODO_KEY, JSON.stringify(todos)); } catch { /* stockage indisponible */ }
+  try { localStorage.setItem(TODO_KEY, JSON.stringify(todos)); }
+  catch { todoMessage("Impossible d'enregistrer : le stockage du navigateur est plein ou bloqué.", true); }
+}
+
+// Échéance en millisecondes (sans heure : fin de la journée), ou null
+function todoDueAt(t) {
+  const d = todoParseDate(t.date);
+  if (!d) return null;
+  if (todoValidTime(t.time)) { const [h, m] = t.time.split(":").map(Number); d.setHours(h, m, 0, 0); }
+  else d.setHours(23, 59, 59, 999);
+  return d.getTime();
+}
+function todoOverdue(t) {
+  if (t.done) return false;
+  const at = todoDueAt(t);
+  return at !== null && at < Date.now();
+}
+function todoDays(dateStr) {
+  const n = new Date();
+  const t0 = new Date(n.getFullYear(), n.getMonth(), n.getDate());
+  return Math.round((todoParseDate(dateStr) - t0) / 86400000);
+}
+function todoWhen(t) {
+  const diff = todoDays(t.date);
+  let label;
+  if (diff === 0) label = "Aujourd'hui";
+  else if (diff === 1) label = "Demain";
+  else if (diff === -1) label = "Hier";
+  else label = todoParseDate(t.date).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" });
+  if (todoValidTime(t.time)) label += " à " + t.time.replace(":", " h ");
+  return label;
+}
+
+function todoSorted(list) {
+  const arr = list.slice();
+  const due = (t) => { const x = todoDueAt(t); return x === null ? TODO_BIG : x; };
+  if (todoSort.value === "date") arr.sort((a, b) => (a.done - b.done) || (due(a) - due(b)));
+  else if (todoSort.value === "prio") arr.sort((a, b) => (a.done - b.done) || (b.prio - a.prio) || (due(a) - due(b)));
+  return arr;
 }
 
 function todoStartEdit(li, t) {
-  const span = li.querySelector(".todo-text");
-  const input = document.createElement("input");
-  input.type = "text";
-  input.className = "text-in todo-edit";
-  input.maxLength = 120;
-  input.value = t.text;
-  span.replaceWith(input);
-  input.focus();
-  input.select();
-  let finished = false;
-  const finish = (keep) => {
-    if (finished) return;
-    finished = true;
-    const v = input.value.trim();
-    if (keep && v) t.text = v;
+  li.innerHTML = "";
+  li.classList.add("editing");
+  const form = todoMk("div", "todo-editform");
+
+  const tx = todoMk("input", "text-in");
+  tx.type = "text"; tx.maxLength = 120; tx.value = t.text; tx.setAttribute("aria-label", "Texte de la tâche");
+  const dt = todoMk("input", "text-in");
+  dt.type = "date"; dt.value = t.date;
+  const tm = todoMk("input", "text-in");
+  tm.type = "time"; tm.value = t.time;
+  const pr = document.createElement("select");
+  [1, 2, 3].forEach((v) => { const o = todoMk("option", "", TODO_PRIO[v]); o.value = String(v); pr.appendChild(o); });
+  pr.value = String(t.prio);
+  const nt = todoMk("input", "text-in");
+  nt.type = "text"; nt.maxLength = 200; nt.value = t.note; nt.placeholder = "Détails (facultatif)"; nt.setAttribute("aria-label", "Détails de la tâche");
+
+  const field = (label, el) => { const l = todoMk("label", "select"); l.append(todoMk("span", "", label), el); return l; };
+  const opts = todoMk("div", "todo-opts");
+  opts.append(field("Date", dt), field("Heure", tm), field("Priorité", pr));
+
+  const save = todoMk("button", "primary", "Enregistrer");
+  save.type = "button";
+  const cancel = todoMk("button", "ghost-btn", "Annuler");
+  cancel.type = "button";
+  const row = todoMk("div", "row todo-editbtns");
+  row.append(save, cancel);
+
+  const doSave = () => {
+    const v = tx.value.trim();
+    if (!v) return todoMessage("Le texte de la tâche ne peut pas être vide.", true);
+    if (tm.value && !dt.value) return todoMessage("Choisis une date pour ajouter une heure.", true);
+    t.text = v.slice(0, 120);
+    t.date = todoParseDate(dt.value) ? dt.value : "";
+    t.time = t.date && todoValidTime(tm.value) ? tm.value : "";
+    t.prio = parseInt(pr.value, 10);
+    t.note = nt.value.trim().slice(0, 200);
+    todoMessage("");
     todoSave();
     todoRender();
   };
-  input.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") finish(true);
-    if (e.key === "Escape") finish(false);
-  });
-  input.addEventListener("blur", () => finish(true));
+  save.addEventListener("click", doSave);
+  cancel.addEventListener("click", () => { todoMessage(""); todoRender(); });
+  [tx, nt].forEach((el) => el.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") doSave();
+    if (e.key === "Escape") todoRender();
+  }));
+
+  form.append(tx, opts, nt, row);
+  li.appendChild(form);
+  tx.focus();
 }
 
 function todoRender() {
-  const shown = todos.filter((t) => todoFilter === "all" || (todoFilter === "open" ? !t.done : t.done));
+  let shown = todos.filter((t) => todoFilter === "all" || (todoFilter === "open" ? !t.done : todoFilter === "done" ? t.done : todoOverdue(t)));
+  shown = todoSorted(shown);
   todoList.innerHTML = "";
   if (!shown.length) {
-    const li = document.createElement("li");
-    li.className = "todo-empty";
-    li.textContent = todos.length ? "Rien à afficher dans cette liste." : "Aucune tâche pour l'instant. Ajoute-en une !";
+    const li = todoMk("li", "todo-empty",
+      todoFilter === "late" ? "Aucune tâche en retard. Bravo !"
+        : todos.length ? "Rien à afficher dans cette liste." : "Aucune tâche pour l'instant. Ajoute-en une !");
     todoList.appendChild(li);
   }
   shown.forEach((t) => {
-    const li = document.createElement("li");
-    li.className = "todo-item" + (t.done ? " done" : "");
+    const late = todoOverdue(t);
+    const li = todoMk("li", "todo-item" + (t.done ? " done" : "") + (late ? " late" : "") + " prio" + t.prio);
 
     const cb = document.createElement("input");
     cb.type = "checkbox";
@@ -1163,30 +1257,37 @@ function todoRender() {
     cb.setAttribute("aria-label", "Terminée : " + t.text);
     cb.addEventListener("change", () => { t.done = cb.checked; todoSave(); todoRender(); });
 
-    const text = document.createElement("span");
-    text.className = "todo-text";
-    text.textContent = t.text; // texte brut : rien n'est interprété comme du code
+    const main = todoMk("div", "todo-main");
+    main.appendChild(todoMk("span", "todo-text", t.text)); // texte brut : rien n'est interprété comme du code
+    const meta = todoMk("div", "todo-meta");
+    if (t.date) {
+      const soon = !t.done && !late && todoDays(t.date) === 0;
+      meta.appendChild(todoMk("span", "todo-chip" + (late ? " late" : soon ? " soon" : ""), (late ? "⚠️ En retard · " : "📅 ") + todoWhen(t)));
+    }
+    if (t.prio === 3) meta.appendChild(todoMk("span", "todo-chip p3", "🔥 Haute"));
+    if (t.prio === 1) meta.appendChild(todoMk("span", "todo-chip p1", "Basse"));
+    if (t.note) meta.appendChild(todoMk("span", "todo-note", t.note));
+    if (meta.children.length) main.appendChild(meta);
 
-    const edit = document.createElement("button");
-    edit.className = "todo-btn";
+    const edit = todoMk("button", "todo-btn", "✎");
     edit.type = "button";
-    edit.textContent = "✎";
     edit.setAttribute("aria-label", "Modifier : " + t.text);
     edit.addEventListener("click", () => todoStartEdit(li, t));
 
-    const del = document.createElement("button");
-    del.className = "todo-btn";
+    const del = todoMk("button", "todo-btn", "×");
     del.type = "button";
-    del.textContent = "×";
     del.setAttribute("aria-label", "Supprimer : " + t.text);
     del.addEventListener("click", () => { todos = todos.filter((x) => x.id !== t.id); todoSave(); todoRender(); });
 
-    li.append(cb, text, edit, del);
+    li.append(cb, main, edit, del);
     todoList.appendChild(li);
   });
 
   const done = todos.filter((t) => t.done).length, open = todos.length - done;
-  todoCount.textContent = todos.length ? `${open} à faire · ${done} terminée${done > 1 ? "s" : ""}` : "";
+  const lateCount = todos.filter(todoOverdue).length;
+  todoCount.textContent = todos.length
+    ? `${open} à faire · ${done} terminée${done > 1 ? "s" : ""}` + (lateCount ? ` · ${lateCount} en retard` : "")
+    : "";
   todoBar.style.width = todos.length ? Math.round((done / todos.length) * 100) + "%" : "0%";
   todoClear.hidden = done === 0;
 }
@@ -1194,16 +1295,26 @@ function todoRender() {
 function todoAddTask() {
   const text = todoInput.value.trim();
   if (!text) return;
-  if (todos.length >= TODO_MAX) { todoInput.value = ""; return; }
-  todos.push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), text: text.slice(0, 120), done: false });
-  todoInput.value = "";
+  if (todoTime.value && !todoDate.value) return todoMessage("Choisis une date pour ajouter une heure.", true);
+  if (todos.length >= TODO_MAX) return todoMessage(`Tu as atteint la limite de ${TODO_MAX} tâches. Supprime-en une.`, true);
+  const date = todoParseDate(todoDate.value) ? todoDate.value : "";
+  todos.push({
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+    text: text.slice(0, 120), done: false, date,
+    time: date && todoValidTime(todoTime.value) ? todoTime.value : "",
+    prio: parseInt(todoPrio.value, 10),
+    note: todoNote.value.trim().slice(0, 200),
+  });
+  todoInput.value = ""; todoDate.value = ""; todoTime.value = ""; todoPrio.value = "2"; todoNote.value = "";
+  todoMessage("");
   todoSave();
   todoRender();
   todoInput.focus();
 }
 
 todoAdd.addEventListener("click", todoAddTask);
-todoInput.addEventListener("keydown", (e) => { if (e.key === "Enter") todoAddTask(); });
+[todoInput, todoNote].forEach((el) => el.addEventListener("keydown", (e) => { if (e.key === "Enter") todoAddTask(); }));
+todoSort.addEventListener("change", todoRender);
 $("todoFilters").querySelectorAll(".chip").forEach((chip) => chip.addEventListener("click", () => {
   todoFilter = chip.dataset.filter;
   $("todoFilters").querySelectorAll(".chip").forEach((c) => c.classList.toggle("active", c === chip));
@@ -1211,6 +1322,11 @@ $("todoFilters").querySelectorAll(".chip").forEach((chip) => chip.addEventListen
 }));
 todoClear.addEventListener("click", () => { todos = todos.filter((t) => !t.done); todoSave(); todoRender(); });
 
+todos = todoLoad();
+todoRender();
+// les retards se mettent à jour tout seuls (sans fermer une modification en cours)
+setInterval(() => { if (!todoList.querySelector(".editing")) todoRender(); }, 60000);
+document.addEventListener("visibilitychange", () => { if (!document.hidden && !todoList.querySelector(".editing")) todoRender(); });
 // ---------- Flashcards ----------
 const fcCard = $("fcCard"), fcSide = $("fcSide"), fcText = $("fcText"), fcCount = $("fcCount");
 const fcQ = $("fcQ"), fcA = $("fcA"), fcList = $("fcList");
