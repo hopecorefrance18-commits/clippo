@@ -3387,3 +3387,213 @@ $("dsGo").addEventListener("click", dsRender);
 [dsTitle, dsKw, dsLinks].forEach((el) => el.addEventListener("input", () => { if (dsTitle.value.trim()) dsRender(); else { dsList.innerHTML = ""; dsMessage(""); } }));
 dsChapBox.hidden = dsPlat.value !== "youtube";
 dsNote.textContent = DS_NOTES[dsPlat.value];
+
+// ---------- Planning de révisions ----------
+const SP_KEY = "clippo_revplan", SP_MAX = 12, SP_HORIZON = 180;
+const SP_LEVELS = { 1: "Facile", 2: "Moyenne", 3: "Difficile" };
+const spName = $("spName"), spDate = $("spDate"), spLevel = $("spLevel");
+const spSubjectsEl = $("spSubjects"), spPlanEl = $("spPlan"), spStatus = $("spStatus");
+const spMinEl = $("spMin"), spLenEl = $("spLen"), spWeekendEl = $("spWeekend");
+const spSummary = $("spSummary"), spBar = $("spBar"), spMore = $("spMore"), spPlanBox = $("spPlanBox");
+let spSubjects = [], spDone = new Set(), spStart = "", spShowAll = false;
+
+function spMessage(msg, isError = false) {
+  spStatus.textContent = msg;
+  spStatus.classList.toggle("error", isError);
+}
+function spEl(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text !== undefined) e.textContent = text;
+  return e;
+}
+function spPad(n) { return String(n).padStart(2, "0"); }
+function spIso(d) { return d.getFullYear() + "-" + spPad(d.getMonth() + 1) + "-" + spPad(d.getDate()); }
+function spParse(iso) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso));
+  return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null;
+}
+function spAddDays(d, n) { return new Date(d.getFullYear(), d.getMonth(), d.getDate() + n); }
+function spToday() { const n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate()); }
+function spDiff(a, b) { return Math.round((a - b) / 86400000); }
+function spFmtDate(d) {
+  const s = d.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+function spId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+
+function spLoad() {
+  const empty = { subjects: [], min: 60, len: 30, weekend: true, start: "", done: [] };
+  try {
+    const d = JSON.parse(localStorage.getItem(SP_KEY) || "{}");
+    if (!d || typeof d !== "object") return empty;
+    const subs = Array.isArray(d.subjects)
+      ? d.subjects.filter((s) => s && typeof s.name === "string" && spParse(s.date)).slice(0, SP_MAX)
+          .map((s) => ({ id: String(s.id), name: s.name.slice(0, 40), date: String(s.date), level: [1, 2, 3].includes(Number(s.level)) ? Number(s.level) : 2 }))
+      : [];
+    const set = d.settings || {};
+    return {
+      subjects: subs,
+      min: [30, 60, 90, 120, 180].includes(Number(set.min)) ? Number(set.min) : 60,
+      len: [25, 30, 45, 60].includes(Number(set.len)) ? Number(set.len) : 30,
+      weekend: set.weekend !== false,
+      start: spParse(d.start) ? String(d.start) : "",
+      done: Array.isArray(d.done) ? d.done.map(String).slice(0, 5000) : [],
+    };
+  } catch { return empty; }
+}
+function spSave() {
+  try {
+    localStorage.setItem(SP_KEY, JSON.stringify({
+      subjects: spSubjects,
+      settings: { min: parseInt(spMinEl.value, 10), len: parseInt(spLenEl.value, 10), weekend: spWeekendEl.checked },
+      start: spStart,
+      done: [...spDone],
+    }));
+  } catch { spMessage("Impossible d'enregistrer : le stockage du navigateur est plein ou bloqué.", true); }
+}
+
+// Répartit les séances, jour par jour, depuis la date de départ jusqu'à la veille du dernier examen
+function spBuild() {
+  const start = spParse(spStart) || spToday();
+  const subs = spSubjects.map((s) => ({ s, at: spParse(s.date) })).filter((x) => x.at > start);
+  if (!subs.length) return { days: [], total: 0 };
+  const last = new Date(Math.max(...subs.map((x) => x.at.getTime())));
+  const min = parseInt(spMinEl.value, 10), len = parseInt(spLenEl.value, 10);
+  const perDay = Math.max(1, Math.floor(min / len));
+  const count = {};
+  subs.forEach((x) => { count[x.s.id] = 0; });
+  const days = [];
+  let total = 0;
+  for (let d = start, n = 0; d <= last && n < 400; d = spAddDays(d, 1), n++) {
+    const iso = spIso(d), dow = d.getDay();
+    const active = subs.filter((x) => x.at > d);
+    const exams = subs.filter((x) => spDiff(x.at, d) === 0).map((x) => x.s);
+    const sessions = [];
+    if (active.length && (spWeekendEl.checked || (dow !== 0 && dow !== 6))) {
+      const picked = {};
+      for (let slot = 0; slot < perDay; slot++) {
+        let best = null, bestP = -1;
+        active.forEach((x) => {
+          const left = spDiff(x.at, d);
+          let p = (x.s.level * (1 + 2 / left)) / (count[x.s.id] + 1);
+          if (picked[x.s.id]) p *= 0.5;   // on varie les matières dans la journée
+          if (left === 1) p *= 1.5;       // la veille : révision finale
+          if (p > bestP) { bestP = p; best = x; }
+        });
+        picked[best.s.id] = true;
+        count[best.s.id]++;
+        sessions.push({ id: iso + "|" + best.s.id + "|" + slot, subject: best.s, final: spDiff(best.at, d) === 1 });
+        total++;
+      }
+    }
+    if (sessions.length || exams.length) days.push({ iso, date: d, exams, sessions });
+  }
+  return { days, total };
+}
+
+function spRender() {
+  const today = spToday();
+  const len = parseInt(spLenEl.value, 10);
+
+  // Liste des examens
+  spSubjectsEl.innerHTML = "";
+  spSubjects.slice().sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0)).forEach((s) => {
+    const dd = spDiff(spParse(s.date), today);
+    const li = spEl("li", "sp-sub" + (dd < 0 ? " past" : ""));
+    const info = spEl("div", "sp-info");
+    info.appendChild(spEl("strong", "", s.name));
+    info.appendChild(spEl("span", "", spFmtDate(spParse(s.date)) + " · " + (dd > 0 ? `dans ${dd} jour${dd > 1 ? "s" : ""}` : dd === 0 ? "aujourd'hui" : "terminé")));
+    const chip = spEl("span", "sp-chip", SP_LEVELS[s.level]);
+    const del = spEl("button", "todo-btn", "×");
+    del.type = "button";
+    del.setAttribute("aria-label", "Supprimer : " + s.name);
+    del.addEventListener("click", () => {
+      spSubjects = spSubjects.filter((x) => x.id !== s.id);
+      spStart = spIso(today);
+      spSave();
+      spRender();
+    });
+    li.append(info, chip, del);
+    spSubjectsEl.appendChild(li);
+  });
+
+  // Planning
+  spPlanBox.hidden = !spSubjects.length;
+  spPlanEl.innerHTML = "";
+  if (!spSubjects.length) return;
+
+  const plan = spBuild();
+  const valid = new Set(plan.days.flatMap((d) => d.sessions.map((x) => x.id)));
+  [...spDone].forEach((id) => { if (!valid.has(id)) spDone.delete(id); });
+  const done = spDone.size;
+  const hours = Math.round(((plan.total * len) / 60) * 10) / 10;
+  spSummary.textContent = plan.total
+    ? `${plan.total} séance${plan.total > 1 ? "s" : ""} de ${len} min (environ ${hours} h) · ${done} faite${done > 1 ? "s" : ""}`
+    : "Aucune séance à planifier : vérifie les dates de tes examens, ou coche « Réviser le week-end ».";
+  spBar.style.width = plan.total ? Math.round((done / plan.total) * 100) + "%" : "0%";
+
+  const upcoming = plan.days.filter((d) => d.date >= today);
+  const shown = spShowAll ? upcoming : upcoming.slice(0, 14);
+  shown.forEach((day) => {
+    const diff = spDiff(day.date, today);
+    const box = spEl("div", "sp-day" + (diff === 0 ? " today" : ""));
+    const head = spEl("div", "sp-dayhead");
+    head.appendChild(spEl("strong", "", spFmtDate(day.date)));
+    if (diff === 0) head.appendChild(spEl("em", "sp-tag", "Aujourd'hui"));
+    else if (diff === 1) head.appendChild(spEl("em", "sp-tag", "Demain"));
+    box.appendChild(head);
+
+    day.sessions.forEach((s) => {
+      const lab = spEl("label", "sp-sess" + (spDone.has(s.id) ? " done" : ""));
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.checked = spDone.has(s.id);
+      cb.addEventListener("change", () => {
+        if (cb.checked) spDone.add(s.id); else spDone.delete(s.id);
+        spSave();
+        spRender();
+      });
+      lab.append(cb, spEl("span", "", `${s.subject.name} · ${len} min`));
+      if (s.final) lab.appendChild(spEl("em", "sp-tag final", "Révision finale"));
+      box.appendChild(lab);
+    });
+    day.exams.forEach((s) => box.appendChild(spEl("div", "sp-exam", "📝 Examen : " + s.name)));
+    spPlanEl.appendChild(box);
+  });
+  if (!shown.length && plan.total) spPlanEl.appendChild(spEl("p", "todo-empty", "Toutes tes séances sont passées. Ajoute un nouvel examen."));
+  spMore.hidden = spShowAll || upcoming.length <= 14;
+}
+
+$("spAdd").addEventListener("click", () => {
+  const today = spToday();
+  const d = spParse(spDate.value);
+  if (!d) return spMessage("Choisis la date de l'examen.", true);
+  if (d <= today) return spMessage("Choisis une date à venir (au moins demain).", true);
+  if (spDiff(d, today) > SP_HORIZON) return spMessage(`Choisis une date dans les ${SP_HORIZON} prochains jours.`, true);
+  if (spSubjects.length >= SP_MAX) return spMessage(`Tu as atteint la limite de ${SP_MAX} examens. Supprime-en un.`, true);
+  spSubjects.push({ id: spId(), name: spName.value.trim().slice(0, 40) || "Matière", date: spDate.value, level: parseInt(spLevel.value, 10) });
+  spName.value = ""; spDate.value = "";
+  spStart = spIso(today);
+  spSave();
+  spMessage("Examen ajouté !");
+  spRender();
+});
+spName.addEventListener("keydown", (e) => { if (e.key === "Enter") $("spAdd").click(); });
+[spMinEl, spLenEl, spWeekendEl].forEach((el) => el.addEventListener("change", () => {
+  spStart = spIso(spToday());
+  spSave();
+  spRender();
+}));
+spMore.addEventListener("click", () => { spShowAll = true; spRender(); });
+
+const spInit = spLoad();
+spSubjects = spInit.subjects;
+spDone = new Set(spInit.done);
+spStart = spInit.start || spIso(spToday());
+spMinEl.value = String(spInit.min);
+spLenEl.value = String(spInit.len);
+spWeekendEl.checked = spInit.weekend;
+spDate.min = spIso(spAddDays(spToday(), 1));
+spRender();
+document.addEventListener("visibilitychange", () => { if (!document.hidden) spRender(); });
