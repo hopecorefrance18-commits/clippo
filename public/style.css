@@ -1145,3 +1145,27 @@ body:not(:has(#home.active)) .back-home { display: inline-block; }
 .fv-pbtn.on { color: #ffd84d; border-color: #ffd84d; }
 
 @media (prefers-reduced-motion: reduce) { .fv-star, .fv-item { transition: none; } }
+
+/* --- Palette de couleurs --- */
+#palette h1, #palette .sub { text-align: center; }
+#plModes { justify-content: center; }
+.pl-opts { align-items: end; }
+#plGo { margin-left: 0; display: block; margin: 0 auto; }
+.pl-preview { display: block; max-width: min(100%, 360px); max-height: 220px; margin: 12px auto 0; object-fit: contain; border-radius: 12px; }
+.pl-swatches { display: flex; border-radius: 16px; overflow: hidden; min-height: 220px; box-shadow: 0 8px 30px rgba(0, 0, 0, .35); }
+.pl-sw { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 10px; padding: 16px 6px; transition: flex .2s; }
+.pl-sw button { color: inherit; border: 0; background: transparent; cursor: pointer; font-family: "DM Sans", sans-serif; }
+.pl-code { font-weight: 800; font-size: .95rem; padding: 6px 8px; border-radius: 8px; word-break: break-all; text-align: center; }
+.pl-code:hover { background: rgba(0, 0, 0, .15); }
+.pl-lock { font-size: 1.25rem; width: 40px; height: 40px; border-radius: 50%; opacity: .6; }
+.pl-lock:hover, .pl-lock.on { opacity: 1; background: rgba(0, 0, 0, .18); }
+.pl-actions { justify-content: center; align-items: center; }
+#palette .status { text-align: center; }
+@media (max-width: 700px) {
+  #plGo { width: 100%; }
+  .pl-swatches { flex-direction: column; min-height: 0; }
+  .pl-sw { flex-direction: row; justify-content: space-between; padding: 12px 14px; min-height: 64px; }
+  .pl-code { text-align: left; }
+  .pl-actions .ghost-btn { width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) { .pl-sw { transition: none; } }
