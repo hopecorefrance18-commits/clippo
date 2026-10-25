@@ -3848,3 +3848,249 @@ if (fvBox) {
 
   fvRender();
 }
+
+// ---------- Palette de couleurs ----------
+const plSwatches = $("plSwatches"), plStatus = $("plStatus"), plCount = $("plCount"), plHarmony = $("plHarmony"), plFmt = $("plFmt");
+const plGo = $("plGo"), plPhotoBox = $("plPhotoBox"), plHarmonyBox = $("plHarmonyBox"), plPreview = $("plPreview");
+const plDrop = $("plDrop"), plFile = $("plFile");
+let plColors = [], plMode = "gen", plPhotoUrl = null, plPhotoFile = null;
+
+function plMessage(msg, isError = false) {
+  plStatus.textContent = msg;
+  plStatus.classList.toggle("error", isError);
+}
+function plRnd(a, b) { return a + Math.random() * (b - a); }
+
+// --- Conversions de couleurs ---
+function plHslToHex(h, s, l) {
+  h = ((h % 360) + 360) % 360; s /= 100; l /= 100;
+  const k = (n) => (n + h / 30) % 12;
+  const a = s * Math.min(l, 1 - l);
+  const f = (n) => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+  const to = (x) => Math.round(x * 255).toString(16).padStart(2, "0");
+  return "#" + to(f(0)) + to(f(8)) + to(f(4));
+}
+function plHexToRgb(hex) { const n = parseInt(hex.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; }
+function plRgbToHex(r, g, b) {
+  return "#" + [r, g, b].map((x) => Math.max(0, Math.min(255, Math.round(x))).toString(16).padStart(2, "0")).join("");
+}
+function plRgbToHsl(r, g, b) {
+  r /= 255; g /= 255; b /= 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min, l = (max + min) / 2;
+  let h = 0, s = 0;
+  if (d) {
+    s = d / (1 - Math.abs(2 * l - 1));
+    if (max === r) h = ((g - b) / d) % 6; else if (max === g) h = (b - r) / d + 2; else h = (r - g) / d + 4;
+    h *= 60; if (h < 0) h += 360;
+  }
+  return [Math.round(h), Math.round(s * 100), Math.round(l * 100)];
+}
+function plLum(hex) {
+  const [r, g, b] = plHexToRgb(hex).map((c) => { c /= 255; return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+function plInk(hex) { return plLum(hex) > 0.45 ? "#15112e" : "#ffffff"; } // texte lisible sur la couleur
+function plFormat(hex, fmt) {
+  if (fmt === "rgb") { const [r, g, b] = plHexToRgb(hex); return `rgb(${r}, ${g}, ${b})`; }
+  if (fmt === "hsl") { const [h, s, l] = plRgbToHsl(...plHexToRgb(hex)); return `hsl(${h}, ${s}%, ${l}%)`; }
+  return hex.toUpperCase();
+}
+
+// --- Génération ---
+function plGenerate(mode, n, baseHue) {
+  const h0 = baseHue === undefined ? plRnd(0, 360) : baseHue;
+  const out = [];
+  for (let i = 0; i < n; i++) {
+    const t = n > 1 ? i / (n - 1) : 0.5;
+    let h, s, l;
+    if (mode === "analog") { h = h0 + (i - (n - 1) / 2) * 28; s = plRnd(50, 80); l = plRnd(35, 70); }
+    else if (mode === "comp") { h = h0 + (i % 2 ? 180 : 0) + plRnd(-10, 10); s = plRnd(50, 85); l = plRnd(30, 75); }
+    else if (mode === "triad") { h = h0 + (i % 3) * 120 + plRnd(-8, 8); s = plRnd(50, 80); l = plRnd(35, 72); }
+    else if (mode === "mono") { h = h0 + plRnd(-4, 4); s = plRnd(40, 75); l = 18 + t * 68; }
+    else if (mode === "pastel") { h = plRnd(0, 360); s = plRnd(60, 85); l = plRnd(78, 90); }
+    else { h = plRnd(0, 360); s = plRnd(45, 85); l = plRnd(30, 78); }
+    out.push(plHslToHex(h, s, l));
+  }
+  return out;
+}
+
+function plRegenerate() {
+  const n = plColors.length;
+  const locked = plColors.find((c) => c.locked);
+  const base = locked ? plRgbToHsl(...plHexToRgb(locked.hex))[0] : undefined; // l'harmonie se construit autour du verrou
+  const fresh = plGenerate(plHarmony.value, n, base);
+  plColors = plColors.map((c, i) => (c.locked ? c : { hex: fresh[i], locked: false }));
+}
+
+function plResize(n) {
+  const fresh = plGenerate(plHarmony.value, n);
+  plColors = Array.from({ length: n }, (_, i) => plColors[i] || { hex: fresh[i], locked: false });
+}
+
+// --- Couleurs dominantes d'une photo (median cut) ---
+function plMedianCut(px, n) {
+  const boxes = [px];
+  while (boxes.length < n) {
+    let bi = -1, bs = 0, bch = 0;
+    boxes.forEach((b, i) => {
+      if (b.length < 2) return;
+      const rng = [0, 1, 2].map((c) => {
+        let mn = 255, mx = 0;
+        for (const p of b) { if (p[c] < mn) mn = p[c]; if (p[c] > mx) mx = p[c]; }
+        return mx - mn;
+      });
+      const ch = rng.indexOf(Math.max(...rng));
+      const score = rng[ch] * Math.sqrt(b.length);
+      if (score > bs) { bs = score; bi = i; bch = ch; }
+    });
+    if (bi < 0) break;
+    const sorted = boxes[bi].slice().sort((a, c) => a[bch] - c[bch]);
+    const mid = sorted.length >> 1;
+    boxes.splice(bi, 1, sorted.slice(0, mid), sorted.slice(mid));
+  }
+  return boxes.filter((b) => b.length).map((b) => {
+    const s = [0, 0, 0];
+    for (const p of b) { s[0] += p[0]; s[1] += p[1]; s[2] += p[2]; }
+    return { rgb: s.map((v) => v / b.length), size: b.length };
+  }).sort((a, b) => b.size - a.size).map((x) => plRgbToHex(...x.rgb));
+}
+
+function plExtract(file) {
+  if (!file || !file.type.startsWith("image/")) return plMessage("Choisis un fichier image.", true);
+  if (file.size > 30 * 1048576) return plMessage("Cette image est trop lourde (30 Mo maximum).", true);
+  plMessage("Lecture de la photo…");
+  const url = URL.createObjectURL(file);
+  const img = new Image();
+  img.onload = () => {
+    const k = Math.min(1, 120 / Math.max(img.naturalWidth, img.naturalHeight));
+    const c = document.createElement("canvas");
+    c.width = Math.max(1, Math.round(img.naturalWidth * k));
+    c.height = Math.max(1, Math.round(img.naturalHeight * k));
+    const ctx = c.getContext("2d", { willReadFrequently: true });
+    ctx.drawImage(img, 0, 0, c.width, c.height);
+    const data = ctx.getImageData(0, 0, c.width, c.height).data;
+    const px = [];
+    for (let i = 0; i < data.length; i += 4) if (data[i + 3] >= 128) px.push([data[i], data[i + 1], data[i + 2]]);
+    if (px.length < 10) { URL.revokeObjectURL(url); return plMessage("Cette image est presque transparente : essaie une autre photo.", true); }
+    const hexes = plMedianCut(px, parseInt(plCount.value, 10));
+    plColors = hexes.map((hex) => ({ hex, locked: false }));
+    if (plPhotoUrl) URL.revokeObjectURL(plPhotoUrl);
+    plPhotoUrl = url;
+    plPhotoFile = file;
+    plPreview.src = url;
+    plPreview.hidden = false;
+    plRender();
+    plMessage(hexes.length < parseInt(plCount.value, 10) ? "Cette image contient peu de couleurs différentes : la palette est plus courte." : "Palette tirée de ta photo !");
+  };
+  img.onerror = () => { URL.revokeObjectURL(url); plMessage("Impossible de lire cette image.", true); };
+  img.src = url;
+}
+
+// --- Affichage ---
+async function plCopy(text, okMsg) {
+  try { await copyText(text); plMessage(okMsg || `${text} copié !`); }
+  catch { plMessage("Copie automatique impossible : sélectionne le texte et fais Ctrl + C.", true); }
+}
+
+function plRender() {
+  plSwatches.innerHTML = "";
+  const fmt = plFmt.value;
+  plColors.forEach((c, i) => {
+    const sw = document.createElement("div");
+    sw.className = "pl-sw";
+    sw.style.background = c.hex;
+    sw.style.color = plInk(c.hex);
+    const code = document.createElement("button");
+    code.type = "button";
+    code.className = "pl-code";
+    code.textContent = plFormat(c.hex, fmt);
+    code.setAttribute("aria-label", "Copier " + plFormat(c.hex, fmt));
+    code.addEventListener("click", () => plCopy(plFormat(c.hex, fmt)));
+    const lock = document.createElement("button");
+    lock.type = "button";
+    lock.className = "pl-lock" + (c.locked ? " on" : "");
+    lock.textContent = c.locked ? "🔒" : "🔓";
+    lock.setAttribute("aria-pressed", String(c.locked));
+    lock.setAttribute("aria-label", (c.locked ? "Déverrouiller" : "Verrouiller") + " la couleur " + (i + 1));
+    lock.addEventListener("click", () => { c.locked = !c.locked; plRender(); });
+    sw.append(code, lock);
+    plSwatches.appendChild(sw);
+  });
+}
+
+function plSetMode(mode) {
+  plMode = mode;
+  document.querySelectorAll("#plModes .chip").forEach((c) => c.classList.toggle("active", c.dataset.mode === mode));
+  plHarmonyBox.hidden = mode !== "gen";
+  plGo.hidden = mode !== "gen";
+  plPhotoBox.hidden = mode !== "photo";
+  plMessage("");
+}
+
+// --- Boutons ---
+$("plModes").querySelectorAll(".chip").forEach((c) => c.addEventListener("click", () => plSetMode(c.dataset.mode)));
+plGo.addEventListener("click", () => { plRegenerate(); plRender(); plMessage(""); });
+plHarmony.addEventListener("change", () => { plRegenerate(); plRender(); });
+plCount.addEventListener("change", () => {
+  const n = parseInt(plCount.value, 10);
+  if (plMode === "photo" && plPhotoFile) return plExtract(plPhotoFile);
+  plResize(n);
+  plRender();
+});
+plFmt.addEventListener("change", plRender);
+
+plFile.addEventListener("change", () => plExtract(plFile.files[0]));
+["dragenter", "dragover"].forEach((ev) => plDrop.addEventListener(ev, (e) => { e.preventDefault(); plDrop.classList.add("over"); }));
+["dragleave", "drop"].forEach((ev) => plDrop.addEventListener(ev, (e) => { e.preventDefault(); plDrop.classList.remove("over"); }));
+plDrop.addEventListener("drop", (e) => plExtract(e.dataTransfer.files[0]));
+
+$("plCopyAll").addEventListener("click", () => {
+  if (!plColors.length) return;
+  plCopy(plColors.map((c) => plFormat(c.hex, plFmt.value)).join("\n"), "Les codes sont copiés !");
+});
+$("plCopyCss").addEventListener("click", () => {
+  if (!plColors.length) return;
+  plCopy(":root {\n" + plColors.map((c, i) => `  --couleur-${i + 1}: ${c.hex};`).join("\n") + "\n}", "Les variables CSS sont copiées !");
+});
+$("plSave").addEventListener("click", () => {
+  if (!plColors.length) return;
+  const w = 1200, h = 400, n = plColors.length;
+  const c = document.createElement("canvas");
+  c.width = w; c.height = h;
+  const x = c.getContext("2d");
+  plColors.forEach((col, i) => {
+    const x0 = Math.round((w / n) * i), x1 = Math.round((w / n) * (i + 1));
+    x.fillStyle = col.hex;
+    x.fillRect(x0, 0, x1 - x0, h);
+    x.fillStyle = plInk(col.hex);
+    x.font = `700 ${n > 6 ? 22 : 28}px "DM Sans", sans-serif`;
+    x.textAlign = "center";
+    x.fillText(col.hex.toUpperCase(), (x0 + x1) / 2, h - 36);
+  });
+  c.toBlob((b) => {
+    if (!b) return plMessage("Impossible de créer l'image.", true);
+    const url = URL.createObjectURL(b);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "clippo-palette.png";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  }, "image/png");
+});
+
+// Barre d'espace : nouvelle palette (ordinateur, hors champs de saisie)
+document.addEventListener("keydown", (e) => {
+  const panel = document.getElementById("palette");
+  if (e.code !== "Space" || !panel || !panel.classList.contains("active") || plMode !== "gen") return;
+  if (e.target.closest("input, textarea, select, button, a")) return;
+  e.preventDefault();
+  plRegenerate();
+  plRender();
+});
+
+plResize(parseInt(plCount.value, 10));
+plSetMode("gen");
+plRegenerate();
+plRender();
