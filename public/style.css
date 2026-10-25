@@ -1110,3 +1110,38 @@ body:not(:has(#home.active)) .back-home { display: inline-block; }
   .todo-tools { align-items: stretch; }
   .todo-tools .select { width: 100%; }
 }
+
+/* --- Favoris et derniers outils utilisés --- */
+.fv-wrap { position: relative; display: grid; }
+.fv-wrap:has(> .tool-card[hidden]) { display: none; }
+.fv-star {
+  position: absolute; top: 10px; right: 10px; z-index: 2; width: 36px; height: 36px; border: 0; border-radius: 50%;
+  cursor: pointer; background: rgba(255, 255, 255, .08); color: var(--muted); font-size: 1.2rem; line-height: 1;
+  transition: background .15s, color .15s, transform .15s;
+}
+.fv-star:hover { background: rgba(255, 255, 255, .18); color: var(--paper); transform: scale(1.08); }
+.fv-star.on { color: #ffd84d; }
+
+.fv-box { margin-top: 30px; display: grid; gap: 18px; }
+.fv-sec { display: grid; gap: 10px; }
+.fv-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.fv-title { font: 800 1.15rem "Bricolage Grotesque", sans-serif; }
+.fv-clear { border: 0; background: none; color: var(--muted); cursor: pointer; font: 500 .9rem "DM Sans", sans-serif; text-decoration: underline; }
+.fv-clear:hover { color: var(--paper); }
+.fv-row { display: flex; flex-wrap: wrap; gap: 10px; }
+.fv-item {
+  display: inline-flex; align-items: center; gap: 8px; cursor: pointer; color: var(--paper);
+  background: rgba(12, 23, 48, .72); backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, .15); border-radius: 999px; padding: 9px 16px; font: 700 .95rem "DM Sans", sans-serif;
+  transition: transform .15s, border-color .15s;
+}
+.fv-item:hover { transform: translateY(-2px); border-color: var(--aqua); }
+
+.fv-pbtn {
+  display: block; margin: 0 auto 16px; cursor: pointer; border: 1px solid rgba(255, 255, 255, .25); background: transparent;
+  color: var(--paper); font: 700 .9rem "DM Sans", sans-serif; padding: 8px 16px; border-radius: 999px;
+}
+.fv-pbtn:hover { border-color: var(--aqua); }
+.fv-pbtn.on { color: #ffd84d; border-color: #ffd84d; }
+
+@media (prefers-reduced-motion: reduce) { .fv-star, .fv-item { transition: none; } }
