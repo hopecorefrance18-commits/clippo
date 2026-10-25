@@ -68,6 +68,7 @@
                     <button class="tab" data-tab="hashtags">Hashtags</button>
                     <button class="tab" data-tab="brandname">Noms de chaîne</button>
                     <button class="tab" data-tab="descgen">Description</button>
+                    <button class="tab" data-tab="palette">Palette</button>
         </div>
         <div class="subgroup" data-cat="practical" hidden>
           <button class="tab" data-tab="qr">QR code</button>
@@ -220,6 +221,7 @@
             <button class="tool-card" data-go="hashtags"><i class="tc-ico">#️⃣</i><strong>Générateur de hashtags</strong><span>Des hashtags prêts à copier pour ton sujet.</span><em class="tc-go">→</em></button>
                       <button class="tool-card" data-go="brandname"><i class="tc-ico">🏷️</i><strong>Noms de chaîne</strong><span>Des idées de noms pour ta chaîne, ta page ou ta boutique.</span><em class="tc-go">→</em></button>
                       <button class="tool-card" data-go="descgen"><i class="tc-ico">📝</i><strong>Générateur de description</strong><span>Des descriptions prêtes à copier pour tes vidéos.</span><em class="tc-go">→</em></button>
+                      <button class="tool-card" data-go="palette"><i class="tc-ico">🎨</i><strong>Palette de couleurs</strong><span>Génère une palette ou tire-la d'une photo.</span><em class="tc-go">→</em></button>
           </div>
         </div>
 
@@ -1476,6 +1478,69 @@ Hugo</textarea>
 
         <p id="spStatus" class="status" role="status"></p>
         <p class="gr-note">Tes examens et tes cases cochées restent sur ton appareil (dans ce navigateur) et ne sont envoyés nulle part. Si tu vides les données du site, ils disparaissent. Si tu modifies tes examens ou tes réglages, le planning est recalculé à partir d'aujourd'hui. C'est une répartition simple : adapte-la à ton rythme.</p>
+      </div>
+    </section>
+      <!-- Palette de couleurs -->
+    <section id="palette" class="panel">
+      <h1>Ta palette de couleurs.</h1>
+      <p class="sub">Génère des palettes harmonieuses ou tire-les d'une photo, puis copie les codes. Tout se fait sur ton appareil.</p>
+
+      <div class="card">
+        <div class="chips" id="plModes">
+          <button class="chip active" data-mode="gen" type="button">Générer</button>
+          <button class="chip" data-mode="photo" type="button">Depuis une photo</button>
+        </div>
+
+        <div class="row pl-opts">
+          <label id="plHarmonyBox" class="select">
+            <span>Harmonie</span>
+            <select id="plHarmony">
+              <option value="random">Aléatoire</option>
+              <option value="analog">Analogue</option>
+              <option value="comp">Complémentaire</option>
+              <option value="triad">Triade</option>
+              <option value="mono">Monochrome</option>
+              <option value="pastel">Pastel</option>
+            </select>
+          </label>
+          <label class="select">
+            <span>Nombre de couleurs</span>
+            <select id="plCount">
+              <option>3</option><option>4</option><option selected>5</option><option>6</option><option>7</option><option>8</option>
+            </select>
+          </label>
+          <label class="select">
+            <span>Format des codes</span>
+            <select id="plFmt">
+              <option value="hex">HEX</option>
+              <option value="rgb">RGB</option>
+              <option value="hsl">HSL</option>
+            </select>
+          </label>
+        </div>
+
+        <button id="plGo" class="primary">Générer une palette</button>
+
+        <div id="plPhotoBox" hidden>
+          <label id="plDrop" class="drop">
+            <input id="plFile" type="file" accept="image/*" hidden>
+            <strong>Dépose ta photo ici</strong>
+            <span>ou clique pour la choisir (PNG, JPG, WEBP)</span>
+          </label>
+          <img id="plPreview" class="pl-preview" alt="Photo choisie" hidden>
+        </div>
+
+        <div id="plSwatches" class="pl-swatches"></div>
+
+        <div class="row pl-actions">
+          <button id="plCopyAll" class="ghost-btn" type="button">Copier les codes</button>
+          <button id="plCopyCss" class="ghost-btn" type="button">Copier en CSS</button>
+          <button id="plSave" class="ghost-btn" type="button">Télécharger en image</button>
+        </div>
+
+        <p id="plHint" class="gr-note">Clique sur un code pour le copier. Le cadenas 🔒 garde une couleur quand tu génères une nouvelle palette. Sur ordinateur, la barre d'espace génère une palette.</p>
+        <p id="plStatus" class="status" role="status"></p>
+        <p class="gr-note">Ta photo reste sur ton appareil : elle n'est ni envoyée ni enregistrée. Les couleurs repérées sont une approximation : elles peuvent varier selon l'éclairage de la photo.</p>
       </div>
     </section>
   </main>
