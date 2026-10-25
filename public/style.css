@@ -1075,3 +1075,38 @@ body:not(:has(#home.active)) .back-home { display: inline-block; }
   .sp-sub { flex-wrap: wrap; }
   .sp-info { flex: 1 1 100%; }
 }
+
+/* --- Liste de tâches : dates, heures, priorités --- */
+#todo h1, #todo .sub { text-align: center; }
+#todo .card { min-width: 0; }
+.todo-form { display: grid; gap: 12px; }
+.todo-form .primary { margin-left: 0; justify-self: start; }
+.todo-opts { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; align-items: end; }
+#todo .text-in { min-width: 0; max-width: 100%; width: 100%; }
+#todo input[type="date"], #todo input[type="time"] {
+  -webkit-appearance: none; appearance: none; width: 100%; min-width: 0; max-width: 100%;
+  box-sizing: border-box; min-height: 46px; text-align: left;
+}
+.todo-tools { display: flex; justify-content: space-between; align-items: end; gap: 12px; flex-wrap: wrap; }
+.todo-item { align-items: flex-start; }
+.todo-item input[type="checkbox"] { margin-top: 4px; }
+.todo-item.late { background: rgba(255, 93, 122, .12); }
+.todo-item.prio3 { box-shadow: inset 4px 0 0 #ff5d7a; }
+.todo-item.editing { display: block; }
+.todo-main { flex: 1; min-width: 0; display: grid; gap: 4px; }
+.todo-meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.todo-chip { font-size: .78rem; font-weight: 700; padding: 2px 10px; border-radius: 999px; background: rgba(255, 255, 255, .1); }
+.todo-chip.late { background: #ff5d7a; color: #fff; }
+.todo-chip.soon { background: var(--sun); color: var(--ink); }
+.todo-chip.p3 { background: rgba(255, 93, 122, .22); color: #ff8fa3; }
+.todo-chip.p1 { color: var(--muted); }
+.todo-note { color: var(--muted); font-size: .85rem; word-break: break-word; }
+.todo-editform { display: grid; gap: 10px; }
+.todo-editbtns { align-items: center; }
+.todo-editbtns .primary { margin-left: 0; padding: 10px 22px; font-size: 1rem; }
+@media (max-width: 700px) {
+  .todo-form .primary { width: 100%; }
+  .todo-opts { grid-template-columns: 1fr 1fr; }
+  .todo-tools { align-items: stretch; }
+  .todo-tools .select { width: 100%; }
+}
