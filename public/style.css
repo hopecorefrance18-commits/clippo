@@ -1036,3 +1036,42 @@ body:not(:has(#home.active)) .back-home { display: inline-block; }
 #dsList .fancy-row span { white-space: pre-wrap; display: block; }
 #dsList .fancy-row { align-items: flex-start; }
 @media (max-width: 700px) { #dsGo { width: 100%; } }
+
+/* --- Planning de révisions --- */
+#studyplan h1, #studyplan .sub { text-align: center; }
+#studyplan .card { min-width: 0; }
+.sp-add { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; align-items: end; }
+.sp-add .sp-wide { grid-column: 1 / -1; }
+.sp-add .primary { margin-left: 0; justify-self: start; }
+#studyplan .text-in { min-width: 0; max-width: 100%; width: 100%; }
+#studyplan input[type="date"] {
+  -webkit-appearance: none; appearance: none; width: 100%; min-width: 0; max-width: 100%;
+  box-sizing: border-box; min-height: 46px; text-align: left;
+}
+.sp-subjects { list-style: none; padding: 0; display: grid; gap: 8px; }
+.sp-sub { display: flex; align-items: center; gap: 12px; background: var(--ink-2); border-radius: 14px; padding: 10px 12px; }
+.sp-sub.past { opacity: .55; }
+.sp-info { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.sp-info strong { word-break: break-word; }
+.sp-info span { color: var(--muted); font-size: .85rem; }
+.sp-chip { flex-shrink: 0; background: rgba(41, 182, 255, .18); color: var(--aqua); border-radius: 999px; padding: 4px 12px; font-weight: 700; font-size: .85rem; }
+.sp-set { align-items: end; }
+.sp-center { text-align: center; }
+.sp-plan { display: grid; gap: 12px; margin-top: 6px; }
+.sp-day { background: var(--ink-2); border-radius: 14px; padding: 12px 14px; display: grid; gap: 8px; border: 2px solid transparent; }
+.sp-day.today { border-color: var(--aqua); }
+.sp-dayhead { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.sp-tag { font-style: normal; font-size: .75rem; font-weight: 700; padding: 2px 10px; border-radius: 999px; background: var(--aqua); color: var(--ink); }
+.sp-tag.final { background: #ffd84d; }
+.sp-sess { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 10px; cursor: pointer; background: rgba(255,255,255,.05); }
+.sp-sess:hover { background: rgba(255,255,255,.1); }
+.sp-sess input { width: 20px; height: 20px; accent-color: var(--aqua); flex-shrink: 0; cursor: pointer; }
+.sp-sess.done span:first-of-type { text-decoration: line-through; color: var(--muted); }
+.sp-exam { background: rgba(255, 216, 77, .14); border-radius: 10px; padding: 8px 12px; font-weight: 700; }
+#spMore { justify-self: center; display: block; margin: 12px auto 0; }
+@media (max-width: 700px) {
+  .sp-add { grid-template-columns: 1fr 1fr; }
+  .sp-add .primary { width: 100%; }
+  .sp-sub { flex-wrap: wrap; }
+  .sp-info { flex: 1 1 100%; }
+}
