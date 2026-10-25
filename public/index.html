@@ -49,9 +49,8 @@
           <button class="tab" data-tab="grades">Moyenne</button>
           <button class="tab" data-tab="pomodoro">Pomodoro</button>
                     <button class="tab" data-tab="flashcards">Flashcards</button>
-                                        
-                   
                     <button class="tab" data-tab="countdown">Compte à rebours</button>
+                    <button class="tab" data-tab="studyplan">Planning</button>
         
         </div>
         <div class="subgroup" data-cat="media" hidden>
@@ -182,9 +181,8 @@
             <button class="tool-card" data-go="grades"><i class="tc-ico">🧮</i><strong>Calculateur de moyenne</strong><span>Ta moyenne et la note à viser.</span><em class="tc-go">→</em></button>
             <button class="tool-card" data-go="pomodoro"><i class="tc-ico">⏱️</i><strong>Pomodoro</strong><span>Travaille par sessions avec des pauses.</span><em class="tc-go">→</em></button>
             <button class="tool-card" data-go="flashcards"><i class="tc-ico">🃏</i><strong>Flashcards</strong><span>Crée des cartes et révise tes leçons.</span><em class="tc-go">→</em></button>
-           
-           
-            <button class="tool-card" data-go="countdown"><i class="tc-ico">📅</i><strong>Compte à rebours</strong><span>Les jours qui restent avant ton examen.</span><em class="tc-go">→</em></button>
+           <button class="tool-card" data-go="countdown"><i class="tc-ico">📅</i><strong>Compte à rebours</strong><span>Les jours qui restent avant ton examen.</span><em class="tc-go">→</em></button>
+                      <button class="tool-card" data-go="studyplan"><i class="tc-ico">🗓️</i><strong>Planning de révisions</strong><span>Répartis tes séances jusqu'au jour de l'examen.</span><em class="tc-go">→</em></button>
           </div>
         </div>
 
@@ -1366,6 +1364,71 @@ Hugo</textarea>
         <p id="dsStatus" class="status" role="status"></p>
         <div id="dsList" class="fancy-list"></div>
         <p class="gr-note">Ces textes sont créés à partir de modèles de phrases, avec ton titre et tes mots-clés : relis-les et adapte-les avant de publier. Ce que tu écris reste sur ton appareil.</p>
+      </div>
+    </section>
+      <!-- Planning de révisions -->
+    <section id="studyplan" class="panel">
+      <h1>Ton planning de révisions.</h1>
+      <p class="sub">Ajoute tes examens : Clippo répartit tes séances de révision jusqu'au jour J. Tout est gardé dans ton navigateur.</p>
+
+      <div class="card">
+        <h2 class="fc-title">Ajouter un examen</h2>
+        <div class="sp-add">
+          <label class="select sp-wide">
+            <span>Matière</span>
+            <input id="spName" class="text-in" type="text" maxlength="40" placeholder="ex : Maths, Histoire, Anglais" autocomplete="off">
+          </label>
+          <label class="select">
+            <span>Date de l'examen</span>
+            <input id="spDate" class="text-in" type="date">
+          </label>
+          <label class="select">
+            <span>Difficulté pour toi</span>
+            <select id="spLevel">
+              <option value="1">Facile</option>
+              <option value="2" selected>Moyenne</option>
+              <option value="3">Difficile</option>
+            </select>
+          </label>
+          <button id="spAdd" class="primary sp-wide">Ajouter l'examen</button>
+        </div>
+
+        <ul id="spSubjects" class="sp-subjects"></ul>
+
+        <div id="spPlanBox" hidden>
+          <h2 class="fc-title">Tes réglages</h2>
+          <div class="row sp-set">
+            <label class="select">
+              <span>Temps de révision par jour</span>
+              <select id="spMin">
+                <option value="30">30 min</option>
+                <option value="60" selected>1 h</option>
+                <option value="90">1 h 30</option>
+                <option value="120">2 h</option>
+                <option value="180">3 h</option>
+              </select>
+            </label>
+            <label class="select">
+              <span>Durée d'une séance</span>
+              <select id="spLen">
+                <option value="25">25 min</option>
+                <option value="30" selected>30 min</option>
+                <option value="45">45 min</option>
+                <option value="60">1 h</option>
+              </select>
+            </label>
+            <label class="check"><input id="spWeekend" type="checkbox" checked> Réviser le week-end</label>
+          </div>
+
+          <h2 class="fc-title">Ton planning</h2>
+          <p id="spSummary" class="gr-info sp-center"></p>
+          <div class="todo-meter"><div id="spBar" class="todo-bar"></div></div>
+          <div id="spPlan" class="sp-plan"></div>
+          <button id="spMore" class="ghost-btn" type="button" hidden>Afficher tout le planning</button>
+        </div>
+
+        <p id="spStatus" class="status" role="status"></p>
+        <p class="gr-note">Tes examens et tes cases cochées restent sur ton appareil (dans ce navigateur) et ne sont envoyés nulle part. Si tu vides les données du site, ils disparaissent. Si tu modifies tes examens ou tes réglages, le planning est recalculé à partir d'aujourd'hui. C'est une répartition simple : adapte-la à ton rythme.</p>
       </div>
     </section>
   </main>
