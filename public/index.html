@@ -60,6 +60,7 @@
                     <button class="tab" data-tab="convert">Convertir et compresser</button>
                     <button class="tab" data-tab="blur">Flouter une image</button>
                     <button class="tab" data-tab="enhance">Améliorer une image</button>
+                    <button class="tab" data-tab="photopdf">Photo en PDF</button>
         </div>
         <div class="subgroup" data-cat="creators" hidden>
           <button class="tab" data-tab="fancy">Texte stylé</button>
@@ -210,6 +211,7 @@
             <button class="tool-card" data-go="convert"><i class="tc-ico">🖼️</i><strong>Convertir et compresser</strong><span>PNG, JPG ou WEBP, recadrage, fichier plus léger.</span><em class="tc-go">→</em></button>
             <button class="tool-card" data-go="blur"><i class="tc-ico">🫥</i><strong>Flouter une image</strong><span>Cache un visage ou un texte, au pinceau.</span><em class="tc-go">→</em></button>
             <button class="tool-card" data-go="enhance"><i class="tc-ico">✨</i><strong>Améliorer une image</strong><span>Agrandis et rends ta photo plus nette.</span><em class="tc-go">→</em></button>
+                    <button class="tool-card" data-go="photopdf"><i class="tc-ico">📄</i><strong>Photo en PDF</strong><span>Rassemble tes photos dans un seul PDF.</span><em class="tc-go">→</em></button>
           </div>
         </div>
 
@@ -1608,6 +1610,76 @@ Hugo</textarea>
         </details>
 
         <p class="gr-note">Les conversions sont des règles de trois. Les mentions sont celles du bac et les lettres sont un repère américain : chaque école a ses propres seuils. Ce que tu écris reste sur ton appareil.</p>
+      </div>
+    </section>
+      <!-- Photo en PDF -->
+    <section id="photopdf" class="panel">
+      <h1>Tes photos en PDF.</h1>
+      <p class="sub">Ajoute tes photos, mets-les dans l'ordre et télécharge un seul PDF. Tout se fait sur ton appareil.</p>
+
+      <div class="card">
+        <label id="ppDrop" class="drop">
+          <input id="ppFile" type="file" accept="image/*" multiple hidden>
+          <strong>Dépose tes photos ici</strong>
+          <span>ou clique pour les choisir · 30 photos maximum</span>
+        </label>
+
+        <p id="ppCount" class="gr-info pp-center"></p>
+        <ul id="ppList" class="pp-list"></ul>
+
+        <div id="ppSet" hidden>
+          <div class="row pp-opts">
+            <label class="select">
+              <span>Taille de page</span>
+              <select id="ppSize">
+                <option value="a4" selected>A4</option>
+                <option value="letter">Lettre (US)</option>
+                <option value="image">Taille de l'image</option>
+              </select>
+            </label>
+            <label id="ppOrientBox" class="select">
+              <span>Orientation</span>
+              <select id="ppOrient">
+                <option value="auto" selected>Automatique</option>
+                <option value="port">Portrait</option>
+                <option value="land">Paysage</option>
+              </select>
+            </label>
+            <label class="select">
+              <span>Marges</span>
+              <select id="ppMargin">
+                <option value="0">Aucune</option>
+                <option value="20" selected>Petites</option>
+                <option value="40">Normales</option>
+              </select>
+            </label>
+            <label class="select">
+              <span>Qualité</span>
+              <select id="ppQuality">
+                <option value="high">Haute (fichier lourd)</option>
+                <option value="mid" selected>Moyenne</option>
+                <option value="low">Légère (fichier petit)</option>
+              </select>
+            </label>
+          </div>
+          <label class="select">
+            <span>Nom du fichier</span>
+            <input id="ppName" class="text-in" type="text" maxlength="40" placeholder="clippo-photos" autocomplete="off">
+          </label>
+
+          <div class="row pp-actions">
+            <button id="ppMake" class="primary">Créer le PDF</button>
+            <button id="ppClear" class="ghost-btn" type="button">Tout retirer</button>
+          </div>
+
+          <div id="ppResult" class="pp-result" hidden>
+            <p id="ppInfo" class="gr-info"></p>
+            <a id="ppSave" class="primary" href="#" download="clippo-photos.pdf">Télécharger le PDF</a>
+          </div>
+        </div>
+
+        <p id="ppStatus" class="status" role="status"></p>
+        <p class="gr-note">Tes photos restent sur ton appareil : rien n'est envoyé. Chaque photo est enregistrée en JPEG dans le PDF, et ses infos cachées (position GPS, date, appareil) ne sont pas conservées. Les photos HEIC ne sont pas lues par tous les navigateurs.</p>
       </div>
     </section>
   </main>
