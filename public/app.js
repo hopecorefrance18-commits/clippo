@@ -4192,3 +4192,230 @@ function gcRender() {
 [gcNote, gcOther, gcTo].forEach((el) => el.addEventListener("input", gcRender));
 gcFrom.addEventListener("change", gcRender);
 gcRender();
+
+// ---------- Photo en PDF (sans bibliothèque, sur l'appareil) ----------
+const PP_MAX = 30;
+const PP_QUALITY = { high: { side: 2400, q: 0.92 }, mid: { side: 1800, q: 0.8 }, low: { side: 1200, q: 0.6 } };
+const PP_PAGES = { a4: [595.28, 841.89], letter: [612, 792] };
+const ppDrop = $("ppDrop"), ppFile = $("ppFile"), ppList = $("ppList"), ppStatus = $("ppStatus"), ppCount = $("ppCount");
+const ppSize = $("ppSize"), ppOrient = $("ppOrient"), ppOrientBox = $("ppOrientBox"), ppMargin = $("ppMargin"), ppQuality = $("ppQuality");
+const ppName = $("ppName"), ppMake = $("ppMake"), ppSet = $("ppSet"), ppResult = $("ppResult"), ppSave = $("ppSave"), ppInfo = $("ppInfo");
+let ppItems = [], ppUrl = null, ppBusy = false;
+
+function ppMessage(msg, isError = false) {
+  ppStatus.textContent = msg;
+  ppStatus.classList.toggle("error", isError);
+}
+const ppPause = () => new Promise((r) => setTimeout(r, 20));
+function ppId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+function ppFmtSize(bytes) {
+  return bytes >= 1048576 ? (bytes / 1048576).toFixed(1) + " Mo" : Math.max(1, Math.round(bytes / 1024)) + " Ko";
+}
+
+// Dessine une photo (réduite et pivotée) sur un canevas à fond blanc
+async function ppRender(file, rot, maxSide) {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise((resolve, reject) => {
+      const im = new Image();
+      im.onload = () => resolve(im);
+      im.onerror = () => reject(new Error("Image illisible"));
+      im.src = url;
+    });
+    const w0 = img.naturalWidth, h0 = img.naturalHeight;
+    if (!w0 || !h0) throw new Error("Image vide");
+    const k = Math.min(1, maxSide / Math.max(w0, h0));
+    const w = Math.max(1, Math.round(w0 * k)), h = Math.max(1, Math.round(h0 * k));
+    const swap = rot % 2 === 1;
+    const c = document.createElement("canvas");
+    c.width = swap ? h : w;
+    c.height = swap ? w : h;
+    const x = c.getContext("2d");
+    x.fillStyle = "#ffffff";
+    x.fillRect(0, 0, c.width, c.height);
+    x.translate(c.width / 2, c.height / 2);
+    x.rotate((rot * Math.PI) / 2);
+    x.imageSmoothingQuality = "high";
+    x.drawImage(img, -w / 2, -h / 2, w, h);
+    return c;
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+function ppInvalidate() { // le résultat n'est plus à jour
+  ppResult.hidden = true;
+  if (ppUrl) { URL.revokeObjectURL(ppUrl); ppUrl = null; }
+}
+
+function ppBtn(label, aria, fn, disabled) {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.textContent = label;
+  b.setAttribute("aria-label", aria);
+  b.disabled = !!disabled;
+  b.addEventListener("click", fn);
+  return b;
+}
+
+function ppRenderList() {
+  ppList.innerHTML = "";
+  ppItems.forEach((it, i) => {
+    const li = document.createElement("li");
+    li.className = "pp-item";
+    const frame = document.createElement("div");
+    frame.className = "pp-frame";
+    const img = document.createElement("img");
+    img.src = it.thumb;
+    img.alt = "Photo " + (i + 1);
+    img.style.transform = `rotate(${it.rot * 90}deg)`;
+    frame.appendChild(img);
+    const num = document.createElement("span");
+    num.className = "pp-num";
+    num.textContent = String(i + 1);
+    frame.appendChild(num);
+    const name = document.createElement("span");
+    name.className = "pp-name";
+    name.textContent = it.name;
+    const bar = document.createElement("div");
+    bar.className = "pp-btns";
+    bar.append(
+      ppBtn("←", "Déplacer la photo " + (i + 1) + " vers le début", () => ppMove(i, -1), i === 0),
+      ppBtn("→", "Déplacer la photo " + (i + 1) + " vers la fin", () => ppMove(i, 1), i === ppItems.length - 1),
+      ppBtn("↻", "Pivoter la photo " + (i + 1), () => { it.rot = (it.rot + 1) % 4; ppInvalidate(); ppRenderList(); }),
+      ppBtn("×", "Retirer la photo " + (i + 1), () => { ppItems.splice(i, 1); ppInvalidate(); ppRenderList(); })
+    );
+    li.append(frame, name, bar);
+    ppList.appendChild(li);
+  });
+  ppSet.hidden = !ppItems.length;
+  ppCount.textContent = ppItems.length ? `${ppItems.length} photo${ppItems.length > 1 ? "s" : ""} · ${ppItems.length} page${ppItems.length > 1 ? "s" : ""}` : "";
+  ppOrientBox.hidden = ppSize.value === "image";
+}
+
+function ppMove(i, d) {
+  const j = i + d;
+  if (j < 0 || j >= ppItems.length) return;
+  [ppItems[i], ppItems[j]] = [ppItems[j], ppItems[i]];
+  ppInvalidate();
+  ppRenderList();
+}
+
+async function ppAdd(list) {
+  const files = Array.from(list).filter((f) => f.type.startsWith("image/"));
+  if (!files.length) return ppMessage("Choisis des fichiers image (PNG, JPG, WEBP…).", true);
+  ppMessage("Lecture des photos…");
+  let unreadable = 0, tooBig = 0, full = false;
+  for (const f of files) {
+    if (ppItems.length >= PP_MAX) { full = true; break; }
+    if (f.size > 30 * 1048576) { tooBig++; continue; }
+    try {
+      const c = await ppRender(f, 0, 220);
+      ppItems.push({ id: ppId(), file: f, rot: 0, thumb: c.toDataURL("image/jpeg", 0.7), name: f.name || "photo" });
+    } catch { unreadable++; }
+  }
+  ppInvalidate();
+  ppRenderList();
+  const notes = [];
+  if (full) notes.push(`limite de ${PP_MAX} photos atteinte`);
+  if (tooBig) notes.push(`${tooBig} photo${tooBig > 1 ? "s" : ""} trop lourde${tooBig > 1 ? "s" : ""} (30 Mo maximum)`);
+  if (unreadable) notes.push(`${unreadable} fichier${unreadable > 1 ? "s" : ""} illisible${unreadable > 1 ? "s" : ""} (les photos HEIC ne sont pas lues par tous les navigateurs)`);
+  if (notes.length) ppMessage("Ajouté, mais : " + notes.join(" ; ") + ".", true);
+  else ppMessage("");
+}
+
+// Écrit le PDF à la main : une image JPEG par page
+async function ppBuild() {
+  if (ppBusy || !ppItems.length) return;
+  ppBusy = true;
+  ppMake.disabled = true;
+  ppInvalidate();
+  try {
+    const qset = PP_QUALITY[ppQuality.value];
+    const margin = parseFloat(ppMargin.value) || 0;
+    const enc = new TextEncoder();
+    const chunks = [], offsets = [];
+    let pos = 0;
+    const push = (d) => { const b = typeof d === "string" ? enc.encode(d) : d; chunks.push(b); pos += b.length; };
+    const n = ppItems.length, total = 2 + n * 3;
+
+    push("%PDF-1.4\n%\u00e2\u00e3\u00cf\u00d3\n");
+    offsets[1] = pos;
+    push("1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
+    offsets[2] = pos;
+    push(`2 0 obj\n<< /Type /Pages /Count ${n} /Kids [${ppItems.map((_, i) => `${3 + i * 3} 0 R`).join(" ")}] >>\nendobj\n`);
+
+    for (let i = 0; i < n; i++) {
+      ppMessage(`Création du PDF… page ${i + 1} sur ${n}`);
+      await ppPause();
+      const it = ppItems[i];
+      const canvas = await ppRender(it.file, it.rot, qset.side);
+      const blob = await new Promise((r) => canvas.toBlob(r, "image/jpeg", qset.q));
+      if (!blob) throw new Error("Ton navigateur n'a pas pu préparer la photo " + (i + 1) + ".");
+      const bytes = new Uint8Array(await blob.arrayBuffer());
+      const iw = canvas.width, ih = canvas.height;
+
+      let pw, ph;
+      if (ppSize.value === "image") {
+        const k = 842 / Math.max(iw, ih);
+        pw = iw * k + margin * 2;
+        ph = ih * k + margin * 2;
+      } else {
+        const base = PP_PAGES[ppSize.value];
+        const land = ppOrient.value === "land" || (ppOrient.value === "auto" && iw > ih);
+        pw = land ? base[1] : base[0];
+        ph = land ? base[0] : base[1];
+      }
+      const s = Math.min((pw - margin * 2) / iw, (ph - margin * 2) / ih);
+      const dw = iw * s, dh = ih * s, x = (pw - dw) / 2, y = (ph - dh) / 2;
+      const f = (v) => v.toFixed(2);
+
+      const base = 3 + i * 3;
+      const content = `q ${f(dw)} 0 0 ${f(dh)} ${f(x)} ${f(y)} cm /Im0 Do Q`;
+      offsets[base] = pos;
+      push(`${base} 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${f(pw)} ${f(ph)}] /Resources << /XObject << /Im0 ${base + 2} 0 R >> >> /Contents ${base + 1} 0 R >>\nendobj\n`);
+      offsets[base + 1] = pos;
+      push(`${base + 1} 0 obj\n<< /Length ${content.length} >>\nstream\n${content}\nendstream\nendobj\n`);
+      offsets[base + 2] = pos;
+      push(`${base + 2} 0 obj\n<< /Type /XObject /Subtype /Image /Width ${iw} /Height ${ih} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${bytes.length} >>\nstream\n`);
+      push(bytes);
+      push("\nendstream\nendobj\n");
+    }
+
+    const xref = pos;
+    let table = `xref\n0 ${total + 1}\n0000000000 65535 f \n`;
+    for (let k = 1; k <= total; k++) table += String(offsets[k]).padStart(10, "0") + " 00000 n \n";
+    push(table + `trailer\n<< /Size ${total + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`);
+
+    const pdf = new Blob(chunks, { type: "application/pdf" });
+    ppUrl = URL.createObjectURL(pdf);
+    const base = (ppName.value.trim().replace(/[^\w\u00C0-\u017F -]+/g, "").trim().slice(0, 40)) || "clippo-photos";
+    ppSave.href = ppUrl;
+    ppSave.download = base + ".pdf";
+    ppInfo.textContent = `Ton PDF est prêt : ${n} page${n > 1 ? "s" : ""}, ${ppFmtSize(pdf.size)}.` + (pdf.size > 20 * 1048576 ? " Il est lourd : choisis la qualité « Légère » pour l'envoyer par e-mail." : "");
+    ppResult.hidden = false;
+    ppMessage("");
+  } catch (e) {
+    console.error(e);
+    ppMessage(e.message || "La création du PDF a échoué. Essaie avec moins de photos ou une qualité plus légère.", true);
+  } finally {
+    ppBusy = false;
+    ppMake.disabled = false;
+  }
+}
+
+ppFile.addEventListener("change", () => { ppAdd(ppFile.files).then(() => { ppFile.value = ""; }); });
+["dragenter", "dragover"].forEach((ev) => ppDrop.addEventListener(ev, (e) => { e.preventDefault(); ppDrop.classList.add("over"); }));
+["dragleave", "drop"].forEach((ev) => ppDrop.addEventListener(ev, (e) => { e.preventDefault(); ppDrop.classList.remove("over"); }));
+ppDrop.addEventListener("drop", (e) => ppAdd(e.dataTransfer.files));
+ppMake.addEventListener("click", ppBuild);
+$("ppClear").addEventListener("click", () => {
+  if (ppItems.length > 1 && !confirm("Retirer toutes les photos ?")) return;
+  ppItems = [];
+  ppInvalidate();
+  ppRenderList();
+  ppMessage("");
+});
+[ppSize, ppOrient, ppMargin, ppQuality].forEach((el) => el.addEventListener("change", () => { ppInvalidate(); ppOrientBox.hidden = ppSize.value === "image"; }));
+ppName.addEventListener("input", () => { if (ppUrl) ppSave.download = (ppName.value.trim().replace(/[^\w\u00C0-\u017F -]+/g, "").trim().slice(0, 40) || "clippo-photos") + ".pdf"; });
+ppRenderList();
