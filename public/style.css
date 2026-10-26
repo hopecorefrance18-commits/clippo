@@ -1223,3 +1223,23 @@ body:not(:has(#home.active)) .back-home { display: inline-block; }
   .pp-actions .primary, .pp-actions .ghost-btn, .pp-result .primary { width: 100%; }
 }
 @media (prefers-reduced-motion: reduce) { .pp-frame img { transition: none; } }
+
+/* --- Convertisseur de devises --- */
+#currency h1, #currency .sub { text-align: center; }
+#currency .card { min-width: 0; }
+.fx-amount { width: 100%; max-width: 100%; min-width: 0; font-size: 1.5rem; font-weight: 700; text-align: center; }
+.fx-pair { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 10px; align-items: end; }
+.fx-pair select { width: 100%; min-width: 0; max-width: 100%; }
+.fx-swap { padding: 10px 16px; font-size: 1.3rem; height: 46px; }
+.fx-result { background: var(--ink-2); border-radius: 16px; padding: 18px 14px; display: grid; gap: 6px; justify-items: center; text-align: center; }
+.fx-in { color: var(--muted); font-weight: 700; word-break: break-word; }
+.fx-out { font: 800 clamp(1.8rem, 7vw, 2.8rem) "Bricolage Grotesque", sans-serif; color: var(--aqua); word-break: break-word; }
+.fx-in:empty, .fx-out:empty { display: none; }
+.fx-center { text-align: center; }
+.fx-actions { justify-content: center; }
+#currency .status { text-align: center; }
+@media (max-width: 700px) {
+  .fx-pair { grid-template-columns: 1fr; }
+  .fx-swap { width: 100%; }
+  .fx-actions .ghost-btn { width: 100%; }
+}
