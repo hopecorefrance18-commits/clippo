@@ -1243,3 +1243,14 @@ body:not(:has(#home.active)) .back-home { display: inline-block; }
   .fx-swap { width: 100%; }
   .fx-actions .ghost-btn { width: 100%; }
 }
+
+/* --- Pages de guide --- */
+.guide { line-height: 1.7; }
+.guide h2 { font: 800 1.35rem "Bricolage Grotesque", sans-serif; margin: 28px 0 8px; }
+.guide h2:first-child { margin-top: 0; }
+.guide p, .guide ul, .guide ol { margin: 0 0 12px; color: var(--paper); }
+.guide ul, .guide ol { padding-left: 22px; }
+.guide li { margin-bottom: 6px; }
+.guide a:not(.primary) { color: var(--aqua); font-weight: 700; }
+.guide .primary { display: inline-block; margin-left: 0; text-decoration: none; }
+.guide-note { background: rgba(255, 255, 255, .06); border-radius: 12px; padding: 12px 16px; }
