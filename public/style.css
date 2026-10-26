@@ -1194,3 +1194,32 @@ body:not(:has(#home.active)) .back-home { display: inline-block; }
 .gc-table th { color: var(--muted); font-weight: 700; }
 @media (max-width: 700px) { .gc-results { grid-template-columns: 1fr 1fr; } }
 @media (prefers-reduced-motion: reduce) { .gc-box { transition: none; } }
+
+/* --- Photo en PDF --- */
+#photopdf h1, #photopdf .sub { text-align: center; }
+#photopdf .card { min-width: 0; }
+.pp-center { text-align: center; min-height: 1.4em; }
+.pp-list { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; }
+.pp-list:empty { display: none; }
+.pp-item { background: var(--ink-2); border-radius: 14px; padding: 8px; display: grid; gap: 6px; min-width: 0; }
+.pp-frame { position: relative; aspect-ratio: 1; border-radius: 10px; overflow: hidden; background: rgba(255, 255, 255, .06); }
+.pp-frame img { width: 100%; height: 100%; object-fit: contain; display: block; transition: transform .2s; }
+.pp-num { position: absolute; top: 6px; left: 6px; min-width: 24px; height: 24px; padding: 0 6px; border-radius: 999px; background: var(--aqua); color: var(--ink); font-weight: 800; font-size: .8rem; display: grid; place-items: center; }
+.pp-name { color: var(--muted); font-size: .78rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pp-btns { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+.pp-btns button { border: 0; cursor: pointer; border-radius: 8px; height: 34px; background: rgba(255, 255, 255, .08); color: var(--paper); font-size: 1rem; }
+.pp-btns button:hover:not(:disabled) { background: rgba(255, 255, 255, .18); }
+.pp-btns button:disabled { opacity: .35; cursor: default; }
+#ppSet { display: grid; gap: 14px; }
+.pp-opts { align-items: end; }
+#photopdf .text-in { min-width: 0; width: 100%; max-width: 100%; }
+.pp-actions { justify-content: center; align-items: center; }
+.pp-actions .primary { margin-left: 0; }
+.pp-result { display: grid; gap: 10px; justify-items: center; text-align: center; }
+.pp-result .primary { margin-left: 0; }
+#photopdf .status { text-align: center; }
+@media (max-width: 700px) {
+  .pp-list { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); }
+  .pp-actions .primary, .pp-actions .ghost-btn, .pp-result .primary { width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) { .pp-frame img { transition: none; } }
