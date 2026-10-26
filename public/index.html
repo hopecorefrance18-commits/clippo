@@ -51,6 +51,7 @@
                     <button class="tab" data-tab="flashcards">Flashcards</button>
                     <button class="tab" data-tab="countdown">Compte à rebours</button>
                     <button class="tab" data-tab="studyplan">Planning</button>
+                    <button class="tab" data-tab="gradeconv">Notes</button>
         
         </div>
         <div class="subgroup" data-cat="media" hidden>
@@ -197,6 +198,7 @@
             <button class="tool-card" data-go="flashcards"><i class="tc-ico">🃏</i><strong>Flashcards</strong><span>Crée des cartes et révise tes leçons.</span><em class="tc-go">→</em></button>
            <button class="tool-card" data-go="countdown"><i class="tc-ico">📅</i><strong>Compte à rebours</strong><span>Les jours qui restent avant ton examen.</span><em class="tc-go">→</em></button>
                       <button class="tool-card" data-go="studyplan"><i class="tc-ico">🗓️</i><strong>Planning de révisions</strong><span>Répartis tes séances jusqu'au jour de l'examen.</span><em class="tc-go">→</em></button>
+                      <button class="tool-card" data-go="gradeconv"><i class="tc-ico">🔄</i><strong>Convertisseur de notes</strong><span>Passe une note de /20 à /10, /100 ou en pourcentage.</span><em class="tc-go">→</em></button>
           </div>
         </div>
 
@@ -1553,6 +1555,59 @@ Hugo</textarea>
         <p id="plHint" class="gr-note">Clique sur un code pour le copier. Le cadenas 🔒 garde une couleur quand tu génères une nouvelle palette. Sur ordinateur, la barre d'espace génère une palette.</p>
         <p id="plStatus" class="status" role="status"></p>
         <p class="gr-note">Ta photo reste sur ton appareil : elle n'est ni envoyée ni enregistrée. Les couleurs repérées sont une approximation : elles peuvent varier selon l'éclairage de la photo.</p>
+      </div>
+    </section>
+      <!-- Convertisseur de notes -->
+    <section id="gradeconv" class="panel">
+      <h1>Convertis tes notes.</h1>
+      <p class="sub">Entre ta note et son barème : Clippo la convertit sur 20, sur 10, sur 100 et en pourcentage.</p>
+
+      <div class="card">
+        <div class="row gc-form">
+          <label class="select">
+            <span>Ta note</span>
+            <input id="gcNote" class="text-in" type="text" inputmode="decimal" placeholder="ex : 14,5" autocomplete="off">
+          </label>
+          <label class="select">
+            <span>Sur (barème)</span>
+            <select id="gcFrom">
+              <option value="20" selected>20</option>
+              <option value="10">10</option>
+              <option value="100">100</option>
+              <option value="5">5</option>
+              <option value="40">40</option>
+              <option value="other">Autre…</option>
+            </select>
+          </label>
+          <label id="gcOtherBox" class="select" hidden>
+            <span>Ton barème</span>
+            <input id="gcOther" class="text-in" type="text" inputmode="decimal" placeholder="ex : 30" autocomplete="off">
+          </label>
+        </div>
+
+        <div id="gcResults" class="gc-results"></div>
+        <p id="gcInfo" class="gr-info gc-center"></p>
+
+        <h2 class="fc-title">Vers un autre barème</h2>
+        <div class="row gc-form">
+          <label class="select">
+            <span>Convertir sur</span>
+            <input id="gcTo" class="text-in" type="text" inputmode="decimal" placeholder="ex : 30" autocomplete="off">
+          </label>
+        </div>
+        <p id="gcToOut" class="gc-center gc-big"></p>
+
+        <p id="gcStatus" class="status" role="status"></p>
+
+        <details class="gc-details">
+          <summary>Tableau d'équivalences (note sur 20)</summary>
+          <table class="gc-table">
+            <thead><tr><th>Sur 20</th><th>Sur 10</th><th>Sur 100</th><th>Mention</th></tr></thead>
+            <tbody id="gcTable"></tbody>
+          </table>
+        </details>
+
+        <p class="gr-note">Les conversions sont des règles de trois. Les mentions sont celles du bac et les lettres sont un repère américain : chaque école a ses propres seuils. Ce que tu écris reste sur ton appareil.</p>
       </div>
     </section>
   </main>
