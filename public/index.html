@@ -80,6 +80,7 @@
                     <button class="tab" data-tab="notes">Bloc-notes</button>
                     <button class="tab" data-tab="budget">Budget</button>
                     <button class="tab" data-tab="savings">Épargne</button>
+                    <button class="tab" data-tab="currency">Devises</button>
         </div>
                       <div class="subgroup" data-cat="games" hidden>
         <button class="tab" data-tab="tictactoe">Morpion</button>
@@ -239,6 +240,7 @@
             <button class="tool-card" data-go="notes"><i class="tc-ico">🗒️</i><strong>Bloc-notes</strong><span>Écris tes notes, elles sont gardées dans ton navigateur.</span><em class="tc-go">→</em></button>
             <button class="tool-card" data-go="budget"><i class="tc-ico">💶</i><strong>Budget mensuel</strong><span>Revenus, dépenses et reste à vivre.</span><em class="tc-go">→</em></button>
             <button class="tool-card" data-go="savings"><i class="tc-ico">🐷</i><strong>Objectif d'épargne</strong><span>Combien mettre de côté chaque mois.</span><em class="tc-go">→</em></button>
+                   <button class="tool-card" data-go="currency"><i class="tc-ico">💱</i><strong>Convertisseur de devises</strong><span>Combien ça fait en euros ? Dollar, livre, yen…</span><em class="tc-go">→</em></button>   
           </div>
         </div>
 
@@ -1680,6 +1682,52 @@ Hugo</textarea>
 
         <p id="ppStatus" class="status" role="status"></p>
         <p class="gr-note">Tes photos restent sur ton appareil : rien n'est envoyé. Chaque photo est enregistrée en JPEG dans le PDF, et ses infos cachées (position GPS, date, appareil) ne sont pas conservées. Les photos HEIC ne sont pas lues par tous les navigateurs.</p>
+      </div>
+    </section>
+      <!-- Convertisseur de devises -->
+    <section id="currency" class="panel">
+      <h1>Combien ça fait en euros ?</h1>
+      <p class="sub">Convertis une somme d'une devise à une autre, avec les taux de la Banque centrale européenne. Pratique en voyage.</p>
+
+      <div class="card">
+        <label class="select">
+          <span>Montant</span>
+          <input id="fxAmount" class="text-in fx-amount" type="text" inputmode="decimal" value="100" autocomplete="off" aria-label="Montant à convertir">
+        </label>
+
+        <div class="fx-pair">
+          <label class="select">
+            <span>De</span>
+            <select id="fxFrom" disabled></select>
+          </label>
+          <button id="fxSwap" class="ghost-btn fx-swap" type="button" aria-label="Inverser les deux devises">⇄</button>
+          <label class="select">
+            <span>Vers</span>
+            <select id="fxTo" disabled></select>
+          </label>
+        </div>
+
+        <div class="fx-result">
+          <p id="fxIn" class="fx-in"></p>
+          <p id="fxOut" class="fx-out" aria-live="polite"></p>
+          <p id="fxRateLine" class="gr-info"></p>
+        </div>
+
+        <p id="fxMeta" class="gr-note fx-center"></p>
+        <div class="row fx-actions">
+          <button id="fxRefresh" class="ghost-btn" type="button">🔄 Actualiser les taux</button>
+        </div>
+        <p id="fxStatus" class="status" role="status"></p>
+
+        <details class="gc-details">
+          <summary>Tableau rapide</summary>
+          <table class="gc-table">
+            <thead><tr><th id="fxHeadFrom">De</th><th id="fxHeadTo">Vers</th></tr></thead>
+            <tbody id="fxTable"></tbody>
+          </table>
+        </details>
+
+        <p class="gr-note">Ces taux sont des taux de référence de la Banque centrale européenne, mis à jour les jours ouvrés vers 16 h. Ta banque, ta carte bancaire ou un bureau de change appliquent leurs propres taux et frais : tu recevras un peu moins. Quand tu ouvres cet outil, ton navigateur demande les taux au service Frankfurter. Le montant que tu écris n'est jamais envoyé. Ce n'est pas un conseil financier.</p>
       </div>
     </section>
   </main>
