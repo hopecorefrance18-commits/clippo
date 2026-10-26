@@ -4419,3 +4419,174 @@ $("ppClear").addEventListener("click", () => {
 [ppSize, ppOrient, ppMargin, ppQuality].forEach((el) => el.addEventListener("change", () => { ppInvalidate(); ppOrientBox.hidden = ppSize.value === "image"; }));
 ppName.addEventListener("input", () => { if (ppUrl) ppSave.download = (ppName.value.trim().replace(/[^\w\u00C0-\u017F -]+/g, "").trim().slice(0, 40) || "clippo-photos") + ".pdf"; });
 ppRenderList();
+
+// ---------- Convertisseur de devises ----------
+const FX_URL = "https://api.frankfurter.dev/v1/latest?base=EUR";
+const FX_KEY = "clippo_fx", FX_PREF_KEY = "clippo_fx_pref", FX_TTL = 6 * 3600 * 1000;
+const FX_POPULAR = ["EUR", "USD", "GBP", "CHF", "CAD", "JPY", "AUD", "CNY", "TRY", "MXN", "BRL", "INR", "THB"];
+const fxAmount = $("fxAmount"), fxFrom = $("fxFrom"), fxTo = $("fxTo"), fxOut = $("fxOut"), fxIn = $("fxIn");
+const fxRateLine = $("fxRateLine"), fxMeta = $("fxMeta"), fxTable = $("fxTable"), fxStatus = $("fxStatus"), fxRefresh = $("fxRefresh");
+let fxRates = null, fxDate = "", fxAt = 0, fxLoading = false;
+let fxNames = null;
+try { fxNames = new Intl.DisplayNames(["fr"], { type: "currency" }); } catch { /* navigateur sans noms de devises */ }
+
+function fxMessage(msg, isError = false) {
+  fxStatus.textContent = msg;
+  fxStatus.classList.toggle("error", isError);
+}
+function fxName(code) {
+  try {
+    const n = fxNames ? fxNames.of(code) : "";
+    return n && n !== code ? n.charAt(0).toUpperCase() + n.slice(1) : code;
+  } catch { return code; }
+}
+function fxNum(v) {
+  const n = parseFloat(String(v).replace(/\s/g, "").replace(",", "."));
+  return Number.isFinite(n) ? n : NaN;
+}
+function fxMoney(n, code) {
+  try {
+    return new Intl.NumberFormat("fr-FR", { style: "currency", currency: code, maximumFractionDigits: n < 1 ? 4 : 2 }).format(n);
+  } catch { return n.toLocaleString("fr-FR", { maximumFractionDigits: 2 }) + " " + code; }
+}
+function fxRate(n) { return n.toLocaleString("fr-FR", { maximumSignificantDigits: 5 }); }
+function fxFmtDate(iso) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  return m ? new Date(+m[1], +m[2] - 1, +m[3]).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" }) : "";
+}
+
+function fxReadCache() {
+  try {
+    const o = JSON.parse(localStorage.getItem(FX_KEY) || "null");
+    if (!o || typeof o.rates !== "object" || !Number.isFinite(Number(o.at))) return null;
+    const rates = {};
+    Object.keys(o.rates).forEach((k) => { const v = Number(o.rates[k]); if (/^[A-Z]{3}$/.test(k) && v > 0 && Number.isFinite(v)) rates[k] = v; });
+    return rates.EUR ? { rates, date: String(o.date || ""), at: Number(o.at) } : null;
+  } catch { return null; }
+}
+function fxReadPref() {
+  try {
+    const o = JSON.parse(localStorage.getItem(FX_PREF_KEY) || "{}");
+    return { from: /^[A-Z]{3}$/.test(o.from) ? o.from : "", to: /^[A-Z]{3}$/.test(o.to) ? o.to : "" };
+  } catch { return { from: "", to: "" }; }
+}
+function fxSavePref() {
+  try { localStorage.setItem(FX_PREF_KEY, JSON.stringify({ from: fxFrom.value, to: fxTo.value })); } catch { /* ignoré */ }
+}
+
+function fxCodes() {
+  const all = Object.keys(fxRates);
+  return [...FX_POPULAR.filter((c) => all.includes(c)), ...all.filter((c) => !FX_POPULAR.includes(c)).sort()];
+}
+function fxFill() {
+  const codes = fxCodes(), pref = fxReadPref();
+  [[fxFrom, pref.from || "USD"], [fxTo, pref.to || "EUR"]].forEach(([sel, def]) => {
+    const keep = sel.value && fxRates[sel.value] ? sel.value : fxRates[def] ? def : "EUR";
+    sel.innerHTML = "";
+    codes.forEach((c) => {
+      const o = document.createElement("option");
+      o.value = c;
+      o.textContent = `${c} · ${fxName(c)}`;
+      sel.appendChild(o);
+    });
+    sel.value = keep;
+    sel.disabled = false;
+  });
+}
+
+function fxConvert(n, from, to) { return (n / fxRates[from]) * fxRates[to]; }
+
+function fxRender() {
+  fxTable.innerHTML = "";
+  if (!fxRates) return;
+  const from = fxFrom.value, to = fxTo.value;
+  if (!fxRates[from] || !fxRates[to]) return;
+  fxMeta.textContent = fxDate ? `Taux de la Banque centrale européenne du ${fxFmtDate(fxDate)}.` : "";
+  $("fxHeadFrom").textContent = from;
+  $("fxHeadTo").textContent = to;
+
+  const amount = fxNum(fxAmount.value);
+  if (!(amount >= 0) || amount > 1e12) {
+    fxIn.textContent = "";
+    fxOut.textContent = "";
+    fxRateLine.textContent = "";
+    return fxMessage(fxAmount.value.trim() ? "Entre un montant positif (ex : 49,90)." : "", !!fxAmount.value.trim());
+  }
+  if (fxStatus.classList.contains("error") && /montant/i.test(fxStatus.textContent)) fxMessage("");
+
+  fxIn.textContent = fxMoney(amount, from) + " =";
+  fxOut.textContent = fxMoney(fxConvert(amount, from, to), to);
+  const r = fxConvert(1, from, to);
+  fxRateLine.textContent = `1 ${from} = ${fxRate(r)} ${to} · 1 ${to} = ${fxRate(1 / r)} ${from}`;
+
+  [1, 5, 10, 20, 50, 100, 500, 1000].forEach((v) => {
+    const tr = document.createElement("tr");
+    [fxMoney(v, from), fxMoney(fxConvert(v, from, to), to)].forEach((t) => {
+      const td = document.createElement("td");
+      td.textContent = t;
+      tr.appendChild(td);
+    });
+    fxTable.appendChild(tr);
+  });
+}
+
+function fxApply(o) {
+  fxRates = o.rates; fxDate = o.date; fxAt = o.at;
+  fxFill();
+  fxRender();
+}
+
+async function fxLoad(force = false) {
+  if (fxLoading) return;
+  const cached = fxReadCache();
+  if (cached && !force && Date.now() - cached.at < FX_TTL) { fxApply(cached); fxMessage(""); return; }
+  fxLoading = true;
+  fxRefresh.disabled = true;
+  fxMessage("Chargement des taux…");
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 10000);
+  try {
+    const res = await fetch(FX_URL, { signal: ctrl.signal });
+    if (!res.ok) throw new Error("http");
+    const data = await res.json();
+    if (!data || typeof data.rates !== "object") throw new Error("format");
+    const rates = { EUR: 1 };
+    Object.keys(data.rates).forEach((k) => { const v = Number(data.rates[k]); if (/^[A-Z]{3}$/.test(k) && v > 0 && Number.isFinite(v)) rates[k] = v; });
+    const obj = { rates, date: String(data.date || ""), at: Date.now() };
+    try { localStorage.setItem(FX_KEY, JSON.stringify(obj)); } catch { /* ignoré */ }
+    fxApply(obj);
+    fxMessage(force ? "Taux actualisés !" : "");
+  } catch {
+    if (cached) {
+      fxApply(cached);
+      fxMessage("Impossible d'actualiser les taux : les derniers taux enregistrés sont affichés.", true);
+    } else {
+      fxMessage("Impossible de charger les taux. Vérifie ta connexion et réessaie.", true);
+    }
+  } finally {
+    clearTimeout(timer);
+    fxLoading = false;
+    fxRefresh.disabled = false;
+  }
+}
+
+fxAmount.addEventListener("input", fxRender);
+[fxFrom, fxTo].forEach((el) => el.addEventListener("change", () => { fxSavePref(); fxRender(); }));
+$("fxSwap").addEventListener("click", () => {
+  if (!fxRates) return;
+  const a = fxFrom.value;
+  fxFrom.value = fxTo.value;
+  fxTo.value = a;
+  fxSavePref();
+  fxRender();
+});
+fxRefresh.addEventListener("click", () => fxLoad(true));
+
+// Les taux ne sont demandés que lorsque l'onglet est ouvert
+(() => {
+  const panel = document.getElementById("currency");
+  if (!panel) return;
+  const check = () => { if (panel.classList.contains("active") && !fxRates) fxLoad(); };
+  new MutationObserver(check).observe(panel, { attributes: true, attributeFilter: ["class"] });
+  check();
+})();
