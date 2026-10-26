@@ -4094,3 +4094,101 @@ plResize(parseInt(plCount.value, 10));
 plSetMode("gen");
 plRegenerate();
 plRender();
+
+// ---------- Convertisseur de notes ----------
+const gcNote = $("gcNote"), gcFrom = $("gcFrom"), gcOther = $("gcOther"), gcOtherBox = $("gcOtherBox");
+const gcResults = $("gcResults"), gcInfo = $("gcInfo"), gcStatus = $("gcStatus"), gcTo = $("gcTo"), gcToOut = $("gcToOut");
+
+function gcMessage(msg, isError = false) {
+  gcStatus.textContent = msg;
+  gcStatus.classList.toggle("error", isError);
+}
+function gcNum(v) {
+  const n = parseFloat(String(v).replace(/\s/g, "").replace(",", "."));
+  return Number.isFinite(n) ? n : NaN;
+}
+function gcFmt(n) {
+  return (Math.round(n * 100) / 100).toLocaleString("fr-FR", { maximumFractionDigits: 2 });
+}
+function gcMention(p) {
+  if (p >= 80) return "Très bien";
+  if (p >= 70) return "Bien";
+  if (p >= 60) return "Assez bien";
+  if (p >= 50) return "Passable";
+  return "Sous la moyenne";
+}
+function gcLetter(p) {
+  if (p >= 90) return "A";
+  if (p >= 80) return "B";
+  if (p >= 70) return "C";
+  if (p >= 60) return "D";
+  return "F";
+}
+
+function gcRender() {
+  gcOtherBox.hidden = gcFrom.value !== "other";
+  gcResults.innerHTML = "";
+  gcInfo.textContent = "";
+  gcToOut.textContent = "";
+  const raw = gcNote.value.trim();
+  if (!raw) return gcMessage("");
+
+  const note = gcNum(raw);
+  const scale = gcFrom.value === "other" ? gcNum(gcOther.value) : parseFloat(gcFrom.value);
+  if (!(note >= 0)) return gcMessage("Entre une note positive (ex : 14,5).", true);
+  if (!(scale > 0)) return gcMessage("Entre un barème supérieur à 0 (ex : 30).", true);
+  if (scale > 1000) return gcMessage("Ce barème est trop grand (1000 maximum).", true);
+  if (note > scale) return gcMessage("La note ne peut pas dépasser le barème.", true);
+  gcMessage("");
+
+  const p = (note / scale) * 100;
+  const items = [
+    ["Sur 20", gcFmt(p / 5) + " / 20"],
+    ["Sur 10", gcFmt(p / 10) + " / 10"],
+    ["Sur 100", gcFmt(p) + " / 100"],
+    ["Sur 5", gcFmt(p / 20) + " / 5"],
+    ["Pourcentage", gcFmt(p) + " %"],
+  ];
+  items.forEach(([label, value]) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "gc-box";
+    b.setAttribute("aria-label", "Copier : " + label + " " + value);
+    const s = document.createElement("small");
+    s.textContent = label;
+    const v = document.createElement("strong");
+    v.textContent = value;
+    b.append(s, v);
+    b.addEventListener("click", async () => {
+      try { await copyText(value); gcMessage(value + " copié !"); }
+      catch { gcMessage("Copie automatique impossible : sélectionne le texte et fais Ctrl + C.", true); }
+    });
+    gcResults.appendChild(b);
+  });
+  gcInfo.textContent = `Mention (repère du bac) : ${gcMention(p)} · Équivalent américain (indicatif) : ${gcLetter(p)}`;
+
+  const to = gcNum(gcTo.value);
+  if (gcTo.value.trim() && to > 0 && to <= 1000) {
+    gcToOut.textContent = `${gcFmt(note)} / ${gcFmt(scale)} = ${gcFmt((p / 100) * to)} / ${gcFmt(to)}`;
+  } else if (gcTo.value.trim()) {
+    gcMessage("Entre un barème d'arrivée entre 1 et 1000.", true);
+  }
+}
+
+// Tableau d'équivalences de 20 à 0
+(() => {
+  const body = $("gcTable");
+  for (let n = 20; n >= 0; n--) {
+    const tr = document.createElement("tr");
+    [n, gcFmt(n / 2), gcFmt(n * 5), gcMention(n * 5)].forEach((v) => {
+      const td = document.createElement("td");
+      td.textContent = v;
+      tr.appendChild(td);
+    });
+    body.appendChild(tr);
+  }
+})();
+
+[gcNote, gcOther, gcTo].forEach((el) => el.addEventListener("input", gcRender));
+gcFrom.addEventListener("change", gcRender);
+gcRender();
