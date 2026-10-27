@@ -1,14 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>https://clippo.uk/</loc></url>
-  <url><loc>https://clippo.uk/mentions-legales.html</loc></url>
-  <url><loc>https://clippo.uk/confidentialite.html</loc></url>
-    <url><loc>https://clippo.uk/guides.html</loc></url>
+  <url><loc>https://clippo.uk/guides.html</loc></url>
   <url><loc>https://clippo.uk/a-propos.html</loc></url>
   <url><loc>https://clippo.uk/guide-qr-code.html</loc></url>
   <url><loc>https://clippo.uk/guide-compresser-image.html</loc></url>
   <url><loc>https://clippo.uk/guide-detourer-image.html</loc></url>
   <url><loc>https://clippo.uk/guide-mot-de-passe.html</loc></url>
   <url><loc>https://clippo.uk/guide-moyenne.html</loc></url>
+  <url><loc>https://clippo.uk/mentions-legales.html</loc></url>
+  <url><loc>https://clippo.uk/confidentialite.html</loc></url>
 </urlset>
-
