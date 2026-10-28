@@ -1273,3 +1273,58 @@ body:not(:has(#home.active)) .back-home { display: inline-block; }
 .rd-actions { justify-content: center; }
 #discount .status { text-align: center; }
 @media (max-width: 700px) { .rd-row { grid-template-columns: 1fr; } .rd-actions .ghost-btn { width: 100%; } }
+
+/* --- Horloge mondiale --- */
+#worldclock h1, #worldclock .sub, #trip h1, #trip .sub { text-align: center; }
+#worldclock .card, #trip .card { min-width: 0; }
+.wc-add { align-items: end; }
+.wc-add .primary { margin-left: 0; }
+#worldclock select, #worldclock .text-in { min-width: 0; max-width: 100%; }
+.wc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
+.wc-card { position: relative; background: var(--ink-2); border-radius: 16px; padding: 14px 16px; display: grid; gap: 4px; border: 2px solid transparent; overflow: hidden; }
+.wc-card.local { border-color: var(--aqua); }
+.wc-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.wc-name { display: grid; gap: 1px; min-width: 0; }
+.wc-name strong { font: 800 1.1rem "Bricolage Grotesque", sans-serif; word-break: break-word; }
+.wc-name span, .wc-diff { color: var(--muted); font-size: .85rem; }
+.wc-time { font: 800 clamp(1.9rem, 6vw, 2.4rem) "Bricolage Grotesque", sans-serif; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.wc-date { font-weight: 700; text-transform: capitalize; }
+.wc-icon { position: absolute; right: 14px; bottom: 10px; font-size: 1.5rem; opacity: .85; }
+.wc-ref { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; align-items: end; }
+#worldclock input[type="date"], #worldclock input[type="time"] {
+  -webkit-appearance: none; appearance: none; width: 100%; min-width: 0; max-width: 100%;
+  box-sizing: border-box; min-height: 46px; text-align: left;
+}
+.wc-conv { list-style: none; padding: 0; display: grid; gap: 6px; }
+.wc-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; background: var(--ink-2); border-radius: 12px; padding: 10px 14px; }
+.wc-row.ref { outline: 2px solid var(--aqua); }
+.wc-rowname, .wc-rowtime { display: grid; gap: 1px; }
+.wc-rowtime { text-align: right; }
+.wc-rowname span, .wc-rowtime span { color: var(--muted); font-size: .85rem; }
+.wc-rowtime strong { font: 800 1.3rem "Bricolage Grotesque", sans-serif; font-variant-numeric: tabular-nums; }
+#worldclock .status, #trip .status { text-align: center; }
+
+/* --- Checklist de voyage --- */
+.tp-new, .tp-add { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; align-items: end; }
+.tp-new .tp-wide, .tp-add .tp-wide { grid-column: 1 / -1; }
+.tp-new .primary, .tp-add .primary { margin-left: 0; justify-self: start; }
+#trip .text-in, #trip select { min-width: 0; max-width: 100%; width: 100%; }
+#trip input[type="date"] { -webkit-appearance: none; appearance: none; box-sizing: border-box; min-height: 46px; text-align: left; }
+.tp-head { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; align-items: end; }
+.tp-center { text-align: center; }
+.tp-sug { display: flex; gap: 12px; align-items: end; flex-wrap: wrap; }
+.tp-sug .select { flex: 1 1 200px; }
+.tp-list { display: grid; gap: 14px; }
+.tp-group { display: grid; gap: 6px; }
+.tp-group .tool-cat { margin: 0; }
+.tp-item { display: flex; align-items: center; gap: 10px; background: var(--ink-2); border-radius: 12px; padding: 6px 10px; }
+.tp-lab { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; cursor: pointer; padding: 6px 0; word-break: break-word; }
+.tp-lab input { width: 22px; height: 22px; accent-color: var(--aqua); flex-shrink: 0; cursor: pointer; }
+.tp-item.done .tp-lab span { text-decoration: line-through; color: var(--muted); }
+.tp-actions { justify-content: center; }
+@media (max-width: 700px) {
+  .wc-add .primary, .tp-new .primary, .tp-add .primary, .tp-sug .ghost-btn, .tp-actions .ghost-btn { width: 100%; }
+  .wc-ref .ghost-btn { width: 100%; }
+  .wc-row { flex-direction: column; align-items: flex-start; gap: 4px; }
+  .wc-rowtime { text-align: left; }
+}
