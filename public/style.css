@@ -1254,3 +1254,22 @@ body:not(:has(#home.active)) .back-home { display: inline-block; }
 .guide a:not(.primary) { color: var(--aqua); font-weight: 700; }
 .guide .primary { display: inline-block; margin-left: 0; text-decoration: none; }
 .guide-note { background: rgba(255, 255, 255, .06); border-radius: 12px; padding: 12px 16px; }
+
+/* --- Calculateur de réductions --- */
+#discount h1, #discount .sub { text-align: center; }
+#discount .card { min-width: 0; }
+#rdModes { justify-content: center; }
+.rd-panel { display: grid; gap: 14px; }
+.rd-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; align-items: end; }
+#discount .text-in { min-width: 0; width: 100%; max-width: 100%; }
+.rd-quick { justify-content: center; }
+.rd-result { background: var(--ink-2); border-radius: 16px; padding: 18px 14px; display: grid; gap: 10px; justify-items: center; text-align: center; }
+.rd-big { font: 800 clamp(2rem, 8vw, 3.2rem) "Bricolage Grotesque", sans-serif; color: var(--aqua); word-break: break-word; line-height: 1.1; }
+.rd-big:empty { display: none; }
+.rd-line { color: var(--muted); max-width: 460px; }
+.rd-steps { list-style: none; padding: 0; display: grid; gap: 6px; width: min(100%, 420px); text-align: left; }
+.rd-steps:empty { display: none; }
+.rd-steps li { display: flex; justify-content: space-between; gap: 12px; padding: 8px 12px; border-radius: 10px; background: rgba(255, 255, 255, .06); }
+.rd-actions { justify-content: center; }
+#discount .status { text-align: center; }
+@media (max-width: 700px) { .rd-row { grid-template-columns: 1fr; } .rd-actions .ghost-btn { width: 100%; } }
