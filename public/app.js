@@ -4590,3 +4590,114 @@ fxRefresh.addEventListener("click", () => fxLoad(true));
   new MutationObserver(check).observe(panel, { attributes: true, attributeFilter: ["class"] });
   check();
 })();
+
+// ---------- Calculateur de réductions ----------
+const rdPrice = $("rdPrice"), rdDisc = $("rdDisc"), rdDisc2 = $("rdDisc2"), rdOff = $("rdOff");
+const rdOrig = $("rdOrig"), rdSold = $("rdSold"), rdSold2 = $("rdSold2"), rdDisc3 = $("rdDisc3");
+const rdBig = $("rdBig"), rdLine = $("rdLine"), rdSteps = $("rdSteps"), rdStatus = $("rdStatus"), rdCopy = $("rdCopy");
+const RD_HINTS = {
+  final: "Entre un prix et une réduction pour voir le résultat.",
+  percent: "Entre le prix d'origine et le prix soldé pour voir le pourcentage.",
+  original: "Entre le prix soldé et la réduction pour retrouver le prix d'origine.",
+};
+let rdMode = "final", rdText = "";
+
+function rdMessage(msg, isError = false) {
+  rdStatus.textContent = msg;
+  rdStatus.classList.toggle("error", isError);
+}
+function rdParse(v) { // null = vide, NaN = invalide
+  const s = String(v).trim().replace(/\s/g, "").replace(",", ".");
+  if (s === "") return null;
+  return /^(\d+\.?\d*|\.\d+)$/.test(s) ? parseFloat(s) : NaN;
+}
+function rdEur(n) {
+  return new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(Math.round(n * 100) / 100);
+}
+function rdPct(n) {
+  return (Math.round(n * 100) / 100).toLocaleString("fr-FR", { maximumFractionDigits: 2 }) + " %";
+}
+function rdShow(big, line, steps) {
+  rdBig.textContent = big;
+  rdLine.textContent = line;
+  steps.forEach(([a, b]) => {
+    const li = document.createElement("li");
+    const l = document.createElement("span");
+    l.textContent = a;
+    const r = document.createElement("strong");
+    r.textContent = b;
+    li.append(l, r);
+    rdSteps.appendChild(li);
+  });
+  rdText = ["Résultat : " + big, ...steps.map(([a, b]) => `${a} : ${b}`), line].join("\n");
+  rdCopy.disabled = false;
+}
+
+function rdCalc() {
+  rdSteps.innerHTML = "";
+  rdBig.textContent = "";
+  rdLine.textContent = "";
+  rdText = "";
+  rdCopy.disabled = true;
+  document.querySelectorAll("#rdQuick .chip").forEach((c) => c.classList.toggle("active", c.dataset.pct === rdDisc.value.trim()));
+
+  let vals;
+  if (rdMode === "final") vals = [rdParse(rdPrice.value), rdParse(rdDisc.value), rdParse(rdDisc2.value), rdParse(rdOff.value)];
+  else if (rdMode === "percent") vals = [rdParse(rdOrig.value), rdParse(rdSold.value)];
+  else vals = [rdParse(rdSold2.value), rdParse(rdDisc3.value)];
+
+  if (vals.some((v) => Number.isNaN(v))) return rdMessage("Entre des nombres positifs, avec une virgule ou un point (ex : 49,90).", true);
+  if (vals.some((v) => v !== null && v > 1e9)) return rdMessage("Ce nombre est trop grand.", true);
+  rdMessage("");
+  if (vals[0] === null || vals[1] === null) { rdLine.textContent = RD_HINTS[rdMode]; return; }
+
+  if (rdMode === "final") {
+    const P = vals[0], d1 = vals[1], d2 = vals[2] || 0, e = vals[3] || 0;
+    if (d1 > 100 || d2 > 100) return rdMessage("Une réduction ne peut pas dépasser 100 %.", true);
+    const p1 = P * (1 - d1 / 100);
+    const p2 = p1 * (1 - d2 / 100);
+    const p3 = Math.max(0, p2 - e);
+    const save = P - p3;
+    const total = P > 0 ? (save / P) * 100 : 0;
+    const steps = [["Prix d'origine", rdEur(P)], [`Après −${rdPct(d1)}`, rdEur(p1)]];
+    if (d2) steps.push([`Après −${rdPct(d2)} en plus`, rdEur(p2)]);
+    if (e) steps.push([`Après −${rdEur(e)}`, rdEur(p3)]);
+    let line = `Tu économises ${rdEur(save)}, soit ${rdPct(total)} du prix d'origine.`;
+    if (d1 && d2) line += ` Les réductions se calculent l'une après l'autre : ${rdPct(d1)} puis ${rdPct(d2)} ne font pas ${rdPct(d1 + d2)}.`;
+    rdShow(rdEur(p3), line, steps);
+    if (e > p2) rdMessage("Le code promo dépasse le prix restant : le résultat est limité à 0 €.");
+  } else if (rdMode === "percent") {
+    const P = vals[0], S = vals[1];
+    if (!(P > 0)) return rdMessage("Le prix d'origine doit être supérieur à 0.", true);
+    const diff = P - S, pct = (diff / P) * 100;
+    const steps = [["Prix d'origine", rdEur(P)], ["Prix soldé", rdEur(S)]];
+    if (diff > 0) rdShow("−" + rdPct(pct), `Le prix baisse de ${rdEur(diff)} : tu économises ${rdPct(pct)} du prix d'origine.`, steps);
+    else if (diff === 0) rdShow("0 %", "Le prix soldé est le même que le prix d'origine : il n'y a pas de réduction.", steps);
+    else rdShow("+" + rdPct(-pct), `Le prix soldé est plus élevé de ${rdEur(-diff)} que le prix d'origine : c'est une hausse, pas une réduction.`, steps);
+  } else {
+    const S = vals[0], d = vals[1];
+    if (d >= 100) return rdMessage("La réduction doit être inférieure à 100 %.", true);
+    const P = S / (1 - d / 100);
+    rdShow(rdEur(P), `Avant une réduction de ${rdPct(d)}, ce produit coûtait ${rdEur(P)} : tu économises ${rdEur(P - S)}.`,
+      [["Prix payé", rdEur(S)], [`Réduction de ${rdPct(d)}`, "−" + rdEur(P - S)]]);
+  }
+}
+
+function rdSetMode(m) {
+  rdMode = m;
+  document.querySelectorAll("#rdModes .chip").forEach((c) => c.classList.toggle("active", c.dataset.mode === m));
+  $("rdFinal").hidden = m !== "final";
+  $("rdPercent").hidden = m !== "percent";
+  $("rdOriginal").hidden = m !== "original";
+  rdCalc();
+}
+
+document.querySelectorAll("#rdModes .chip").forEach((c) => c.addEventListener("click", () => rdSetMode(c.dataset.mode)));
+document.querySelectorAll("#rdQuick .chip").forEach((c) => c.addEventListener("click", () => { rdDisc.value = c.dataset.pct; rdCalc(); }));
+[rdPrice, rdDisc, rdDisc2, rdOff, rdOrig, rdSold, rdSold2, rdDisc3].forEach((el) => el.addEventListener("input", rdCalc));
+rdCopy.addEventListener("click", async () => {
+  if (!rdText) return;
+  try { await copyText(rdText); rdMessage("Résultat copié !"); }
+  catch { rdMessage("Copie automatique impossible : sélectionne le texte et fais Ctrl + C.", true); }
+});
+rdSetMode("final");
