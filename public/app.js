@@ -4701,3 +4701,440 @@ rdCopy.addEventListener("click", async () => {
   catch { rdMessage("Copie automatique impossible : sélectionne le texte et fais Ctrl + C.", true); }
 });
 rdSetMode("final");
+
+// ---------- Horloge mondiale ----------
+const WC_KEY = "clippo_clocks", WC_MAX = 12, WC_DEFAULT = ["londres", "new-york", "tokyo"];
+const WC_CITIES = [
+  { id: "paris", n: "Paris", c: "France", z: "Europe/Paris" },
+  { id: "londres", n: "Londres", c: "Royaume-Uni", z: "Europe/London" },
+  { id: "madrid", n: "Madrid", c: "Espagne", z: "Europe/Madrid" },
+  { id: "berlin", n: "Berlin", c: "Allemagne", z: "Europe/Berlin" },
+  { id: "rome", n: "Rome", c: "Italie", z: "Europe/Rome" },
+  { id: "lisbonne", n: "Lisbonne", c: "Portugal", z: "Europe/Lisbon" },
+  { id: "bruxelles", n: "Bruxelles", c: "Belgique", z: "Europe/Brussels" },
+  { id: "zurich", n: "Zurich", c: "Suisse", z: "Europe/Zurich" },
+  { id: "athenes", n: "Athènes", c: "Grèce", z: "Europe/Athens" },
+  { id: "istanbul", n: "Istanbul", c: "Turquie", z: "Europe/Istanbul" },
+  { id: "moscou", n: "Moscou", c: "Russie", z: "Europe/Moscow" },
+  { id: "reykjavik", n: "Reykjavik", c: "Islande", z: "Atlantic/Reykjavik" },
+  { id: "casablanca", n: "Casablanca", c: "Maroc", z: "Africa/Casablanca" },
+  { id: "alger", n: "Alger", c: "Algérie", z: "Africa/Algiers" },
+  { id: "tunis", n: "Tunis", c: "Tunisie", z: "Africa/Tunis" },
+  { id: "dakar", n: "Dakar", c: "Sénégal", z: "Africa/Dakar" },
+  { id: "abidjan", n: "Abidjan", c: "Côte d'Ivoire", z: "Africa/Abidjan" },
+  { id: "lagos", n: "Lagos", c: "Nigeria", z: "Africa/Lagos" },
+  { id: "le-caire", n: "Le Caire", c: "Égypte", z: "Africa/Cairo" },
+  { id: "nairobi", n: "Nairobi", c: "Kenya", z: "Africa/Nairobi" },
+  { id: "johannesburg", n: "Johannesburg", c: "Afrique du Sud", z: "Africa/Johannesburg" },
+  { id: "dubai", n: "Dubaï", c: "Émirats arabes unis", z: "Asia/Dubai" },
+  { id: "delhi", n: "New Delhi", c: "Inde", z: "Asia/Kolkata" },
+  { id: "bangkok", n: "Bangkok", c: "Thaïlande", z: "Asia/Bangkok" },
+  { id: "singapour", n: "Singapour", c: "Singapour", z: "Asia/Singapore" },
+  { id: "hong-kong", n: "Hong Kong", c: "Chine", z: "Asia/Hong_Kong" },
+  { id: "shanghai", n: "Shanghai", c: "Chine", z: "Asia/Shanghai" },
+  { id: "tokyo", n: "Tokyo", c: "Japon", z: "Asia/Tokyo" },
+  { id: "seoul", n: "Séoul", c: "Corée du Sud", z: "Asia/Seoul" },
+  { id: "sydney", n: "Sydney", c: "Australie", z: "Australia/Sydney" },
+  { id: "perth", n: "Perth", c: "Australie", z: "Australia/Perth" },
+  { id: "auckland", n: "Auckland", c: "Nouvelle-Zélande", z: "Pacific/Auckland" },
+  { id: "honolulu", n: "Honolulu", c: "États-Unis (Hawaï)", z: "Pacific/Honolulu" },
+  { id: "los-angeles", n: "Los Angeles", c: "États-Unis", z: "America/Los_Angeles" },
+  { id: "denver", n: "Denver", c: "États-Unis", z: "America/Denver" },
+  { id: "chicago", n: "Chicago", c: "États-Unis", z: "America/Chicago" },
+  { id: "new-york", n: "New York", c: "États-Unis", z: "America/New_York" },
+  { id: "vancouver", n: "Vancouver", c: "Canada", z: "America/Vancouver" },
+  { id: "toronto", n: "Toronto", c: "Canada", z: "America/Toronto" },
+  { id: "montreal", n: "Montréal", c: "Canada", z: "America/Toronto" },
+  { id: "mexico", n: "Mexico", c: "Mexique", z: "America/Mexico_City" },
+  { id: "bogota", n: "Bogota", c: "Colombie", z: "America/Bogota" },
+  { id: "lima", n: "Lima", c: "Pérou", z: "America/Lima" },
+  { id: "sao-paulo", n: "São Paulo", c: "Brésil", z: "America/Sao_Paulo" },
+  { id: "buenos-aires", n: "Buenos Aires", c: "Argentine", z: "America/Argentina/Buenos_Aires" },
+  { id: "fort-de-france", n: "Fort-de-France", c: "Martinique", z: "America/Martinique" },
+  { id: "pointe-a-pitre", n: "Pointe-à-Pitre", c: "Guadeloupe", z: "America/Guadeloupe" },
+  { id: "cayenne", n: "Cayenne", c: "Guyane", z: "America/Cayenne" },
+  { id: "saint-denis", n: "Saint-Denis", c: "La Réunion", z: "Indian/Reunion" },
+  { id: "noumea", n: "Nouméa", c: "Nouvelle-Calédonie", z: "Pacific/Noumea" },
+  { id: "papeete", n: "Papeete", c: "Polynésie française", z: "Pacific/Tahiti" },
+];
+const wcGrid = $("wcGrid"), wcCity = $("wcCity"), wcRef = $("wcRef"), wcRefDate = $("wcRefDate"), wcRefTime = $("wcRefTime");
+const wcConv = $("wcConv"), wcStatus = $("wcStatus"), wcPanel = $("worldclock");
+const wcOk = (z) => { try { new Intl.DateTimeFormat("fr-FR", { timeZone: z }); return true; } catch { return false; } };
+const wcCities = WC_CITIES.filter((c) => wcOk(c.z));
+let wcLocalZone = "Europe/Paris";
+try { wcLocalZone = Intl.DateTimeFormat().resolvedOptions().timeZone || wcLocalZone; } catch { /* fuseau par défaut */ }
+if (!wcOk(wcLocalZone)) wcLocalZone = "Europe/Paris";
+const wcLocal = { id: "local", n: "Chez moi", c: wcLocalZone.replace(/_/g, " ").replace("/", " · "), z: wcLocalZone };
+let wcIds = [], wcRefs = [];
+
+function wcMessage(msg, isError = false) {
+  wcStatus.textContent = msg;
+  wcStatus.classList.toggle("error", isError);
+}
+const wcFmtCache = {};
+function wcFmt(key, tz, opts) {
+  const k = key + "|" + tz;
+  return wcFmtCache[k] || (wcFmtCache[k] = new Intl.DateTimeFormat("fr-FR", { timeZone: tz, ...opts }));
+}
+function wcParts(ts, tz) {
+  const o = {};
+  wcFmt("p", tz, { hourCycle: "h23", year: "numeric", month: "numeric", day: "numeric", hour: "numeric", minute: "numeric", second: "numeric" })
+    .formatToParts(ts).forEach((p) => { if (p.type !== "literal") o[p.type] = parseInt(p.value, 10); });
+  o.hour = o.hour % 24;
+  return o;
+}
+function wcOffset(ts, tz) { // décalage en minutes par rapport à UTC
+  const p = wcParts(ts, tz);
+  return Math.round((Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute, p.second) - Math.floor(ts / 1000) * 1000) / 60000);
+}
+function wcZonedToUtc(y, mo, d, h, mi, tz) { // heure affichée dans un fuseau -> instant réel
+  const guess = Date.UTC(y, mo - 1, d, h, mi);
+  const o1 = wcOffset(guess, tz);
+  let t = guess - o1 * 60000;
+  const o2 = wcOffset(t, tz);
+  if (o2 !== o1) t = guess - o2 * 60000;
+  return t;
+}
+function wcTime(ts, tz, sec) {
+  return wcFmt(sec ? "ts" : "t", tz, sec ? { hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23" } : { hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(ts);
+}
+function wcDate(ts, tz) { return wcFmt("d", tz, { weekday: "short", day: "numeric", month: "short" }).format(ts); }
+function wcDiff(ts, tz) {
+  const d = wcOffset(ts, tz) - wcOffset(ts, wcLocalZone);
+  if (d === 0) return "Même heure que chez toi";
+  const a = Math.abs(d), h = Math.floor(a / 60), m = a % 60;
+  return (d > 0 ? "+" : "−") + h + " h" + (m ? " " + String(m).padStart(2, "0") : "") + " par rapport à chez toi";
+}
+function wcMk(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text !== undefined) e.textContent = text;
+  return e;
+}
+function wcEntries() { return [wcLocal, ...wcIds.map((id) => wcCities.find((c) => c.id === id)).filter(Boolean)]; }
+function wcEntry(id) { return wcEntries().find((e) => e.id === id); }
+
+function wcLoad() {
+  try {
+    const d = JSON.parse(localStorage.getItem(WC_KEY) || "null");
+    if (Array.isArray(d)) return [...new Set(d.map(String))].filter((id) => wcCities.some((c) => c.id === id)).slice(0, WC_MAX);
+  } catch { /* données illisibles */ }
+  return WC_DEFAULT.filter((id) => wcCities.some((c) => c.id === id));
+}
+function wcSave() { try { localStorage.setItem(WC_KEY, JSON.stringify(wcIds)); } catch { /* stockage indisponible */ } }
+
+function wcTick() {
+  if (!wcPanel.classList.contains("active") || document.hidden) return;
+  const now = Date.now();
+  wcRefs.forEach((r) => {
+    r.time.textContent = wcTime(now, r.tz, true);
+    r.date.textContent = wcDate(now, r.tz);
+    r.diff.textContent = wcDiff(now, r.tz);
+    const h = wcParts(now, r.tz).hour;
+    r.icon.textContent = h >= 7 && h < 20 ? "☀️" : "🌙";
+  });
+}
+
+function wcFillCities() {
+  const free = wcCities.filter((c) => !wcIds.includes(c.id)).sort((a, b) => a.n.localeCompare(b.n, "fr"));
+  wcCity.innerHTML = "";
+  free.forEach((c) => { const o = document.createElement("option"); o.value = c.id; o.textContent = `${c.n} (${c.c})`; wcCity.appendChild(o); });
+  wcCity.disabled = !free.length || wcIds.length >= WC_MAX;
+  $("wcAddBtn").disabled = wcCity.disabled;
+}
+function wcFillRef() {
+  const keep = wcRef.value || "local";
+  wcRef.innerHTML = "";
+  wcEntries().forEach((e) => { const o = document.createElement("option"); o.value = e.id; o.textContent = e.n; wcRef.appendChild(o); });
+  wcRef.value = wcEntry(keep) ? keep : "local";
+}
+
+function wcBuild() {
+  wcGrid.innerHTML = "";
+  wcRefs = [];
+  wcEntries().forEach((e) => {
+    const card = wcMk("div", "wc-card" + (e.id === "local" ? " local" : ""));
+    const top = wcMk("div", "wc-top");
+    const name = wcMk("div", "wc-name");
+    name.append(wcMk("strong", "", e.n), wcMk("span", "", e.c));
+    top.appendChild(name);
+    if (e.id !== "local") {
+      const del = wcMk("button", "todo-btn", "×");
+      del.type = "button";
+      del.setAttribute("aria-label", "Retirer " + e.n);
+      del.addEventListener("click", () => { wcIds = wcIds.filter((id) => id !== e.id); wcSave(); wcRefresh(); });
+      top.appendChild(del);
+    }
+    const icon = wcMk("span", "wc-icon");
+    icon.setAttribute("aria-hidden", "true");
+    const time = wcMk("div", "wc-time");
+    const date = wcMk("div", "wc-date");
+    const diff = wcMk("div", "wc-diff");
+    card.append(top, time, date, diff, icon);
+    wcGrid.appendChild(card);
+    wcRefs.push({ tz: e.z, time, date, diff, icon });
+  });
+  wcTick();
+}
+
+function wcConvert() {
+  wcConv.innerHTML = "";
+  const ent = wcEntry(wcRef.value);
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(wcRefDate.value), t = /^(\d{2}):(\d{2})$/.exec(wcRefTime.value);
+  if (!ent || !m || !t) return wcMessage("Choisis une date et une heure pour convertir.");
+  wcMessage("");
+  const ts = wcZonedToUtc(+m[1], +m[2], +m[3], +t[1], +t[2], ent.z);
+  const pr = wcParts(ts, ent.z);
+  wcEntries().forEach((e) => {
+    const pe = wcParts(ts, e.z);
+    const dd = Math.round((Date.UTC(pe.year, pe.month - 1, pe.day) - Date.UTC(pr.year, pr.month - 1, pr.day)) / 86400000);
+    const li = wcMk("li", "wc-row" + (e.id === ent.id ? " ref" : ""));
+    const left = wcMk("div", "wc-rowname");
+    left.append(wcMk("strong", "", e.n), wcMk("span", "", e.c));
+    const right = wcMk("div", "wc-rowtime");
+    right.append(wcMk("strong", "", wcTime(ts, e.z, false)), wcMk("span", "", wcDate(ts, e.z) + (dd === 1 ? " · jour suivant" : dd === -1 ? " · veille" : dd ? ` · ${dd > 0 ? "+" : "−"}${Math.abs(dd)} jours` : "")));
+    li.append(left, right);
+    wcConv.appendChild(li);
+  });
+}
+function wcSetNow() {
+  const ent = wcEntry(wcRef.value) || wcLocal;
+  const p = wcParts(Date.now(), ent.z), pad = (n) => String(n).padStart(2, "0");
+  wcRefDate.value = `${p.year}-${pad(p.month)}-${pad(p.day)}`;
+  wcRefTime.value = `${pad(p.hour)}:${pad(p.minute)}`;
+  wcConvert();
+}
+function wcRefresh() { wcFillCities(); wcFillRef(); wcBuild(); wcConvert(); }
+
+$("wcAddBtn").addEventListener("click", () => {
+  if (!wcCity.value) return;
+  if (wcIds.length >= WC_MAX) return wcMessage(`Tu as atteint la limite de ${WC_MAX} villes. Retire-en une.`, true);
+  wcIds.push(wcCity.value);
+  wcSave();
+  wcMessage("");
+  wcRefresh();
+});
+wcRef.addEventListener("change", () => { wcSetNow(); });
+[wcRefDate, wcRefTime].forEach((el) => el.addEventListener("input", wcConvert));
+$("wcNow").addEventListener("click", wcSetNow);
+
+wcIds = wcLoad();
+wcFillCities();
+wcFillRef();
+wcBuild();
+wcSetNow();
+setInterval(wcTick, 1000);
+document.addEventListener("visibilitychange", wcTick);
+
+// ---------- Checklist de voyage ----------
+const TP_KEY = "clippo_trips", TP_MAX = 10, TP_ITEMS = 150;
+const TP_CATS = ["Papiers", "Vêtements", "Hygiène", "Santé", "Électronique", "Divers"];
+const TP_TPL = {
+  essentiel: { label: "L'essentiel", items: [
+    ["Papiers", "Carte d'identité ou passeport"], ["Papiers", "Billets et réservations"], ["Papiers", "Carte bancaire et un peu d'espèces"],
+    ["Vêtements", "Sous-vêtements"], ["Vêtements", "Chaussettes"], ["Vêtements", "Pyjama"], ["Vêtements", "Une tenue par jour"],
+    ["Hygiène", "Brosse à dents et dentifrice"], ["Hygiène", "Déodorant"], ["Hygiène", "Shampooing et gel douche"],
+    ["Santé", "Médicaments personnels"], ["Santé", "Trousse de premiers secours"],
+    ["Électronique", "Téléphone et chargeur"], ["Électronique", "Batterie externe"], ["Électronique", "Écouteurs"],
+    ["Divers", "Clés de la maison"], ["Divers", "Gourde"]] },
+  weekend: { label: "Week-end", items: [
+    ["Vêtements", "Une tenue de rechange"], ["Vêtements", "Une veste ou un pull"], ["Vêtements", "Chaussures confortables"],
+    ["Divers", "Petit sac à dos"], ["Divers", "Livre ou jeu pour le trajet"], ["Hygiène", "Trousse de toilette réduite"]] },
+  plage: { label: "Plage et soleil", items: [
+    ["Vêtements", "Maillot de bain"], ["Vêtements", "Chapeau ou casquette"], ["Vêtements", "Tongs"],
+    ["Hygiène", "Crème solaire"], ["Hygiène", "Après-soleil"], ["Divers", "Lunettes de soleil"],
+    ["Divers", "Serviette de plage"], ["Divers", "Sac de plage"]] },
+  montagne: { label: "Montagne et randonnée", items: [
+    ["Vêtements", "Vêtements chauds et coupe-vent"], ["Vêtements", "Bonnet et gants"], ["Vêtements", "Chaussures de randonnée"],
+    ["Santé", "Pansements et crème pour les ampoules"], ["Divers", "Sac à dos"], ["Divers", "Gourde ou poche à eau"],
+    ["Électronique", "Lampe frontale"], ["Divers", "Carte ou itinéraire hors connexion"]] },
+  etranger: { label: "À l'étranger", items: [
+    ["Papiers", "Passeport en cours de validité"], ["Papiers", "Visa ou autorisation d'entrée (si nécessaire)"], ["Papiers", "Assurance voyage et contacts d'urgence"],
+    ["Papiers", "Copies des documents importants"], ["Papiers", "Carte européenne d'assurance maladie (en Europe)"],
+    ["Électronique", "Adaptateur de prise"], ["Divers", "Monnaie locale"], ["Santé", "Ordonnances des médicaments à emporter"]] },
+};
+const tpSel = $("tpSel"), tpBox = $("tpBox"), tpList = $("tpList"), tpStatus = $("tpStatus"), tpInfo = $("tpInfo");
+const tpBar = $("tpBar"), tpCount = $("tpCount"), tpDate = $("tpDate"), tpItem = $("tpItem"), tpCat = $("tpCat"), tpTpl = $("tpTpl");
+let tpTrips = [], tpCur = "";
+
+function tpMessage(msg, isError = false) {
+  tpStatus.textContent = msg;
+  tpStatus.classList.toggle("error", isError);
+}
+function tpMk(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text !== undefined) e.textContent = text;
+  return e;
+}
+function tpId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+function tpParse(s) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s || ""));
+  if (!m) return null;
+  const d = new Date(+m[1], +m[2] - 1, +m[3]);
+  return d.getMonth() === +m[2] - 1 ? d : null;
+}
+function tpToday() { const n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate()); }
+function tpIso(d) { return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
+function tpDays(s) { return Math.round((tpParse(s) - tpToday()) / 86400000); }
+function tpFmtDate(s) {
+  const t = tpParse(s).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+  return t.charAt(0).toUpperCase() + t.slice(1);
+}
+function tpCurTrip() { return tpTrips.find((t) => t.id === tpCur); }
+
+function tpLoad() {
+  try {
+    const d = JSON.parse(localStorage.getItem(TP_KEY) || "[]");
+    return Array.isArray(d)
+      ? d.filter((t) => t && typeof t.name === "string").slice(0, TP_MAX).map((t) => ({
+          id: String(t.id), name: t.name.slice(0, 40), date: tpParse(t.date) ? String(t.date) : "",
+          items: (Array.isArray(t.items) ? t.items : []).filter((i) => i && typeof i.text === "string").slice(0, TP_ITEMS)
+            .map((i) => ({ id: String(i.id), text: i.text.slice(0, 60), cat: TP_CATS.includes(i.cat) ? i.cat : "Divers", done: !!i.done })),
+        }))
+      : [];
+  } catch { return []; }
+}
+function tpSave() {
+  try { localStorage.setItem(TP_KEY, JSON.stringify(tpTrips)); }
+  catch { tpMessage("Impossible d'enregistrer : le stockage du navigateur est plein ou bloqué.", true); }
+}
+
+function tpRender() {
+  tpBox.hidden = !tpTrips.length;
+  if (!tpTrips.length) return;
+  if (!tpCurTrip()) tpCur = tpTrips[0].id;
+  const t = tpCurTrip();
+
+  tpSel.innerHTML = "";
+  tpTrips.forEach((x) => { const o = document.createElement("option"); o.value = x.id; o.textContent = x.name; tpSel.appendChild(o); });
+  tpSel.value = t.id;
+  tpDate.value = t.date;
+  tpDate.min = tpIso(tpToday());
+
+  if (!t.date) tpInfo.textContent = "Aucune date de départ choisie.";
+  else {
+    const d = tpDays(t.date);
+    tpInfo.textContent = "Départ : " + tpFmtDate(t.date) + " · " + (d > 1 ? `dans ${d} jours` : d === 1 ? "demain" : d === 0 ? "aujourd'hui" : "déjà passé");
+  }
+
+  const done = t.items.filter((i) => i.done).length, total = t.items.length;
+  tpBar.style.width = total ? Math.round((done / total) * 100) + "%" : "0%";
+  tpCount.textContent = total ? `${done} élément${done > 1 ? "s" : ""} prêt${done > 1 ? "s" : ""} sur ${total}` + (done === total ? " · Tout est prêt, bon voyage ! 🎉" : "") : "La liste est vide : ajoute un élément ou des suggestions.";
+
+  tpList.innerHTML = "";
+  TP_CATS.forEach((cat) => {
+    const items = t.items.filter((i) => i.cat === cat);
+    if (!items.length) return;
+    const grp = tpMk("div", "tp-group");
+    const d = items.filter((i) => i.done).length;
+    grp.appendChild(tpMk("h3", "tool-cat", `${cat} · ${d}/${items.length}`));
+    items.forEach((i) => {
+      const row = tpMk("div", "tp-item" + (i.done ? " done" : ""));
+      const lab = tpMk("label", "tp-lab");
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.checked = i.done;
+      cb.addEventListener("change", () => { i.done = cb.checked; tpSave(); tpRender(); });
+      lab.append(cb, tpMk("span", "", i.text));
+      const del = tpMk("button", "todo-btn", "×");
+      del.type = "button";
+      del.setAttribute("aria-label", "Supprimer : " + i.text);
+      del.addEventListener("click", () => { t.items = t.items.filter((x) => x.id !== i.id); tpSave(); tpRender(); });
+      row.append(lab, del);
+      grp.appendChild(row);
+    });
+    tpList.appendChild(grp);
+  });
+}
+
+function tpAddItems(list) { // renvoie le nombre d'éléments réellement ajoutés
+  const t = tpCurTrip();
+  let n = 0;
+  list.forEach(([cat, text]) => {
+    if (t.items.length >= TP_ITEMS) return;
+    if (t.items.some((i) => i.text.toLowerCase() === text.toLowerCase())) return;
+    t.items.push({ id: tpId(), text, cat, done: false });
+    n++;
+  });
+  tpSave();
+  tpRender();
+  return n;
+}
+
+$("tpCreate").addEventListener("click", () => {
+  const name = $("tpName").value.trim().slice(0, 40) || "Mon voyage";
+  const date = $("tpDateNew").value;
+  if (date && !tpParse(date)) return tpMessage("Cette date n'est pas valide.", true);
+  if (date && tpDays(date) < 0) return tpMessage("Choisis une date de départ à venir (ou laisse la case vide).", true);
+  if (tpTrips.length >= TP_MAX) return tpMessage(`Tu as atteint la limite de ${TP_MAX} voyages. Supprime-en un.`, true);
+  const t = { id: tpId(), name, date: date || "", items: [] };
+  tpTrips.push(t);
+  tpCur = t.id;
+  $("tpName").value = ""; $("tpDateNew").value = "";
+  tpSave();
+  tpRender();
+  tpMessage("Voyage créé ! Ajoute des éléments ou des suggestions.");
+});
+$("tpName").addEventListener("keydown", (e) => { if (e.key === "Enter") $("tpCreate").click(); });
+tpSel.addEventListener("change", () => { tpCur = tpSel.value; tpMessage(""); tpRender(); });
+tpDate.addEventListener("change", () => {
+  const t = tpCurTrip();
+  if (!t) return;
+  if (tpDate.value && (!tpParse(tpDate.value) || tpDays(tpDate.value) < 0)) { tpMessage("Choisis une date de départ à venir.", true); return tpRender(); }
+  t.date = tpDate.value;
+  tpMessage("");
+  tpSave();
+  tpRender();
+});
+$("tpAdd").addEventListener("click", () => {
+  const t = tpCurTrip(), text = tpItem.value.trim().slice(0, 60);
+  if (!t || !text) return;
+  if (t.items.length >= TP_ITEMS) return tpMessage(`Cette liste est pleine (${TP_ITEMS} éléments).`, true);
+  if (!tpAddItems([[tpCat.value, text]])) return tpMessage("Cet élément est déjà dans la liste.", true);
+  tpItem.value = "";
+  tpMessage("");
+  tpItem.focus();
+});
+tpItem.addEventListener("keydown", (e) => { if (e.key === "Enter") $("tpAdd").click(); });
+$("tpSug").addEventListener("click", () => {
+  if (!tpCurTrip()) return;
+  const n = tpAddItems(TP_TPL[tpTpl.value].items);
+  tpMessage(n ? `${n} élément${n > 1 ? "s" : ""} ajouté${n > 1 ? "s" : ""}.` : "Ces suggestions sont déjà dans ta liste.");
+});
+$("tpUncheck").addEventListener("click", () => {
+  const t = tpCurTrip();
+  if (!t) return;
+  t.items.forEach((i) => { i.done = false; });
+  tpSave();
+  tpRender();
+});
+$("tpCopy").addEventListener("click", async () => {
+  const t = tpCurTrip();
+  if (!t || !t.items.length) return tpMessage("La liste est vide.", true);
+  const lines = [t.name + (t.date ? " · départ le " + tpFmtDate(t.date) : "")];
+  TP_CATS.forEach((cat) => {
+    const items = t.items.filter((i) => i.cat === cat);
+    if (!items.length) return;
+    lines.push("", cat.toUpperCase());
+    items.forEach((i) => lines.push((i.done ? "☑ " : "☐ ") + i.text));
+  });
+  try { await copyText(lines.join("\n")); tpMessage("Liste copiée !"); }
+  catch { tpMessage("Copie automatique impossible : sélectionne le texte et fais Ctrl + C.", true); }
+});
+$("tpDelete").addEventListener("click", () => {
+  const t = tpCurTrip();
+  if (!t || !confirm(`Supprimer le voyage « ${t.name} » et sa liste ?`)) return;
+  tpTrips = tpTrips.filter((x) => x.id !== t.id);
+  tpCur = tpTrips[0] ? tpTrips[0].id : "";
+  tpSave();
+  tpMessage("");
+  tpRender();
+});
+
+TP_CATS.forEach((c) => { const o = document.createElement("option"); o.textContent = c; tpCat.appendChild(o); });
+Object.keys(TP_TPL).forEach((k) => { const o = document.createElement("option"); o.value = k; o.textContent = TP_TPL[k].label; tpTpl.appendChild(o); });
+$("tpDateNew").min = tpIso(tpToday());
+tpTrips = tpLoad();
+tpCur = tpTrips[0] ? tpTrips[0].id : "";
+tpRender();
