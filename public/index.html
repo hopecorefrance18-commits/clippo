@@ -79,6 +79,8 @@
           <button class="tab" data-tab="todo">Tâches</button>
                     <button class="tab" data-tab="password">Mot de passe</button>
                     <button class="tab" data-tab="notes">Bloc-notes</button>
+                    <button class="tab" data-tab="worldclock">Horloge</button>
+          <button class="tab" data-tab="trip">Voyage</button>
         </div>
                 <div class="subgroup" data-cat="money" hidden>
           <button class="tab" data-tab="budget">Budget</button>
@@ -242,7 +244,8 @@
             <button class="tool-card" data-go="todo"><i class="tc-ico">✅</i><strong>Liste de tâches</strong><span>Note tes tâches et coche-les.</span><em class="tc-go">→</em></button>
             <button class="tool-card" data-go="password"><i class="tc-ico">🔐</i><strong>Mot de passe</strong><span>Crée un mot de passe solide, à copier.</span><em class="tc-go">→</em></button>
             <button class="tool-card" data-go="notes"><i class="tc-ico">🗒️</i><strong>Bloc-notes</strong><span>Écris tes notes, elles sont gardées dans ton navigateur.</span><em class="tc-go">→</em></button>
-            
+                        <button class="tool-card" data-go="worldclock"><i class="tc-ico">🌍</i><strong>Horloge mondiale</strong><span>Compare l'heure dans plusieurs villes et pays.</span><em class="tc-go">→</em></button>
+            <button class="tool-card" data-go="trip"><i class="tc-ico">🧳</i><strong>Checklist de voyage</strong><span>Crée ta liste de choses à emporter et coche-les.</span><em class="tc-go">→</em></button>
           </div>
         </div>
                 <div class="home-cat">
@@ -1822,6 +1825,113 @@ Hugo</textarea>
         </div>
         <p id="rdStatus" class="status" role="status"></p>
         <p class="gr-note">Les calculs sont faits avec les chiffres que tu saisis : vérifie toujours le prix affiché en magasin ou à la caisse, qui peut être arrondi ou inclure d'autres conditions. Ce que tu écris reste sur ton appareil.</p>
+      </div>
+    </section>
+      <!-- Horloge mondiale -->
+    <section id="worldclock" class="panel">
+      <h1>L'heure dans le monde.</h1>
+      <p class="sub">Compare l'heure dans plusieurs villes et pays, et convertis une heure de rendez-vous en un clin d'œil.</p>
+
+      <div class="card">
+        <div class="row wc-add">
+          <label class="select grow">
+            <span>Ajouter une ville</span>
+            <select id="wcCity"></select>
+          </label>
+          <button id="wcAddBtn" class="primary">Ajouter</button>
+        </div>
+
+        <div id="wcGrid" class="wc-grid"></div>
+
+        <h2 class="fc-title">Convertir une heure</h2>
+        <div class="wc-ref">
+          <label class="select">
+            <span>Ville de référence</span>
+            <select id="wcRef"></select>
+          </label>
+          <label class="select">
+            <span>Date</span>
+            <input id="wcRefDate" class="text-in" type="date">
+          </label>
+          <label class="select">
+            <span>Heure</span>
+            <input id="wcRefTime" class="text-in" type="time">
+          </label>
+          <button id="wcNow" class="ghost-btn" type="button">Maintenant</button>
+        </div>
+        <ul id="wcConv" class="wc-conv"></ul>
+
+        <p id="wcStatus" class="status" role="status"></p>
+        <p class="gr-note">Les heures sont calculées par ton navigateur, qui connaît les fuseaux horaires et les changements d'heure d'été et d'hiver : aucun service extérieur n'est utilisé. Pour un rendez-vous important, vérifie l'heure avec ton interlocuteur. Tes villes sont gardées dans ton navigateur et ne sont envoyées nulle part.</p>
+      </div>
+    </section>
+
+    <!-- Checklist de voyage -->
+    <section id="trip" class="panel">
+      <h1>Ta checklist de voyage.</h1>
+      <p class="sub">Crée ta liste de choses à emporter et coche ce qui est prêt. Tout est gardé dans ton navigateur.</p>
+
+      <div class="card">
+        <h2 class="fc-title">Nouveau voyage</h2>
+        <div class="tp-new">
+          <label class="select tp-wide">
+            <span>Nom du voyage</span>
+            <input id="tpName" class="text-in" type="text" maxlength="40" placeholder="ex : Week-end à Lisbonne" autocomplete="off">
+          </label>
+          <label class="select">
+            <span>Date de départ (facultatif)</span>
+            <input id="tpDateNew" class="text-in" type="date">
+          </label>
+          <button id="tpCreate" class="primary">Créer le voyage</button>
+        </div>
+
+        <div id="tpBox" hidden>
+          <div class="tp-head">
+            <label class="select">
+              <span>Mon voyage</span>
+              <select id="tpSel"></select>
+            </label>
+            <label class="select">
+              <span>Date de départ</span>
+              <input id="tpDate" class="text-in" type="date">
+            </label>
+          </div>
+          <p id="tpInfo" class="gr-info tp-center"></p>
+          <div class="todo-meter"><div id="tpBar" class="todo-bar"></div></div>
+          <p id="tpCount" class="gr-info tp-center"></p>
+
+          <h2 class="fc-title">Ajouter un élément</h2>
+          <div class="tp-add">
+            <label class="select tp-wide">
+              <span>À emporter</span>
+              <input id="tpItem" class="text-in" type="text" maxlength="60" placeholder="ex : Adaptateur de prise" autocomplete="off">
+            </label>
+            <label class="select">
+              <span>Catégorie</span>
+              <select id="tpCat"></select>
+            </label>
+            <button id="tpAdd" class="primary">Ajouter</button>
+          </div>
+
+          <div class="tp-sug">
+            <label class="select">
+              <span>Suggestions</span>
+              <select id="tpTpl"></select>
+            </label>
+            <button id="tpSug" class="ghost-btn" type="button">Ajouter les suggestions</button>
+          </div>
+
+          <div id="tpList" class="tp-list"></div>
+
+          <div class="row tp-actions">
+            <button id="tpUncheck" class="ghost-btn" type="button">Tout décocher</button>
+            <button id="tpCopy" class="ghost-btn" type="button">Copier la liste</button>
+            <button id="tpDelete" class="ghost-btn" type="button">Supprimer ce voyage</button>
+          </div>
+        </div>
+
+        <p id="tpStatus" class="status" role="status"></p>
+        <p class="gr-note">Tes voyages restent sur ton appareil (dans ce navigateur) et ne sont envoyés nulle part. Si tu vides les données du site, ils disparaissent. Les suggestions sont des repères généraux : adapte-les à ta destination et vérifie les documents exigés (passeport, visa, assurance) auprès des autorités avant de partir.</p>
       </div>
     </section>
   </main>
