@@ -84,6 +84,7 @@
           <button class="tab" data-tab="budget">Budget</button>
           <button class="tab" data-tab="savings">Épargne</button>
           <button class="tab" data-tab="currency">Devises</button>
+                    <button class="tab" data-tab="discount">Réductions</button>
         </div>
                       <div class="subgroup" data-cat="games" hidden>
         <button class="tab" data-tab="tictactoe">Morpion</button>
@@ -250,6 +251,7 @@
             <button class="tool-card" data-go="budget"><i class="tc-ico">💶</i><strong>Budget mensuel</strong><span>Revenus, dépenses et reste à vivre.</span><em class="tc-go">→</em></button>
             <button class="tool-card" data-go="savings"><i class="tc-ico">🐷</i><strong>Objectif d'épargne</strong><span>Combien mettre de côté chaque mois.</span><em class="tc-go">→</em></button>
             <button class="tool-card" data-go="currency"><i class="tc-ico">💱</i><strong>Convertisseur de devises</strong><span>Combien ça fait en euros ? Dollar, livre, yen…</span><em class="tc-go">→</em></button>
+                     <button class="tool-card" data-go="discount"><i class="tc-ico">🛍️</i><strong>Calculateur de réductions</strong><span>Prix soldé, pourcentage de remise, prix d'origine.</span><em class="tc-go">→</em></button>
           </div>
         </div>
 
@@ -1737,6 +1739,89 @@ Hugo</textarea>
         </details>
 
         <p class="gr-note">Ces taux sont des taux de référence de la Banque centrale européenne, mis à jour les jours ouvrés vers 16 h. Ta banque, ta carte bancaire ou un bureau de change appliquent leurs propres taux et frais : tu recevras un peu moins. Quand tu ouvres cet outil, ton navigateur demande les taux au service Frankfurter. Le montant que tu écris n'est jamais envoyé. Ce n'est pas un conseil financier.</p>
+      </div>
+    </section>
+      <!-- Calculateur de réductions -->
+    <section id="discount" class="panel">
+      <h1>Calcule tes réductions.</h1>
+      <p class="sub">Prix soldé, pourcentage de remise, prix d'origine : entre tes chiffres et Clippo fait le calcul. Tout se fait sur ton appareil.</p>
+
+      <div class="card">
+        <div class="chips" id="rdModes">
+          <button class="chip active" data-mode="final" type="button">Prix après réduction</button>
+          <button class="chip" data-mode="percent" type="button">Quel pourcentage ?</button>
+          <button class="chip" data-mode="original" type="button">Prix d'origine</button>
+        </div>
+
+        <div id="rdFinal" class="rd-panel">
+          <div class="rd-row">
+            <label class="select">
+              <span>Prix d'origine (€)</span>
+              <input id="rdPrice" class="text-in" type="text" inputmode="decimal" placeholder="ex : 79,90" autocomplete="off">
+            </label>
+            <label class="select">
+              <span>Réduction (%)</span>
+              <input id="rdDisc" class="text-in" type="text" inputmode="decimal" placeholder="ex : 30" autocomplete="off">
+            </label>
+          </div>
+          <div id="rdQuick" class="chips rd-quick" role="group" aria-label="Réductions courantes">
+            <button class="chip" data-pct="10" type="button">10 %</button>
+            <button class="chip" data-pct="20" type="button">20 %</button>
+            <button class="chip" data-pct="30" type="button">30 %</button>
+            <button class="chip" data-pct="40" type="button">40 %</button>
+            <button class="chip" data-pct="50" type="button">50 %</button>
+            <button class="chip" data-pct="60" type="button">60 %</button>
+            <button class="chip" data-pct="70" type="button">70 %</button>
+          </div>
+          <div class="rd-row">
+            <label class="select">
+              <span>Réduction en plus (%, facultatif)</span>
+              <input id="rdDisc2" class="text-in" type="text" inputmode="decimal" placeholder="ex : 20" autocomplete="off">
+            </label>
+            <label class="select">
+              <span>Code promo en € (facultatif)</span>
+              <input id="rdOff" class="text-in" type="text" inputmode="decimal" placeholder="ex : 10" autocomplete="off">
+            </label>
+          </div>
+        </div>
+
+        <div id="rdPercent" class="rd-panel" hidden>
+          <div class="rd-row">
+            <label class="select">
+              <span>Prix d'origine (€)</span>
+              <input id="rdOrig" class="text-in" type="text" inputmode="decimal" placeholder="ex : 120" autocomplete="off">
+            </label>
+            <label class="select">
+              <span>Prix soldé (€)</span>
+              <input id="rdSold" class="text-in" type="text" inputmode="decimal" placeholder="ex : 84" autocomplete="off">
+            </label>
+          </div>
+        </div>
+
+        <div id="rdOriginal" class="rd-panel" hidden>
+          <div class="rd-row">
+            <label class="select">
+              <span>Prix soldé (€)</span>
+              <input id="rdSold2" class="text-in" type="text" inputmode="decimal" placeholder="ex : 56" autocomplete="off">
+            </label>
+            <label class="select">
+              <span>Réduction (%)</span>
+              <input id="rdDisc3" class="text-in" type="text" inputmode="decimal" placeholder="ex : 30" autocomplete="off">
+            </label>
+          </div>
+        </div>
+
+        <div class="rd-result">
+          <p id="rdBig" class="rd-big" aria-live="polite"></p>
+          <p id="rdLine" class="rd-line"></p>
+          <ul id="rdSteps" class="rd-steps"></ul>
+        </div>
+
+        <div class="row rd-actions">
+          <button id="rdCopy" class="ghost-btn" type="button" disabled>Copier le résultat</button>
+        </div>
+        <p id="rdStatus" class="status" role="status"></p>
+        <p class="gr-note">Les calculs sont faits avec les chiffres que tu saisis : vérifie toujours le prix affiché en magasin ou à la caisse, qui peut être arrondi ou inclure d'autres conditions. Ce que tu écris reste sur ton appareil.</p>
       </div>
     </section>
   </main>
