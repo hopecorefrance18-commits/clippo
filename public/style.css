@@ -1355,3 +1355,21 @@ body:not(:has(#home.active)) .back-home { display: inline-block; }
 .wm-export .primary { margin-left: 0; }
 #watermark .status { text-align: center; }
 @media (max-width: 700px) { .wm-export .primary { width: 100%; } }
+
+/* --- Recherche intelligente --- */
+.hs-box {
+  position: absolute; left: 18px; right: 18px; z-index: 6; display: grid; gap: 2px; padding: 6px;
+  background: var(--ink); border: 1px solid rgba(255, 255, 255, .22); border-radius: 16px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, .55); max-height: 340px; overflow-y: auto;
+}
+.hs-item {
+  display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; border: 0; border-radius: 12px;
+  background: transparent; color: var(--paper); padding: 10px 12px; cursor: pointer; font: 400 .95rem "DM Sans", sans-serif;
+}
+.hs-item:hover, .hs-item.active { background: rgba(255, 255, 255, .1); }
+.hs-ico { width: 38px; height: 38px; border-radius: 10px; display: grid; place-items: center; font-size: 1.2rem; flex-shrink: 0; background: linear-gradient(135deg, rgba(31, 123, 255, .4), rgba(41, 182, 255, .3)); }
+.hs-txt { display: grid; gap: 1px; min-width: 0; }
+.hs-txt strong { font: 800 1rem "Bricolage Grotesque", sans-serif; }
+.hs-txt small { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hs-more, .hs-empty { color: var(--muted); font-size: .88rem; padding: 8px 12px; margin: 0; }
+.hm-card:has(.hs-box:not([hidden])) { z-index: 5; }
