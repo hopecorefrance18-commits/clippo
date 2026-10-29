@@ -5138,3 +5138,226 @@ $("tpDateNew").min = tpIso(tpToday());
 tpTrips = tpLoad();
 tpCur = tpTrips[0] ? tpTrips[0].id : "";
 tpRender();
+
+// ---------- Ajout de filigrane (sur l'appareil) ----------
+const WM_MAX_SIDE = 3000;
+const WM_FONTS = {
+  sans: '"DM Sans", system-ui, sans-serif',
+  titre: '"Bricolage Grotesque", "DM Sans", sans-serif',
+  serif: 'Georgia, "Times New Roman", serif',
+  mono: 'ui-monospace, Consolas, "Courier New", monospace',
+};
+const wmDrop = $("wmDrop"), wmFile = $("wmFile"), wmWork = $("wmWork"), wmCanvas = $("wmCanvas"), wmStatus = $("wmStatus");
+const wmText = $("wmText"), wmFont = $("wmFont"), wmColor = $("wmColor"), wmBold = $("wmBold"), wmOutline = $("wmOutline");
+const wmSize = $("wmSize"), wmOpacity = $("wmOpacity"), wmAngle = $("wmAngle"), wmGap = $("wmGap"), wmGapBox = $("wmGapBox");
+const wmFmt = $("wmFmt"), wmQual = $("wmQual"), wmQualBox = $("wmQualBox");
+const wmCtx = wmCanvas.getContext("2d");
+let wmBase = null, wmName = "photo", wmType = "text", wmPosVal = "br", wmLogo = null, wmLogoUrl = null, wmRaf = 0;
+
+function wmMessage(msg, isError = false) {
+  wmStatus.textContent = msg;
+  wmStatus.classList.toggle("error", isError);
+}
+function wmLum(hex) {
+  const n = parseInt(hex.slice(1), 16);
+  const [r, g, b] = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((c) => {
+    c /= 255;
+    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+function wmLabels() {
+  $("wmSizeVal").textContent = wmSize.value;
+  $("wmOpVal").textContent = wmOpacity.value;
+  $("wmAngleVal").textContent = wmAngle.value;
+  $("wmGapVal").textContent = wmGap.value;
+}
+
+// Fabrique le filigrane (texte ou logo) sur un petit canevas à part
+function wmMakeMark(w, h) {
+  const tw = Math.max(8, Math.round(w * (parseInt(wmSize.value, 10) / 100)));
+  if (wmType === "logo") {
+    if (!wmLogo || !wmLogo.naturalWidth) return null;
+    const c = document.createElement("canvas");
+    c.width = tw;
+    c.height = Math.max(1, Math.round(wmLogo.naturalHeight * (tw / wmLogo.naturalWidth)));
+    c.getContext("2d").drawImage(wmLogo, 0, 0, c.width, c.height);
+    return c;
+  }
+  const text = wmText.value.trim();
+  if (!text) return null;
+  const weight = wmBold.checked ? "800" : "500";
+  const fam = WM_FONTS[wmFont.value] || WM_FONTS.sans;
+  const probe = document.createElement("canvas").getContext("2d");
+  probe.font = `${weight} 100px ${fam}`;
+  const w100 = Math.max(1, probe.measureText(text).width);
+  const px = Math.max(8, Math.min((100 * tw) / w100, Math.min(w, h) * 0.5));
+  const pad = Math.ceil(px * 0.2);
+  const c = document.createElement("canvas");
+  const x = c.getContext("2d");
+  x.font = `${weight} ${px}px ${fam}`;
+  c.width = Math.ceil(x.measureText(text).width) + pad * 2;
+  c.height = Math.ceil(px * 1.3) + pad * 2;
+  x.font = `${weight} ${px}px ${fam}`; // le redimensionnement réinitialise le contexte
+  x.textAlign = "center";
+  x.textBaseline = "middle";
+  x.lineJoin = "round";
+  if (wmOutline.checked) {
+    x.lineWidth = Math.max(2, px * 0.14);
+    x.strokeStyle = wmLum(wmColor.value) > 0.5 ? "rgba(0,0,0,.75)" : "rgba(255,255,255,.8)";
+    x.strokeText(text, c.width / 2, c.height / 2);
+  }
+  x.fillStyle = wmColor.value;
+  x.fillText(text, c.width / 2, c.height / 2);
+  return c;
+}
+
+function wmDraw() {
+  if (!wmBase) return;
+  const w = wmCanvas.width, h = wmCanvas.height, ctx = wmCtx;
+  ctx.clearRect(0, 0, w, h);
+  if (wmFmt.value === "jpeg") { ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, w, h); } // le JPG n'a pas de transparence
+  ctx.drawImage(wmBase, 0, 0);
+  const mark = wmMakeMark(w, h);
+  if (!mark) return;
+  const mw = mark.width, mh = mark.height;
+  const angle = (parseInt(wmAngle.value, 10) * Math.PI) / 180;
+  ctx.save();
+  ctx.globalAlpha = parseInt(wmOpacity.value, 10) / 100;
+  if (wmPosVal === "tile") {
+    const gap = parseInt(wmGap.value, 10) / 100;
+    const stepX = Math.max(12, mw * (1 + gap)), stepY = Math.max(12, mh * (1 + gap));
+    const diag = Math.hypot(w, h);
+    ctx.translate(w / 2, h / 2);
+    ctx.rotate(angle);
+    let n = 0, row = 0;
+    for (let y = -diag / 2; y < diag / 2 && n < 4000; y += stepY, row++) {
+      for (let x = -diag / 2 - (row % 2 ? stepX / 2 : 0); x < diag / 2 && n < 4000; x += stepX) {
+        ctx.drawImage(mark, x, y);
+        n++;
+      }
+    }
+  } else {
+    const cos = Math.abs(Math.cos(angle)), sin = Math.abs(Math.sin(angle));
+    const bw = mw * cos + mh * sin, bh = mw * sin + mh * cos;
+    const m = Math.round(Math.min(w, h) * 0.03);
+    const r = wmPosVal[0], c = wmPosVal[1];
+    const cx = c === "l" ? m + bw / 2 : c === "r" ? w - m - bw / 2 : w / 2;
+    const cy = r === "t" ? m + bh / 2 : r === "b" ? h - m - bh / 2 : h / 2;
+    ctx.translate(cx, cy);
+    ctx.rotate(angle);
+    ctx.drawImage(mark, -mw / 2, -mh / 2);
+  }
+  ctx.restore();
+}
+function wmSchedule() {
+  if (wmRaf) return;
+  wmRaf = requestAnimationFrame(() => { wmRaf = 0; wmDraw(); });
+}
+
+function wmLoad(file) {
+  if (!file || !file.type.startsWith("image/")) return wmMessage("Choisis un fichier image.", true);
+  if (file.size > 30 * 1048576) return wmMessage("Cette image est trop lourde (30 Mo maximum).", true);
+  wmMessage("Lecture de la photo…");
+  const url = URL.createObjectURL(file);
+  const img = new Image();
+  img.onload = () => {
+    const w0 = img.naturalWidth, h0 = img.naturalHeight;
+    if (!w0 || !h0) { URL.revokeObjectURL(url); return wmMessage("Impossible de lire cette image.", true); }
+    const k = Math.min(1, WM_MAX_SIDE / Math.max(w0, h0));
+    const w = Math.max(1, Math.round(w0 * k)), h = Math.max(1, Math.round(h0 * k));
+    const c = document.createElement("canvas");
+    c.width = w; c.height = h;
+    c.getContext("2d").drawImage(img, 0, 0, w, h);
+    URL.revokeObjectURL(url);
+    wmBase = c;
+    wmCanvas.width = w;
+    wmCanvas.height = h;
+    wmName = file.name.replace(/\.[^.]+$/, "") || "photo";
+    wmWork.hidden = false;
+    wmMessage(k < 1 ? `Ta photo est réduite à ${w} × ${h} px pour rester fluide.` : "");
+    wmDraw();
+  };
+  img.onerror = () => { URL.revokeObjectURL(url); wmMessage("Impossible de lire cette image. Les photos HEIC ne sont pas lues par tous les navigateurs.", true); };
+  img.src = url;
+}
+
+function wmSetType(t) {
+  wmType = t;
+  document.querySelectorAll("#wmTypes .chip").forEach((c) => c.classList.toggle("active", c.dataset.type === t));
+  $("wmTextBox").hidden = t !== "text";
+  $("wmLogoBox").hidden = t !== "logo";
+  wmSize.value = t === "logo" ? "20" : "30";
+  wmLabels();
+  wmMessage(t === "logo" && !wmLogo ? "Choisis ton logo pour l'ajouter sur la photo." : "");
+  wmSchedule();
+}
+function wmSetPos(p) {
+  wmPosVal = p;
+  document.querySelectorAll("#wmPos button").forEach((b) => {
+    const on = b.dataset.pos === p;
+    b.classList.toggle("on", on);
+    b.setAttribute("aria-pressed", String(on));
+  });
+  wmGapBox.hidden = p !== "tile";
+  if (p === "tile" && wmAngle.value === "0") { wmAngle.value = "-30"; wmLabels(); } // une mosaïque penchée est plus difficile à effacer
+  wmSchedule();
+}
+
+// Les polices du site doivent être chargées avant de dessiner du texte
+(function wmFonts() {
+  if (!document.fonts || !document.fonts.load) return;
+  Promise.all(['500 40px "DM Sans"', '800 40px "DM Sans"', '500 40px "Bricolage Grotesque"', '800 40px "Bricolage Grotesque"']
+    .map((f) => document.fonts.load(f))).then(() => { if (wmBase) wmSchedule(); }).catch(() => {});
+})();
+
+wmFile.addEventListener("change", () => { wmLoad(wmFile.files[0]); wmFile.value = ""; });
+["dragenter", "dragover"].forEach((ev) => wmDrop.addEventListener(ev, (e) => { e.preventDefault(); wmDrop.classList.add("over"); }));
+["dragleave", "drop"].forEach((ev) => wmDrop.addEventListener(ev, (e) => { e.preventDefault(); wmDrop.classList.remove("over"); }));
+wmDrop.addEventListener("drop", (e) => wmLoad(e.dataTransfer.files[0]));
+
+$("wmLogoFile").addEventListener("change", () => {
+  const input = $("wmLogoFile"), f = input.files[0];
+  input.value = "";
+  if (!f) return;
+  if (!f.type.startsWith("image/")) return wmMessage("Choisis un fichier image pour le logo.", true);
+  if (f.size > 10 * 1048576) return wmMessage("Ce logo est trop lourd (10 Mo maximum).", true);
+  const url = URL.createObjectURL(f);
+  const img = new Image();
+  img.onload = () => {
+    if (wmLogoUrl) URL.revokeObjectURL(wmLogoUrl);
+    wmLogo = img;
+    wmLogoUrl = url;
+    $("wmLogoName").textContent = f.name;
+    wmMessage("");
+    wmSchedule();
+  };
+  img.onerror = () => { URL.revokeObjectURL(url); wmMessage("Impossible de lire ce logo.", true); };
+  img.src = url;
+});
+
+document.querySelectorAll("#wmTypes .chip").forEach((c) => c.addEventListener("click", () => wmSetType(c.dataset.type)));
+document.querySelectorAll("#wmPos button").forEach((b) => b.addEventListener("click", () => wmSetPos(b.dataset.pos)));
+[wmText, wmColor, wmBold, wmOutline, wmSize, wmOpacity, wmAngle, wmGap].forEach((el) => el.addEventListener("input", () => { wmLabels(); wmSchedule(); }));
+wmFont.addEventListener("change", wmSchedule);
+wmFmt.addEventListener("change", () => { wmQualBox.hidden = wmFmt.value !== "jpeg"; wmSchedule(); });
+
+$("wmSave").addEventListener("click", () => {
+  if (!wmBase) return;
+  wmDraw();
+  const jpeg = wmFmt.value === "jpeg";
+  wmCanvas.toBlob((b) => {
+    if (!b) return wmMessage("Impossible de créer l'image.", true);
+    const url = URL.createObjectURL(b);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${wmName}-filigrane.${jpeg ? "jpg" : "png"}`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  }, jpeg ? "image/jpeg" : "image/png", jpeg ? parseFloat(wmQual.value) : undefined);
+});
+
+wmLabels();
+wmSetPos("br");
