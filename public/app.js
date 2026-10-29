@@ -2486,37 +2486,265 @@ buData = buLoad();
 buMonth = buThisMonth();
 buRender();
 
-// ---------- Accueil : recherche d'outils, défilement, compteur ----------
+// ---------- Accueil : recherche intelligente, défilement, compteur ----------
 const homeSearch = $("homeSearch"), homeEmpty = $("homeEmpty");
-const hmNorm = (s) => String(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-
-function homeFilter() {
-  const q = hmNorm(homeSearch.value.trim());
-  let total = 0;
+const HS_STOP = new Set("le la les un une des du de au aux en et ou a pour sur mon ma mes ton ta tes comment faire fait je veux voudrais besoin outil outils avec sans cherche trouver".split(" "));
+const HS_KW = {
+  grades: "moyenne note notes calcul coefficient bulletin controle ecole college lycee bac scolaire",
+  pomodoro: "minuteur timer chrono concentration travail travailler focus pause revision productivite temps",
+  flashcards: "cartes carte fiches memoriser memoire reviser revision apprendre lecon quiz",
+  countdown: "compte rebours examen date jours echeance evenement attente",
+  studyplan: "planning revisions revision organiser calendrier examen emploi du temps programme",
+  gradeconv: "convertir note bareme pourcentage sur 20 sur 10 mention",
+  mp3: "audio son musique video extraire convertir telecharger piste",
+  cutout: "detourer fond arriere plan image photo supprimer transparent png gomme",
+  convert: "image photo compresser compression reduire poids taille format png jpg webp recadrer pivoter convertir alleger",
+  blur: "flou flouter pixeliser cacher masquer visage plaque texte photo image confidentialite",
+  enhance: "ameliorer agrandir nettete qualite hd upscale image photo floue resolution",
+  photopdf: "pdf photo image document scanner fusionner dossier demarches",
+  watermark: "filigrane signature signer logo copyright protection photo image marque",
+  fancy: "texte style police fonts discord tiktok instagram pseudo gras cursif lettres",
+  pseudo: "pseudo nom utilisateur gaming jeu username generateur",
+  emoji: "emoji emojis symboles smiley copier coller caracteres",
+  bio: "bio description profil instagram tiktok discord presentation",
+  hashtags: "hashtag hashtags reseaux sociaux tiktok instagram tags diese",
+  brandname: "nom chaine marque boutique idee youtube entreprise",
+  descgen: "description legende video youtube titre texte reseaux",
+  palette: "couleur couleurs palette hex rgb design css photo harmonie",
+  qr: "qr code lien url scanner flashcode",
+  wheel: "roue hasard tirage sort aleatoire jeu choisir",
+  todo: "taches liste todo faire rappel organisation agenda",
+  password: "mot de passe mdp securite generateur securise compte",
+  notes: "bloc notes note memo texte ecrire carnet",
+  worldclock: "horloge heure fuseau monde ville pays decalage voyage",
+  trip: "voyage valise checklist liste affaires vacances bagage",
+  budget: "budget argent depenses revenus finance mois economies",
+  savings: "epargne economiser objectif argent mettre de cote projet",
+  currency: "devise devises change euro euros dollar monnaie voyage taux conversion",
+  discount: "reduction soldes promo remise pourcentage prix code promo",
+  tictactoe: "morpion jeu jouer ordinateur deux joueurs",
+  memory: "memoire paires cartes jeu",
+  mental: "calcul mental maths jeu chrono",
+  dice: "des de pile ou face hasard jeu nombre aleatoire",
+  recorder: "enregistreur ecran video capture filmer",
+};
+const hsNorm = (s) => String(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/œ/g, "oe").replace(/[^a-z0-9]+/g, " ").trim();
+const hsTools = [];
+(() => { // lit les cartes de « Tous les outils »
+  const seen = new Set();
   document.querySelectorAll("#home .home-cat").forEach((cat) => {
-    let shown = 0;
-    cat.querySelectorAll(".tool-card").forEach((card) => {
-      const ok = !q || hmNorm(card.textContent).includes(q);
-      card.hidden = !ok;
-      if (ok) shown++;
+    const head = cat.querySelector(".tool-cat");
+    const catLabel = head ? head.textContent.replace(/^[^\p{L}\p{N}]+/u, "").trim() : "";
+    cat.querySelectorAll(".tool-card[data-go]").forEach((card) => {
+      const id = card.dataset.go;
+      if (seen.has(id)) return;
+      seen.add(id);
+      const name = ((card.querySelector("strong") || {}).textContent || id).trim();
+      const desc = ((card.querySelector("span") || {}).textContent || "").trim();
+      const icon = ((card.querySelector(".tc-ico") || {}).textContent || "🧰").trim();
+      hsTools.push({
+        id, name, desc, icon, catLabel, cat: hsNorm(catLabel), nameN: hsNorm(name),
+        nameW: hsNorm(name).split(" ").filter(Boolean),
+        kw: hsNorm(HS_KW[id] || "").split(" ").filter(Boolean),
+        descW: hsNorm(desc).split(" ").filter(Boolean),
+      });
     });
-    cat.hidden = !shown;
-    total += shown;
   });
-  homeEmpty.hidden = total > 0;
-    const feat = $("tools");
-  if (feat) feat.hidden = !!q;
+})();
+
+function hsLev(a, b) { // distance entre deux mots (fautes de frappe)
+  if (Math.abs(a.length - b.length) > 2) return 3;
+  const d = [];
+  for (let i = 0; i <= a.length; i++) d[i] = [i];
+  for (let j = 1; j <= b.length; j++) d[0][j] = j;
+  for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++)
+    d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+  return d[a.length][b.length];
+}
+function hsWordScore(t, w) {
+  let best = 0;
+  const test = (list, exact, prefix, sub) => {
+    for (const x of list) {
+      if (x === w) best = Math.max(best, exact);
+      else if (x.startsWith(w)) best = Math.max(best, prefix);
+      else if (w.length >= 3 && x.includes(w)) best = Math.max(best, sub);
+    }
+  };
+  test(t.nameW, 100, 80, 55);
+  test(t.kw, 70, 55, 35);
+  test(t.descW, 30, 22, 12);
+  if (t.cat === w || t.cat.startsWith(w)) best = Math.max(best, 20);
+  if (!best && w.length >= 4) {
+    const tol = w.length >= 7 ? 2 : 1;
+    for (const x of [...t.nameW, ...t.kw]) if (x.length >= 3 && hsLev(w, x) <= tol) { best = 28; break; }
+  }
+  return best;
+}
+function hsSearch(raw) {
+  let words = hsNorm(raw).split(" ").filter(Boolean);
+  const kept = words.filter((w) => !HS_STOP.has(w));
+  if (kept.length) words = kept;
+  if (!words.length) return [];
+  const full = words.join(" ");
+  const res = [];
+  let top = 0;
+  hsTools.forEach((t) => {
+    let score = 0, matched = 0;
+    words.forEach((w) => { const s = hsWordScore(t, w); if (s) { score += s; matched++; } });
+    if (!matched) return;
+    if (t.nameN.includes(full)) score += 40;
+    if (matched > top) top = matched;
+    res.push({ t, score, matched });
+  });
+  return res.filter((r) => r.matched === top).sort((a, b) => b.score - a.score || a.t.name.localeCompare(b.t.name, "fr"));
 }
 
 if (homeSearch) {
+  const hsHost = homeSearch.closest(".hm-card, .hero-card") || homeSearch.parentElement;
+  const hsLabel = homeSearch.closest("label") || homeSearch;
+  const hsBox = document.createElement("div");
+  hsBox.id = "homeSuggest";
+  hsBox.className = "hs-box";
+  hsBox.setAttribute("role", "listbox");
+  hsBox.setAttribute("aria-label", "Résultats de la recherche");
+  hsBox.hidden = true;
+  hsHost.appendChild(hsBox);
+  homeSearch.setAttribute("role", "combobox");
+  homeSearch.setAttribute("aria-autocomplete", "list");
+  homeSearch.setAttribute("aria-controls", "homeSuggest");
+  homeSearch.setAttribute("aria-expanded", "false");
+  homeSearch.setAttribute("autocomplete", "off");
+  let hsShown = [], hsActive = -1;
+
+  const hsClose = () => {
+    hsBox.hidden = true;
+    hsActive = -1;
+    homeSearch.setAttribute("aria-expanded", "false");
+    homeSearch.removeAttribute("aria-activedescendant");
+  };
+  function hsMark() {
+    hsBox.querySelectorAll(".hs-item").forEach((b, i) => {
+      const on = i === hsActive;
+      b.classList.toggle("active", on);
+      b.setAttribute("aria-selected", String(on));
+      if (on) { homeSearch.setAttribute("aria-activedescendant", b.id); b.scrollIntoView({ block: "nearest" }); }
+    });
+    if (hsActive < 0) homeSearch.removeAttribute("aria-activedescendant");
+  }
+  function hsMove(d) {
+    const n = hsShown.length;
+    hsActive = hsActive < 0 ? (d > 0 ? 0 : n - 1) : (hsActive + d + n) % n;
+    hsMark();
+  }
+  function hsGo(id) { // ouvre l'outil et remet la recherche à zéro
+    homeSearch.value = "";
+    homeSearch.dispatchEvent(new Event("input"));
+    const tab = document.querySelector(`.tab[data-tab="${id}"]`);
+    if (tab) tab.click(); else openTab(id);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function hsRenderBox(results, searching) {
+    hsBox.innerHTML = "";
+    hsActive = -1;
+    hsShown = results.slice(0, 6);
+    homeSearch.removeAttribute("aria-activedescendant");
+    if (!searching) return hsClose();
+    hsBox.style.top = hsLabel.offsetTop + hsLabel.offsetHeight + 6 + "px";
+    if (!hsShown.length) {
+      const p = document.createElement("p");
+      p.className = "hs-empty";
+      p.textContent = "Aucun outil trouvé. Essaie un mot plus simple : photo, argent, pdf, qr code…";
+      hsBox.appendChild(p);
+    } else {
+      hsShown.forEach((r, i) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "hs-item";
+        b.id = "hs-opt-" + i;
+        b.setAttribute("role", "option");
+        const ic = document.createElement("span");
+        ic.className = "hs-ico";
+        ic.textContent = r.t.icon;
+        ic.setAttribute("aria-hidden", "true");
+        const tx = document.createElement("span");
+        tx.className = "hs-txt";
+        const nm = document.createElement("strong");
+        nm.textContent = r.t.name;
+        const sm = document.createElement("small");
+        sm.textContent = r.t.catLabel + " · " + r.t.desc;
+        tx.append(nm, sm);
+        b.append(ic, tx);
+        b.addEventListener("mousedown", (e) => e.preventDefault()); // garde le curseur dans la barre
+        b.addEventListener("click", () => hsGo(r.t.id));
+        hsBox.appendChild(b);
+      });
+      if (results.length > hsShown.length) {
+        const more = document.createElement("p");
+        more.className = "hs-more";
+        const n = results.length - hsShown.length;
+        more.textContent = `… et ${n} autre${n > 1 ? "s" : ""} outil${n > 1 ? "s" : ""} plus bas dans la page.`;
+        hsBox.appendChild(more);
+      }
+    }
+    hsBox.hidden = false;
+    homeSearch.setAttribute("aria-expanded", "true");
+  }
+
+  function homeFilter() {
+    const raw = homeSearch.value;
+    const searching = hsNorm(raw).length >= 2;
+    const results = searching ? hsSearch(raw) : [];
+    const ok = new Set(results.map((r) => r.t.id));
+    let total = 0;
+    document.querySelectorAll("#home .home-cat").forEach((cat) => {
+      let shown = 0;
+      cat.querySelectorAll(".tool-card[data-go]").forEach((card) => {
+        const visible = !searching || ok.has(card.dataset.go);
+        card.hidden = !visible;
+        if (visible) shown++;
+      });
+      cat.hidden = !shown;
+      total += shown;
+    });
+    if (homeEmpty) homeEmpty.hidden = total > 0;
+    const feat = $("tools");
+    if (feat) feat.hidden = searching;
+    hsRenderBox(results, searching);
+  }
+
   homeSearch.addEventListener("input", homeFilter);
+  homeSearch.addEventListener("focus", () => { if (hsNorm(homeSearch.value).length >= 2) homeFilter(); });
   homeSearch.addEventListener("keydown", (e) => {
-    if (e.key !== "Enter") return;
-    const visible = [...document.querySelectorAll("#home .tool-card")].filter((c) => !c.hidden);
-    if (visible.length === 1) visible[0].click();
-    else $("alltools").scrollIntoView({ behavior: "smooth" });
+    const open = !hsBox.hidden && hsShown.length > 0;
+    if (e.key === "ArrowDown" && open) { e.preventDefault(); hsMove(1); }
+    else if (e.key === "ArrowUp" && open) { e.preventDefault(); hsMove(-1); }
+    else if (e.key === "Enter") {
+      e.preventDefault();
+      if (open) hsGo(hsShown[hsActive >= 0 ? hsActive : 0].t.id);
+      else { const all = $("alltools"); if (all) all.scrollIntoView({ behavior: "smooth" }); }
+    } else if (e.key === "Escape") {
+      if (!hsBox.hidden) hsClose();
+      else if (homeSearch.value) { homeSearch.value = ""; homeSearch.dispatchEvent(new Event("input")); }
+    }
   });
-  $("homeCount").textContent = document.querySelectorAll("#home .tool-card").length;
+  document.addEventListener("click", (e) => { if (!hsBox.hidden && e.target !== homeSearch && !hsBox.contains(e.target)) hsClose(); });
+  document.addEventListener("keydown", (e) => { // « / » ou Ctrl + K : aller dans la barre
+    const home = $("home");
+    if (!home || !home.classList.contains("active")) return;
+    const typing = e.target.closest && e.target.closest("input, textarea, select, [contenteditable]");
+    const slash = e.key === "/" && !typing && !e.ctrlKey && !e.metaKey && !e.altKey;
+    const ctrlK = (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k";
+    if (!slash && !ctrlK) return;
+    e.preventDefault();
+    homeSearch.focus();
+    homeSearch.select();
+    homeSearch.scrollIntoView({ behavior: "smooth", block: "center" });
+  });
+
+  const hc = $("homeCount");
+  if (hc) hc.textContent = document.querySelectorAll("#home .tool-card").length;
+  homeFilter();
 }
 document.querySelectorAll("[data-scroll]").forEach((b) => b.addEventListener("click", () => {
   const t = document.getElementById(b.dataset.scroll);
