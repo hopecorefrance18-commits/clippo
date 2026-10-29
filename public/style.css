@@ -1328,3 +1328,30 @@ body:not(:has(#home.active)) .back-home { display: inline-block; }
   .wc-row { flex-direction: column; align-items: flex-start; gap: 4px; }
   .wc-rowtime { text-align: left; }
 }
+
+/* --- Ajout de filigrane --- */
+#watermark h1, #watermark .sub { text-align: center; }
+#watermark .card { min-width: 0; }
+#wmWork { display: grid; gap: 16px; }
+#wmTypes { justify-content: center; }
+.wm-opts { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; align-items: end; }
+.wm-opts .wm-wide { grid-column: 1 / -1; }
+#watermark .text-in, #watermark select { min-width: 0; max-width: 100%; width: 100%; }
+#watermark input[type="range"] { width: 100%; accent-color: var(--pink); }
+.wm-logodrop { padding: 18px 16px; }
+.wm-posbox { display: grid; justify-items: center; text-align: center; }
+.wm-label { color: var(--muted); font-size: .8rem; margin-bottom: 6px; }
+.wm-pos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; width: min(100%, 220px); }
+.wm-pos button { border: 2px solid transparent; cursor: pointer; border-radius: 10px; height: 42px; background: var(--ink-2); color: var(--paper); font-size: 1.1rem; }
+.wm-pos button:hover { border-color: rgba(255, 255, 255, .3); }
+.wm-pos button.on { background: var(--sun); color: var(--ink); }
+.wm-pos .wm-tile { grid-column: 1 / -1; font: 700 .9rem "DM Sans", sans-serif; }
+.wm-stage {
+  display: grid; justify-items: center; padding: 8px; border-radius: 14px;
+  background: conic-gradient(#3a3366 25%, #2a2450 0 50%, #3a3366 0 75%, #2a2450 0) 0 0 / 20px 20px;
+}
+.wm-stage canvas { max-width: 100%; max-height: 70vh; width: auto; height: auto; border-radius: 6px; }
+.wm-export { align-items: end; }
+.wm-export .primary { margin-left: 0; }
+#watermark .status { text-align: center; }
+@media (max-width: 700px) { .wm-export .primary { width: 100%; } }
