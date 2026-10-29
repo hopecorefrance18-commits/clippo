@@ -62,6 +62,7 @@
                     <button class="tab" data-tab="blur">Flouter une image</button>
                     <button class="tab" data-tab="enhance">Améliorer une image</button>
                     <button class="tab" data-tab="photopdf">Photo en PDF</button>
+                    <button class="tab" data-tab="watermark">Filigrane</button>
         </div>
         <div class="subgroup" data-cat="creators" hidden>
           <button class="tab" data-tab="fancy">Texte stylé</button>
@@ -219,6 +220,7 @@
             <button class="tool-card" data-go="blur"><i class="tc-ico">🫥</i><strong>Flouter une image</strong><span>Cache un visage ou un texte, au pinceau.</span><em class="tc-go">→</em></button>
             <button class="tool-card" data-go="enhance"><i class="tc-ico">✨</i><strong>Améliorer une image</strong><span>Agrandis et rends ta photo plus nette.</span><em class="tc-go">→</em></button>
                     <button class="tool-card" data-go="photopdf"><i class="tc-ico">📄</i><strong>Photo en PDF</strong><span>Rassemble tes photos dans un seul PDF.</span><em class="tc-go">→</em></button>
+                      <button class="tool-card" data-go="watermark"><i class="tc-ico">©️</i><strong>Ajout de filigrane</strong><span>Signe tes photos avec ton nom ou ton logo.</span><em class="tc-go">→</em></button>
           </div>
         </div>
 
@@ -1941,6 +1943,115 @@ Hugo</textarea>
 
         <p id="tpStatus" class="status" role="status"></p>
         <p class="gr-note">Tes voyages restent sur ton appareil (dans ce navigateur) et ne sont envoyés nulle part. Si tu vides les données du site, ils disparaissent. Les suggestions sont des repères généraux : adapte-les à ta destination et vérifie les documents exigés (passeport, visa, assurance) auprès des autorités avant de partir.</p>
+      </div>
+    </section>
+      <!-- Ajout de filigrane -->
+    <section id="watermark" class="panel">
+      <h1>Signe tes photos.</h1>
+      <p class="sub">Ajoute ton nom ou ton logo en filigrane avant de publier une photo. Tout se fait sur ton appareil.</p>
+
+      <div class="card">
+        <label id="wmDrop" class="drop">
+          <input id="wmFile" type="file" accept="image/*" hidden>
+          <strong>Dépose ta photo ici</strong>
+          <span>ou clique pour la choisir (PNG, JPG, WEBP)</span>
+        </label>
+
+        <div id="wmWork" hidden>
+          <div class="chips" id="wmTypes">
+            <button class="chip active" data-type="text" type="button">Texte</button>
+            <button class="chip" data-type="logo" type="button">Logo ou image</button>
+          </div>
+
+          <div id="wmTextBox" class="wm-opts">
+            <label class="select wm-wide">
+              <span>Ton texte</span>
+              <input id="wmText" class="text-in" type="text" maxlength="60" value="© Ton nom" autocomplete="off">
+            </label>
+            <label class="select">
+              <span>Police</span>
+              <select id="wmFont">
+                <option value="sans">Moderne</option>
+                <option value="titre">Titre</option>
+                <option value="serif">Classique (serif)</option>
+                <option value="mono">Machine à écrire</option>
+              </select>
+            </label>
+            <label class="select">
+              <span>Couleur</span>
+              <input id="wmColor" class="color-in" type="color" value="#ffffff">
+            </label>
+            <label class="check"><input id="wmBold" type="checkbox" checked> Gras</label>
+            <label class="check"><input id="wmOutline" type="checkbox" checked> Contour pour mieux voir</label>
+          </div>
+
+          <div id="wmLogoBox" hidden>
+            <label class="drop wm-logodrop">
+              <input id="wmLogoFile" type="file" accept="image/*" hidden>
+              <strong>Choisis ton logo</strong>
+              <span id="wmLogoName">PNG à fond transparent de préférence</span>
+            </label>
+          </div>
+
+          <div class="wm-opts">
+            <label class="select">
+              <span>Taille : <strong id="wmSizeVal">30</strong> % de la largeur</span>
+              <input id="wmSize" type="range" min="5" max="90" value="30">
+            </label>
+            <label class="select">
+              <span>Opacité : <strong id="wmOpVal">55</strong> %</span>
+              <input id="wmOpacity" type="range" min="5" max="100" value="55">
+            </label>
+            <label class="select">
+              <span>Rotation : <strong id="wmAngleVal">0</strong>°</span>
+              <input id="wmAngle" type="range" min="-90" max="90" value="0">
+            </label>
+            <label id="wmGapBox" class="select" hidden>
+              <span>Espacement : <strong id="wmGapVal">80</strong> %</span>
+              <input id="wmGap" type="range" min="10" max="250" value="80">
+            </label>
+          </div>
+
+          <div class="wm-posbox">
+            <p class="wm-label">Position</p>
+            <div id="wmPos" class="wm-pos" role="group" aria-label="Position du filigrane">
+              <button type="button" data-pos="tl" aria-label="En haut à gauche">↖</button>
+              <button type="button" data-pos="tc" aria-label="En haut au centre">↑</button>
+              <button type="button" data-pos="tr" aria-label="En haut à droite">↗</button>
+              <button type="button" data-pos="ml" aria-label="Au milieu à gauche">←</button>
+              <button type="button" data-pos="mc" aria-label="Au centre">●</button>
+              <button type="button" data-pos="mr" aria-label="Au milieu à droite">→</button>
+              <button type="button" data-pos="bl" aria-label="En bas à gauche">↙</button>
+              <button type="button" data-pos="bc" aria-label="En bas au centre">↓</button>
+              <button type="button" data-pos="br" aria-label="En bas à droite">↘</button>
+              <button type="button" class="wm-tile" data-pos="tile" aria-label="Répéter sur toute l'image">▦ Mosaïque</button>
+            </div>
+          </div>
+
+          <div class="wm-stage"><canvas id="wmCanvas" width="10" height="10"></canvas></div>
+
+          <div class="row wm-export">
+            <label class="select">
+              <span>Format</span>
+              <select id="wmFmt">
+                <option value="png" selected>PNG (qualité maximale)</option>
+                <option value="jpeg">JPG (fichier plus léger)</option>
+              </select>
+            </label>
+            <label id="wmQualBox" class="select" hidden>
+              <span>Qualité du JPG</span>
+              <select id="wmQual">
+                <option value="0.92">Haute</option>
+                <option value="0.8" selected>Moyenne</option>
+                <option value="0.6">Légère</option>
+              </select>
+            </label>
+            <button id="wmSave" class="primary">Télécharger l'image</button>
+          </div>
+        </div>
+
+        <p id="wmStatus" class="status" role="status"></p>
+        <p class="gr-note">Ta photo reste sur ton appareil : rien n'est envoyé. Un filigrane décourage la réutilisation de ta photo, mais il ne l'empêche pas : un filigrane dans un coin peut être rogné, et même une mosaïque peut être retouchée par quelqu'un de très motivé. Utilise uniquement des textes et des logos dont tu as le droit de te servir.</p>
       </div>
     </section>
   </main>
