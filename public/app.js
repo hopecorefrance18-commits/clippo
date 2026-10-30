@@ -2527,6 +2527,8 @@ const HS_KW = {
   mental: "calcul mental maths jeu chrono",
   dice: "des de pile ou face hasard jeu nombre aleatoire",
   recorder: "enregistreur ecran video capture filmer",
+    mindmap: "carte mentale schema idees brainstorming reviser plan mind map organiser cours",
+  calendar: "calendrier planning mois annee imprimer agenda jours feries dates evenements",
 };
 const hsNorm = (s) => String(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/œ/g, "oe").replace(/[^a-z0-9]+/g, " ").trim();
 const hsTools = [];
@@ -5589,3 +5591,671 @@ $("wmSave").addEventListener("click", () => {
 
 wmLabels();
 wmSetPos("br");
+
+// ---------- Créateur de cartes mentales ----------
+const MP_KEY = "clippo_mindmap", MP_MAX = 60, MP_DEPTH = 4;
+const MP_FONT = '"DM Sans", system-ui, sans-serif';
+const MP_COLORS = ["#e63e6d", "#2f80ed", "#0d9f8a", "#e17b12", "#8b5cf6", "#c2410c", "#0891b2", "#4d7c0f"];
+const MP_GAPX = 60, MP_GAPY = 14, MP_COLW = 210;
+const mpTitle = $("mpTitle"), mpTree = $("mpTree"), mpBg = $("mpBg"), mpFit = $("mpFit");
+const mpStage = $("mpStage"), mpCanvas = $("mpCanvas"), mpStatus = $("mpStatus"), mpInfo = $("mpInfo"), mpAddBranch = $("mpAddBranch");
+const mpMeasure = document.createElement("canvas").getContext("2d");
+let mp = { title: "", nodes: [] }, mpSeq = 0, mpFocusId = 0, mpRaf = 0;
+
+function mpMessage(msg, isError = false) {
+  mpStatus.textContent = msg;
+  mpStatus.classList.toggle("error", isError);
+}
+function mpCount(list) { return list.reduce((s, n) => s + 1 + mpCount(n.children), 0); }
+function mpNewNode(text) { return { id: ++mpSeq, text: text || "", children: [] }; }
+function mpClean(list, depth, budget) {
+  const out = [];
+  if (!Array.isArray(list) || depth > MP_DEPTH) return out;
+  for (const n of list) {
+    if (budget.n >= MP_MAX) break;
+    if (!n || typeof n.text !== "string") continue;
+    budget.n++;
+    out.push({ id: ++mpSeq, text: n.text.slice(0, 60), children: mpClean(n.children, depth + 1, budget) });
+  }
+  return out;
+}
+function mpLoad() {
+  try {
+    const d = JSON.parse(localStorage.getItem(MP_KEY) || "null");
+    if (d && typeof d === "object") return { title: String(d.title || "").slice(0, 50), nodes: mpClean(d.nodes, 1, { n: 0 }) };
+  } catch { /* données illisibles */ }
+  return { title: "", nodes: [] };
+}
+function mpPersist() {
+  try { localStorage.setItem(MP_KEY, JSON.stringify({ title: mp.title, nodes: mp.nodes })); }
+  catch { mpMessage("Impossible d'enregistrer : le stockage du navigateur est plein ou bloqué.", true); }
+}
+
+// --- Dessin ---
+function mpWrap(ctx, text, maxW) {
+  const lines = [];
+  let cur = "";
+  text.split(/\s+/).filter(Boolean).forEach((word) => {
+    let w = word;
+    while (ctx.measureText(w).width > maxW && w.length > 1) { // coupe les mots trop longs
+      let i = w.length - 1;
+      while (i > 1 && ctx.measureText(w.slice(0, i)).width > maxW) i--;
+      if (cur) { lines.push(cur); cur = ""; }
+      lines.push(w.slice(0, i));
+      w = w.slice(i);
+    }
+    const t = cur ? cur + " " + w : w;
+    if (ctx.measureText(t).width <= maxW || !cur) cur = t; else { lines.push(cur); cur = w; }
+  });
+  if (cur) lines.push(cur);
+  return lines.length ? lines : [""];
+}
+function mpBuild(n, depth, color, mc) {
+  const size = depth === 1 ? 17 : 15;
+  mc.font = `${depth === 1 ? 700 : 500} ${size}px ${MP_FONT}`;
+  const lines = mpWrap(mc, n.text.trim() || "…", 180);
+  const lw = Math.max(...lines.map((l) => mc.measureText(l).width));
+  const o = { depth, color, size, lines, w: Math.ceil(lw) + 28, h: lines.length * (size + 4) + 20, cy: 0, x: 0, sub: 0, children: [] };
+  o.children = n.children.map((c) => mpBuild(c, depth + 1, color, mc));
+  return o;
+}
+function mpSub(o) {
+  const kids = o.children.reduce((s, c) => s + mpSub(c), 0);
+  o.sub = Math.max(o.h + MP_GAPY, kids);
+  return o.sub;
+}
+function mpPlace(o, top) {
+  o.cy = top + o.sub / 2;
+  const total = o.children.reduce((s, c) => s + c.sub, 0);
+  let y = top + (o.sub - total) / 2;
+  o.children.forEach((c) => { mpPlace(c, y); y += c.sub; });
+}
+function mpX(o, side, cx0, rw) {
+  o.x = cx0 + side * (rw / 2 + MP_GAPX + (o.depth - 1) * (MP_COLW + MP_GAPX) + MP_COLW / 2);
+  o.children.forEach((c) => mpX(c, side, cx0, rw));
+}
+function mpRound(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+function mpEdgeTree(ctx, o, px, py, ph, side) {
+  const x1 = px + side * ph, x2 = o.x - side * (o.w / 2), mx = (x1 + x2) / 2;
+  ctx.beginPath();
+  ctx.moveTo(x1, py);
+  ctx.bezierCurveTo(mx, py, mx, o.cy, x2, o.cy);
+  ctx.strokeStyle = o.color;
+  ctx.lineWidth = Math.max(2, 6 - o.depth * 1.2);
+  ctx.lineCap = "round";
+  ctx.stroke();
+  o.children.forEach((c) => mpEdgeTree(ctx, c, o.x, o.cy, o.w / 2, side));
+}
+function mpNodeDraw(ctx, o, dark) {
+  mpRound(ctx, o.x - o.w / 2, o.cy - o.h / 2, o.w, o.h, o.depth === 1 ? 16 : 12);
+  if (o.depth === 1) { ctx.fillStyle = o.color; ctx.fill(); }
+  else { ctx.fillStyle = o.color + (dark ? "44" : "26"); ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = o.color; ctx.stroke(); }
+  ctx.font = `${o.depth === 1 ? 700 : 500} ${o.size}px ${MP_FONT}`;
+  ctx.fillStyle = o.depth === 1 ? "#ffffff" : dark ? "#f6f3ff" : "#15112e";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  const lh = o.size + 4, y0 = o.cy - (o.lines.length * lh) / 2 + lh / 2;
+  o.lines.forEach((l, i) => ctx.fillText(l, o.x, y0 + i * lh));
+  o.children.forEach((c) => mpNodeDraw(ctx, c, dark));
+}
+
+function mpDraw() {
+  const title = mp.title.trim();
+  const empty = !title && !mp.nodes.length;
+  mpStage.hidden = empty;
+  if (empty) return;
+  mpStage.classList.toggle("fit", mpFit.checked);
+  const dark = mpBg.value === "dark", mc = mpMeasure;
+  mc.font = `800 20px ${MP_FONT}`;
+  const rl = mpWrap(mc, title || "Idée centrale", 220);
+  const rw = Math.ceil(Math.max(...rl.map((l) => mc.measureText(l).width))) + 44;
+  const rh = rl.length * 26 + 28;
+  const branches = mp.nodes.map((n, i) => mpBuild(n, 1, MP_COLORS[i % MP_COLORS.length], mc));
+  branches.forEach(mpSub);
+  const nR = Math.ceil(branches.length / 2);
+  const right = branches.slice(0, nR), left = branches.slice(nR);
+  const sum = (a) => a.reduce((s, b) => s + b.sub, 0);
+  const hR = sum(right), hL = sum(left), inner = Math.max(hR, hL, rh + MP_GAPY);
+  const depthOf = (o) => 1 + (o.children.length ? Math.max(...o.children.map(depthOf)) : 0);
+  const dR = right.length ? Math.max(...right.map(depthOf)) : 0, dL = left.length ? Math.max(...left.map(depthOf)) : 0;
+  const span = (d) => (d ? MP_GAPX + d * MP_COLW + (d - 1) * MP_GAPX : 0);
+  const PAD = 30, wR = rw / 2 + span(dR), wL = rw / 2 + span(dL);
+  const W = Math.ceil(wL + wR + PAD * 2), H = Math.ceil(inner + PAD * 2);
+  const cx0 = PAD + wL, cy0 = PAD + inner / 2;
+  let y = PAD + (inner - hR) / 2;
+  right.forEach((b) => { mpPlace(b, y); y += b.sub; mpX(b, 1, cx0, rw); });
+  y = PAD + (inner - hL) / 2;
+  left.forEach((b) => { mpPlace(b, y); y += b.sub; mpX(b, -1, cx0, rw); });
+
+  const s = Math.min(2, 4000 / Math.max(W, H));
+  mpCanvas.width = Math.max(1, Math.round(W * s));
+  mpCanvas.height = Math.max(1, Math.round(H * s));
+  mpCanvas.style.width = W + "px";
+  const ctx = mpCanvas.getContext("2d");
+  ctx.setTransform(s, 0, 0, s, 0, 0);
+  ctx.fillStyle = dark ? "#0c1730" : "#ffffff";
+  ctx.fillRect(0, 0, W, H);
+  right.forEach((b) => mpEdgeTree(ctx, b, cx0, cy0, rw / 2, 1));
+  left.forEach((b) => mpEdgeTree(ctx, b, cx0, cy0, rw / 2, -1));
+  mpRound(ctx, cx0 - rw / 2, cy0 - rh / 2, rw, rh, 22);
+  ctx.fillStyle = dark ? "#ffffff" : "#15112e";
+  ctx.fill();
+  ctx.font = `800 20px ${MP_FONT}`;
+  ctx.fillStyle = dark ? "#15112e" : "#ffffff";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  const y0 = cy0 - (rl.length * 26) / 2 + 13;
+  rl.forEach((l, i) => ctx.fillText(l, cx0, y0 + i * 26));
+  branches.forEach((b) => mpNodeDraw(ctx, b, dark));
+}
+function mpSched() {
+  if (mpRaf) return;
+  mpRaf = requestAnimationFrame(() => { mpRaf = 0; mpDraw(); });
+}
+
+// --- Éditeur de branches ---
+function mpList(list, depth, color) {
+  const ul = document.createElement("ul");
+  ul.className = "mp-list";
+  list.forEach((n, i) => {
+    const col = color || MP_COLORS[i % MP_COLORS.length];
+    const li = document.createElement("li");
+    li.className = "mp-item";
+    const row = document.createElement("div");
+    row.className = "mp-row";
+    row.style.borderLeftColor = col;
+    const inp = document.createElement("input");
+    inp.type = "text";
+    inp.className = "text-in";
+    inp.maxLength = 60;
+    inp.value = n.text;
+    inp.placeholder = depth === 1 ? "Branche" : "Sous-branche";
+    inp.dataset.id = String(n.id);
+    inp.setAttribute("aria-label", (depth === 1 ? "Branche " : "Sous-branche ") + (i + 1));
+    inp.addEventListener("input", () => { n.text = inp.value; mpPersist(); mpSched(); });
+    const add = document.createElement("button");
+    add.type = "button";
+    add.className = "mp-btn";
+    add.textContent = "+";
+    add.title = "Ajouter une sous-branche";
+    add.setAttribute("aria-label", "Ajouter une sous-branche");
+    add.disabled = depth >= MP_DEPTH || mpCount(mp.nodes) >= MP_MAX;
+    add.addEventListener("click", () => {
+      const c = mpNewNode("");
+      n.children.push(c);
+      mpFocusId = c.id;
+      mpPersist(); mpEditor(); mpSched();
+    });
+    const del = document.createElement("button");
+    del.type = "button";
+    del.className = "mp-btn";
+    del.textContent = "×";
+    del.title = "Supprimer";
+    del.setAttribute("aria-label", "Supprimer cette branche");
+    del.addEventListener("click", () => {
+      if (n.children.length && !confirm("Supprimer cette branche et ses sous-branches ?")) return;
+      list.splice(list.indexOf(n), 1);
+      mpPersist(); mpEditor(); mpSched();
+    });
+    row.append(inp, add, del);
+    li.appendChild(row);
+    if (n.children.length) li.appendChild(mpList(n.children, depth + 1, col));
+    ul.appendChild(li);
+  });
+  return ul;
+}
+function mpEditor() {
+  mpTree.innerHTML = "";
+  mpTree.appendChild(mpList(mp.nodes, 1, null));
+  const total = mpCount(mp.nodes);
+  mpAddBranch.disabled = total >= MP_MAX;
+  mpInfo.textContent = total ? `${total} élément${total > 1 ? "s" : ""} sur ${MP_MAX} maximum` : "Ajoute ta première branche, ou charge un exemple.";
+  if (mpFocusId) {
+    const f = mpTree.querySelector(`[data-id="${mpFocusId}"]`);
+    if (f) f.focus();
+    mpFocusId = 0;
+  }
+}
+function mpOutline(list, depth) {
+  return list.map((n) => "  ".repeat(depth) + "- " + (n.text || "…") + "\n" + mpOutline(n.children, depth + 1)).join("");
+}
+
+mpAddBranch.addEventListener("click", () => {
+  if (mpCount(mp.nodes) >= MP_MAX) return;
+  const n = mpNewNode("");
+  mp.nodes.push(n);
+  mpFocusId = n.id;
+  mpPersist(); mpEditor(); mpSched();
+});
+mpTitle.addEventListener("input", () => { mp.title = mpTitle.value; mpPersist(); mpSched(); });
+mpBg.addEventListener("change", mpSched);
+mpFit.addEventListener("change", mpSched);
+$("mpExample").addEventListener("click", () => {
+  if ((mp.title.trim() || mp.nodes.length) && !confirm("Remplacer ta carte actuelle par un exemple ?")) return;
+  const mk = (t, ch) => ({ id: ++mpSeq, text: t, children: (ch || []).map((c) => (typeof c === "string" ? mk(c) : mk(c[0], c[1]))) });
+  mp = { title: "Préparer le bac", nodes: [
+    mk("Maths", ["Fonctions", "Probabilités", "Suites"]),
+    mk("Français", ["Oral", ["Écrit", ["Dissertation", "Commentaire"]]]),
+    mk("Histoire", ["Guerres mondiales", "Guerre froide"]),
+    mk("Organisation", ["Planning", "Pauses"]),
+  ] };
+  mpTitle.value = mp.title;
+  mpMessage("");
+  mpPersist(); mpEditor(); mpSched();
+});
+$("mpClear").addEventListener("click", () => {
+  if (!(mp.title.trim() || mp.nodes.length) || !confirm("Effacer toute ta carte ?")) return;
+  mp = { title: "", nodes: [] };
+  mpTitle.value = "";
+  mpMessage("");
+  mpPersist(); mpEditor(); mpDraw();
+});
+$("mpCopy").addEventListener("click", async () => {
+  if (!mp.title.trim() && !mp.nodes.length) return mpMessage("Ta carte est vide.", true);
+  try { await copyText((mp.title.trim() || "Carte mentale") + "\n" + mpOutline(mp.nodes, 0)); mpMessage("Liste copiée !"); }
+  catch { mpMessage("Copie automatique impossible : sélectionne le texte et fais Ctrl + C.", true); }
+});
+$("mpDownload").addEventListener("click", () => {
+  if (mpStage.hidden) return mpMessage("Ajoute une idée centrale ou une branche avant de télécharger.", true);
+  mpDraw();
+  const slug = mp.title.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40);
+  mpCanvas.toBlob((b) => {
+    if (!b) return mpMessage("Impossible de créer l'image.", true);
+    const url = URL.createObjectURL(b);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = (slug || "carte-mentale") + ".png";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  }, "image/png");
+});
+
+if (document.fonts && document.fonts.load) {
+  Promise.all(['500 15px "DM Sans"', '700 17px "DM Sans"', '800 20px "DM Sans"'].map((f) => document.fonts.load(f))).then(mpSched).catch(() => {});
+}
+mp = mpLoad();
+mpTitle.value = mp.title;
+mpEditor();
+mpDraw();
+
+// ---------- Créateur de calendrier ----------
+const CL_KEY = "clippo_calendar", CL_MAX = 100, CL_W = 1754, CL_H = 1240;
+const CL_FONT = '"DM Sans", system-ui, sans-serif';
+const CL_MONTHS = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
+const CL_DAYS = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
+const CL_INIT = ["L", "M", "M", "J", "V", "S", "D"];
+const clCanvas = $("clCanvas"), clMonthSel = $("clMonthSel"), clYear = $("clYear"), clFirst = $("clFirst"), clColor = $("clColor");
+const clTitle = $("clTitle"), clHol = $("clHol"), clWeeks = $("clWeeks"), clStatus = $("clStatus"), clList = $("clList");
+const clDate = $("clDate"), clText = $("clText");
+const clToday = new Date();
+let clMode = "month", clM = clToday.getMonth(), clY = clToday.getFullYear(), clEvents = [];
+const clHolCache = {};
+
+function clMessage(msg, isError = false) {
+  clStatus.textContent = msg;
+  clStatus.classList.toggle("error", isError);
+}
+function clPad(n) { return String(n).padStart(2, "0"); }
+function clKey(y, m, d) { return y + "-" + clPad(m + 1) + "-" + clPad(d); }
+function clValidDate(s) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s || ""));
+  if (!m) return null;
+  const d = new Date(+m[1], +m[2] - 1, +m[3]);
+  return d.getMonth() === +m[2] - 1 ? d : null;
+}
+function clEaster(y) { // calcul de la date de Pâques
+  const a = y % 19, b = Math.floor(y / 100), c = y % 100, d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25);
+  const g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30, i = Math.floor(c / 4), k = c % 4;
+  const l = (32 + 2 * e + 2 * i - h - k) % 7, m = Math.floor((a + 11 * h + 22 * l) / 451);
+  const month = Math.floor((h + l - 7 * m + 114) / 31), day = ((h + l - 7 * m + 114) % 31) + 1;
+  return new Date(y, month - 1, day);
+}
+function clHolidays(y) { // jours fériés de la France métropolitaine
+  if (clHolCache[y]) return clHolCache[y];
+  const e = clEaster(y), map = {};
+  const put = (d, name) => { map[d.getMonth() + "-" + d.getDate()] = name; };
+  const plus = (n) => new Date(y, e.getMonth(), e.getDate() + n);
+  put(new Date(y, 0, 1), "Jour de l'An");
+  put(plus(1), "Lundi de Pâques");
+  put(new Date(y, 4, 1), "Fête du travail");
+  put(new Date(y, 4, 8), "Victoire 1945");
+  put(plus(39), "Ascension");
+  put(plus(50), "Lundi de Pentecôte");
+  put(new Date(y, 6, 14), "Fête nationale");
+  put(new Date(y, 7, 15), "Assomption");
+  put(new Date(y, 10, 1), "Toussaint");
+  put(new Date(y, 10, 11), "Armistice 1918");
+  put(new Date(y, 11, 25), "Noël");
+  return (clHolCache[y] = map);
+}
+function clWeek(d) { // numéro de semaine ISO
+  const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  t.setUTCDate(t.getUTCDate() + 4 - (t.getUTCDay() || 7));
+  return Math.ceil(((t - new Date(Date.UTC(t.getUTCFullYear(), 0, 1))) / 86400000 + 1) / 7);
+}
+function clFit(ctx, text, maxW) {
+  if (ctx.measureText(text).width <= maxW) return text;
+  let t = text;
+  while (t.length > 1 && ctx.measureText(t + "…").width > maxW) t = t.slice(0, -1);
+  return t + "…";
+}
+function clEventMap() {
+  const m = {};
+  clEvents.forEach((ev) => { (m[ev.date] = m[ev.date] || []).push(ev.text); });
+  return m;
+}
+function clTitleDraw(ctx, st, y) {
+  if (!st.title) return;
+  ctx.textAlign = "right";
+  ctx.textBaseline = "alphabetic";
+  ctx.font = `700 34px ${CL_FONT}`;
+  ctx.fillStyle = "#6b7488";
+  ctx.fillText(clFit(ctx, st.title, CL_W / 2 - 60), CL_W - 60, y);
+  ctx.textAlign = "left";
+}
+
+function clDrawMonth(ctx, st) {
+  const W = CL_W, H = CL_H, M = 60;
+  const first = new Date(st.y, st.m, 1), dim = new Date(st.y, st.m + 1, 0).getDate();
+  const off = st.sun ? first.getDay() : (first.getDay() + 6) % 7;
+  const rows = Math.ceil((off + dim) / 7);
+  const now = new Date(), tY = now.getFullYear(), tM = now.getMonth(), tD = now.getDate();
+  ctx.textAlign = "left";
+  ctx.textBaseline = "alphabetic";
+  ctx.font = `800 84px ${CL_FONT}`;
+  ctx.fillStyle = st.accent;
+  ctx.fillText(CL_MONTHS[st.m], M, 112);
+  const mw = ctx.measureText(CL_MONTHS[st.m]).width;
+  ctx.font = `500 84px ${CL_FONT}`;
+  ctx.fillStyle = "#15112e";
+  ctx.fillText(String(st.y), M + mw + 24, 112);
+  clTitleDraw(ctx, st, 104);
+
+  const wk = st.weeks ? 56 : 0, gx = M + wk, cw = (W - M - gx) / 7;
+  const top = 158, dn = 48, gy = top + dn, rh = (H - 48 - gy) / rows;
+  ctx.fillStyle = st.accent;
+  ctx.fillRect(gx, top, cw * 7, dn);
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.font = `700 24px ${CL_FONT}`;
+  ctx.fillStyle = "#ffffff";
+  for (let c = 0; c < 7; c++) ctx.fillText(CL_DAYS[(c + (st.sun ? 6 : 0)) % 7], gx + cw * c + cw / 2, top + dn / 2 + 1);
+  if (wk) {
+    ctx.fillStyle = "#e6ebf5";
+    ctx.fillRect(M, top, wk, dn);
+    ctx.fillStyle = "#6b7488";
+    ctx.font = `700 18px ${CL_FONT}`;
+    ctx.fillText("Sem.", M + wk / 2, top + dn / 2 + 1);
+  }
+
+  for (let r = 0; r < rows; r++) {
+    if (wk) {
+      ctx.font = `700 20px ${CL_FONT}`;
+      ctx.fillStyle = "#8a93a8";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(String(clWeek(new Date(st.y, st.m, r * 7 - off + 1 + (st.sun ? 1 : 0)))), M + wk / 2, gy + rh * r + rh / 2);
+    }
+    for (let c = 0; c < 7; c++) {
+      const dayNum = r * 7 + c - off + 1;
+      const date = new Date(st.y, st.m, dayNum);
+      const inM = dayNum >= 1 && dayNum <= dim;
+      const dow = date.getDay(), weekend = dow === 0 || dow === 6;
+      const x = gx + cw * c, y = gy + rh * r;
+      const hol = inM && st.hol ? st.holMap[date.getMonth() + "-" + date.getDate()] : "";
+      ctx.fillStyle = !inM ? "#f4f6fa" : hol ? st.accent + "22" : weekend ? "#eef2fa" : "#ffffff";
+      ctx.fillRect(x, y, cw, rh);
+      ctx.strokeStyle = "#d3dae8";
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(x, y, cw, rh);
+      const isToday = inM && st.y === tY && st.m === tM && dayNum === tD;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      if (isToday) { ctx.fillStyle = st.accent; ctx.beginPath(); ctx.arc(x + 28, y + 28, 21, 0, Math.PI * 2); ctx.fill(); }
+      ctx.font = `700 28px ${CL_FONT}`;
+      ctx.fillStyle = isToday ? "#ffffff" : !inM ? "#b7bfd0" : hol ? st.accent : weekend ? "#6b7488" : "#15112e";
+      ctx.fillText(String(date.getDate()), x + 28, y + 29);
+      if (!inM) continue;
+      ctx.textAlign = "left";
+      if (hol) {
+        ctx.font = `700 19px ${CL_FONT}`;
+        ctx.fillStyle = st.accent;
+        ctx.fillText(clFit(ctx, hol, cw - 66), x + 56, y + 29);
+      }
+      const evs = st.ev[clKey(st.y, st.m, dayNum)] || [];
+      const maxL = Math.max(0, Math.floor((rh - 64) / 26));
+      let shown = evs, more = 0;
+      if (evs.length > maxL) { shown = evs.slice(0, Math.max(0, maxL - 1)); more = maxL ? evs.length - shown.length : 0; }
+      ctx.font = `500 20px ${CL_FONT}`;
+      shown.forEach((t, i) => {
+        const ly = y + 70 + i * 26;
+        ctx.fillStyle = st.accent;
+        ctx.beginPath();
+        ctx.arc(x + 18, ly, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#15112e";
+        ctx.fillText(clFit(ctx, t, cw - 44), x + 30, ly);
+      });
+      if (more) {
+        ctx.fillStyle = "#6b7488";
+        ctx.fillText(`+ ${more} autre${more > 1 ? "s" : ""}`, x + 14, y + 70 + shown.length * 26);
+      }
+    }
+  }
+}
+
+function clDrawYear(ctx, st) {
+  const W = CL_W, H = CL_H, M = 60;
+  const now = new Date(), tY = now.getFullYear(), tM = now.getMonth(), tD = now.getDate();
+  ctx.textAlign = "left";
+  ctx.textBaseline = "alphabetic";
+  ctx.font = `800 84px ${CL_FONT}`;
+  ctx.fillStyle = st.accent;
+  ctx.fillText(String(st.y), M, 112);
+  clTitleDraw(ctx, st, 104);
+  const gap = 36, bw = (W - M * 2 - gap * 3) / 4, top = 150, bh = (H - top - 56 - gap * 2) / 3;
+  for (let mi = 0; mi < 12; mi++) {
+    const bx = M + (mi % 4) * (bw + gap), by = top + Math.floor(mi / 4) * (bh + gap), cw = bw / 7;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "alphabetic";
+    ctx.font = `800 30px ${CL_FONT}`;
+    ctx.fillStyle = st.accent;
+    ctx.fillText(CL_MONTHS[mi], bx, by + 30);
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.font = `700 18px ${CL_FONT}`;
+    ctx.fillStyle = "#8a93a8";
+    for (let c = 0; c < 7; c++) ctx.fillText(CL_INIT[(c + (st.sun ? 6 : 0)) % 7], bx + cw * c + cw / 2, by + 62);
+    const ms = new Date(st.y, mi, 1), dim = new Date(st.y, mi + 1, 0).getDate();
+    const off = st.sun ? ms.getDay() : (ms.getDay() + 6) % 7, rh = (bh - 84) / 6;
+    for (let d = 1; d <= dim; d++) {
+      const idx = off + d - 1, r = Math.floor(idx / 7), c = idx % 7;
+      const cx = bx + cw * c + cw / 2, cy = by + 84 + rh * r + rh / 2;
+      const dow = new Date(st.y, mi, d).getDay();
+      const hol = st.hol && st.holMap[mi + "-" + d];
+      const radius = Math.min(cw, rh) * 0.42;
+      if (hol) { ctx.fillStyle = st.accent; ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.fill(); }
+      else if (st.y === tY && mi === tM && d === tD) { ctx.strokeStyle = st.accent; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.stroke(); }
+      ctx.font = `${hol ? 800 : 500} 22px ${CL_FONT}`;
+      ctx.fillStyle = hol ? "#ffffff" : dow === 0 || dow === 6 ? "#8a93a8" : "#15112e";
+      ctx.fillText(String(d), cx, cy + 1);
+      if (st.ev[clKey(st.y, mi, d)]) {
+        ctx.fillStyle = hol ? "#ffffff" : st.accent;
+        ctx.beginPath();
+        ctx.arc(cx, cy + radius * 0.8, 3.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  }
+  ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
+  ctx.font = `500 20px ${CL_FONT}`;
+  let lx = M;
+  if (st.hol) {
+    ctx.fillStyle = st.accent;
+    ctx.beginPath();
+    ctx.arc(lx + 8, H - 30, 8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#6b7488";
+    ctx.fillText("Jour férié (France)", lx + 26, H - 29);
+    lx += 270;
+  }
+  ctx.fillStyle = "#6b7488";
+  ctx.fillText("Un point sous le numéro : un événement", lx, H - 29);
+}
+
+function clDraw() {
+  const st = {
+    y: clY, m: clM, accent: clColor.value, sun: clFirst.value === "sun", hol: clHol.checked, weeks: clWeeks.checked,
+    title: clTitle.value.trim(), ev: clEventMap(), holMap: clHolidays(clY),
+  };
+  clCanvas.width = CL_W;
+  clCanvas.height = CL_H;
+  const ctx = clCanvas.getContext("2d");
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, CL_W, CL_H);
+  if (clMode === "month") clDrawMonth(ctx, st); else clDrawYear(ctx, st);
+}
+
+// --- Réglages et navigation ---
+function clLoad() {
+  try {
+    const d = JSON.parse(localStorage.getItem(CL_KEY) || "null");
+    if (!d || typeof d !== "object") return;
+    if (Array.isArray(d.events)) {
+      clEvents = d.events.filter((e) => e && typeof e.text === "string" && clValidDate(e.date)).slice(0, CL_MAX)
+        .map((e) => ({ id: String(e.id), date: String(e.date), text: e.text.slice(0, 40) }));
+    }
+    const s = d.settings || {};
+    if (s.first === "sun") clFirst.value = "sun";
+    if (typeof s.hol === "boolean") clHol.checked = s.hol;
+    if (typeof s.weeks === "boolean") clWeeks.checked = s.weeks;
+    if (/^#[0-9a-fA-F]{6}$/.test(s.color || "")) clColor.value = s.color;
+    if (typeof s.title === "string") clTitle.value = s.title.slice(0, 40);
+  } catch { /* données illisibles */ }
+}
+function clPersist() {
+  try {
+    localStorage.setItem(CL_KEY, JSON.stringify({
+      events: clEvents,
+      settings: { first: clFirst.value, hol: clHol.checked, weeks: clWeeks.checked, color: clColor.value, title: clTitle.value },
+    }));
+  } catch { clMessage("Impossible d'enregistrer : le stockage du navigateur est plein ou bloqué.", true); }
+}
+function clSync() {
+  clMonthSel.value = String(clM);
+  clYear.value = String(clY);
+  clDraw();
+}
+function clSetMode(m) {
+  clMode = m;
+  document.querySelectorAll("#clModes .chip").forEach((c) => c.classList.toggle("active", c.dataset.mode === m));
+  $("clMonthBox").hidden = m !== "month";
+  $("clWeeksBox").hidden = m !== "month";
+  $("clNav").classList.toggle("year", m === "year");
+  clSync();
+}
+function clShift(d) {
+  if (clMode === "year") clY += d;
+  else {
+    clM += d;
+    if (clM < 0) { clM = 11; clY--; } else if (clM > 11) { clM = 0; clY++; }
+  }
+  clY = Math.max(1900, Math.min(2200, clY));
+  clSync();
+}
+function clRenderEvents() {
+  clList.innerHTML = "";
+  const sorted = clEvents.slice().sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+  if (!sorted.length) {
+    const li = document.createElement("li");
+    li.className = "todo-empty";
+    li.textContent = "Aucun événement pour l'instant.";
+    clList.appendChild(li);
+    return;
+  }
+  sorted.forEach((ev) => {
+    const li = document.createElement("li");
+    li.className = "cl-item";
+    const info = document.createElement("div");
+    info.className = "cl-info";
+    const s = document.createElement("strong");
+    s.textContent = ev.text;
+    const d = document.createElement("span");
+    d.textContent = clValidDate(ev.date).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+    info.append(s, d);
+    const del = document.createElement("button");
+    del.type = "button";
+    del.className = "todo-btn";
+    del.textContent = "×";
+    del.setAttribute("aria-label", "Supprimer : " + ev.text);
+    del.addEventListener("click", () => { clEvents = clEvents.filter((x) => x.id !== ev.id); clPersist(); clRenderEvents(); clDraw(); });
+    li.append(info, del);
+    clList.appendChild(li);
+  });
+}
+
+$("clModes").querySelectorAll(".chip").forEach((c) => c.addEventListener("click", () => clSetMode(c.dataset.mode)));
+$("clPrev").addEventListener("click", () => clShift(-1));
+$("clNext").addEventListener("click", () => clShift(1));
+clMonthSel.addEventListener("change", () => { clM = parseInt(clMonthSel.value, 10) || 0; clSync(); });
+clYear.addEventListener("change", () => {
+  const v = parseInt(clYear.value, 10);
+  if (Number.isFinite(v)) clY = Math.max(1900, Math.min(2200, v));
+  clSync();
+});
+[clFirst, clColor, clHol, clWeeks, clTitle].forEach((el) => el.addEventListener("input", () => { clPersist(); clDraw(); }));
+
+$("clAdd").addEventListener("click", () => {
+  const d = clValidDate(clDate.value), t = clText.value.trim().slice(0, 40);
+  if (!d) return clMessage("Choisis une date.", true);
+  if (!t) return clMessage("Écris le nom de l'événement (ex : Anniversaire de Léa).", true);
+  if (clEvents.length >= CL_MAX) return clMessage(`Tu as atteint la limite de ${CL_MAX} événements. Supprime-en un.`, true);
+  clEvents.push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), date: clKey(d.getFullYear(), d.getMonth(), d.getDate()), text: t });
+  clText.value = "";
+  clY = Math.max(1900, Math.min(2200, d.getFullYear()));
+  clM = d.getMonth();
+  clMessage("Événement ajouté !");
+  clPersist(); clRenderEvents(); clSync();
+});
+clText.addEventListener("keydown", (e) => { if (e.key === "Enter") $("clAdd").click(); });
+
+$("clDownload").addEventListener("click", () => {
+  clDraw();
+  clCanvas.toBlob((b) => {
+    if (!b) return clMessage("Impossible de créer l'image.", true);
+    const url = URL.createObjectURL(b);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = clMode === "year" ? `calendrier-${clY}.png` : `calendrier-${clY}-${clPad(clM + 1)}.png`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  }, "image/png");
+});
+$("clPrint").addEventListener("click", () => {
+  clDraw();
+  document.body.classList.add("cl-print");
+  window.print();
+});
+window.addEventListener("afterprint", () => document.body.classList.remove("cl-print"));
+
+CL_MONTHS.forEach((n, i) => { const o = document.createElement("option"); o.value = String(i); o.textContent = n; clMonthSel.appendChild(o); });
+clLoad();
+clDate.value = clKey(clToday.getFullYear(), clToday.getMonth(), clToday.getDate());
+clRenderEvents();
+clSetMode("month");
+if (document.fonts && document.fonts.load) {
+  Promise.all(['500 20px "DM Sans"', '700 28px "DM Sans"', '800 84px "DM Sans"'].map((f) => document.fonts.load(f))).then(clDraw).catch(() => {});
+}
