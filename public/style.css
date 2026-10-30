@@ -1475,3 +1475,72 @@ body:not(:has(#home.active)) .back-home { display: inline-block; }
   .hm-card { max-width: 100%; }
   .hc-chips { min-width: 0; }
 }
+
+/* --- Accueil : trait bleu entre les catégories --- */
+.home-cat:not([hidden]) ~ .home-cat:not([hidden]) {
+  margin-top: 30px; padding-top: 2px; border-top: 1px solid;
+  border-image: linear-gradient(90deg, transparent, rgba(41, 182, 255, .85) 12%, rgba(41, 182, 255, .85) 88%, transparent) 1;
+}
+.home-cat:not([hidden]) ~ .home-cat:not([hidden]) .tool-cat { margin-top: 20px; }
+
+/* --- Cartes mentales --- */
+#mindmap h1, #mindmap .sub, #calendar h1, #calendar .sub { text-align: center; }
+#mindmap .card, #calendar .card { min-width: 0; }
+#mindmap .text-in, #calendar .text-in, #calendar select { min-width: 0; width: 100%; max-width: 100%; }
+.mp-tree { display: grid; gap: 8px; }
+.mp-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.mp-list .mp-list { padding-left: 18px; margin-top: 8px; }
+.mp-row { display: flex; align-items: center; gap: 8px; background: var(--ink-2); border-left: 5px solid var(--aqua); border-radius: 12px; padding: 6px 6px 6px 10px; }
+.mp-row .text-in { flex: 1; width: auto; }
+.mp-btn { flex-shrink: 0; width: 44px; height: 44px; border: 0; border-radius: 10px; cursor: pointer; background: rgba(255, 255, 255, .08); color: var(--paper); font-size: 1.2rem; }
+.mp-btn:hover:not(:disabled) { background: rgba(255, 255, 255, .18); }
+.mp-btn:disabled { opacity: .35; cursor: default; }
+.mp-actions { justify-content: center; align-items: center; }
+.mp-actions .primary { margin-left: 0; }
+.mp-opts { justify-content: center; align-items: end; }
+.mp-center { text-align: center; }
+.mp-stage { overflow: auto; border-radius: 14px; padding: 8px; background: conic-gradient(#3a3366 25%, #2a2450 0 50%, #3a3366 0 75%, #2a2450 0) 0 0 / 20px 20px; }
+.mp-stage canvas { display: block; margin: 0 auto; border-radius: 6px; }
+.mp-stage.fit canvas { max-width: 100%; height: auto; }
+#mindmap .status, #calendar .status { text-align: center; }
+
+/* --- Calendrier --- */
+#clModes { justify-content: center; }
+.cl-nav { display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr) auto; gap: 10px; align-items: end; }
+.cl-nav.year { grid-template-columns: auto minmax(0, 1fr) auto; }
+.cl-nav .ghost-btn { height: 46px; padding: 0 18px; font-size: 1.3rem; }
+.cl-opts { align-items: end; }
+#calendar input[type="date"], #calendar input[type="number"] { -webkit-appearance: none; appearance: none; box-sizing: border-box; min-height: 46px; text-align: left; }
+.cl-stage { overflow-x: auto; border-radius: 12px; background: #fff; padding: 6px; }
+.cl-stage canvas { display: block; width: 100%; height: auto; border-radius: 6px; }
+.cl-actions { justify-content: center; align-items: center; }
+.cl-actions .primary { margin-left: 0; }
+.cl-add { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; align-items: end; }
+.cl-add .primary { margin-left: 0; justify-self: start; }
+.cl-list { list-style: none; padding: 0; display: grid; gap: 8px; }
+.cl-item { display: flex; align-items: center; gap: 12px; background: var(--ink-2); border-radius: 14px; padding: 10px 12px; }
+.cl-info { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.cl-info strong { word-break: break-word; }
+.cl-info span { color: var(--muted); font-size: .85rem; text-transform: capitalize; }
+@media (max-width: 700px) {
+  .mp-actions .primary, .mp-actions .ghost-btn, .cl-actions .primary, .cl-actions .ghost-btn, .cl-add .primary { width: 100%; }
+  .mp-list .mp-list { padding-left: 10px; }
+  .cl-stage canvas { width: 760px; max-width: none; }
+  .cl-nav { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .cl-nav .select:nth-of-type(2) { grid-column: 2; }
+}
+
+/* --- Impression du calendrier --- */
+@page { size: A4 landscape; margin: 8mm; }
+@media print {
+  body.cl-print { background: #fff !important; }
+  body.cl-print > *:not(main) { display: none !important; }
+  body.cl-print main { padding: 0 !important; max-width: none !important; }
+  body.cl-print main > .panel { display: none !important; }
+  body.cl-print main > #calendar { display: block !important; }
+  body.cl-print #calendar > *:not(.card) { display: none !important; }
+  body.cl-print #calendar .card { display: block !important; background: none !important; border: 0 !important; padding: 0 !important; backdrop-filter: none !important; }
+  body.cl-print #calendar .card > *:not(.cl-stage) { display: none !important; }
+  body.cl-print .cl-stage { background: none !important; padding: 0 !important; overflow: visible !important; }
+  body.cl-print .cl-stage canvas { width: 100% !important; max-width: 100% !important; height: auto !important; }
+}
