@@ -53,6 +53,7 @@
                     <button class="tab" data-tab="countdown">Compte à rebours</button>
                     <button class="tab" data-tab="studyplan">Planning</button>
                     <button class="tab" data-tab="gradeconv">Notes</button>
+                    <button class="tab" data-tab="mindmap">Cartes mentales</button>
         
         </div>
         <div class="subgroup" data-cat="media" hidden>
@@ -82,6 +83,7 @@
                     <button class="tab" data-tab="notes">Bloc-notes</button>
                     <button class="tab" data-tab="worldclock">Horloge</button>
           <button class="tab" data-tab="trip">Voyage</button>
+                    <button class="tab" data-tab="calendar">Calendrier</button>
         </div>
                 <div class="subgroup" data-cat="money" hidden>
           <button class="tab" data-tab="budget">Budget</button>
@@ -166,20 +168,17 @@
         <div class="hm-sechead">
           <div>
             <p class="eyebrow"><span></span>NOS OUTILS</p>
-            <h2>Des outils puissants, pour tous tes besoins.</h2>
+            <h2>Les outils les plus populaires</h2>
           </div>
           <button class="hm-link" data-scroll="alltools">Voir tous les outils →</button>
         </div>
 
-        <div class="hm-grid">
-          <button class="hm-feat" data-go="mp3"><i class="hm-ico i1">🎵</i><strong>Extraire le MP3</strong><span>Récupère le son d'une vidéo et télécharge-le en MP3.</span><em class="hm-go">→</em></button>
-          <button class="hm-feat" data-go="cutout"><i class="hm-ico i2">✂️</i><strong>Détourer une image</strong><span>Dépose une photo, Clippo retire le fond et te rend un PNG transparent.</span><em class="hm-go">→</em></button>
-          <button class="hm-feat" data-go="convert"><i class="hm-ico i3">🖼️</i><strong>Convertir et compresser</strong><span>Réduis le poids de tes images, recadre-les, change leur format.</span><em class="hm-go">→</em></button>
-                    <button class="hm-feat" data-go="blur"><i class="hm-ico i4">🫥</i><strong>Flouter une image</strong><span>Cache un visage ou un texte, au pinceau, en flou ou en pixels.</span><em class="hm-go">→</em></button>
+                <button class="hm-feat" data-go="convert"><i class="hm-ico i3">🖼️</i><strong>Convertir et compresser</strong><span>Réduis le poids de tes images, recadre-les, change leur format.</span><em class="hm-go">→</em></button>
+          <button class="hm-feat" data-go="photopdf"><i class="hm-ico i4">📄</i><strong>Photo en PDF</strong><span>Rassemble tes photos dans un seul PDF.</span><em class="hm-go">→</em></button>
           <button class="hm-feat" data-go="qr"><i class="hm-ico i5">📱</i><strong>QR code</strong><span>Transforme un lien en QR code à télécharger.</span><em class="hm-go">→</em></button>
-          <button class="hm-feat" data-scroll="alltools"><i class="hm-ico i6">🧰</i><strong>Et bien plus encore…</strong><span>Flou, mot de passe, budget, hashtags, jeux… Découvre tous les outils.</span><em class="hm-go">→</em></button>
-        </div>
-      </div>
+          <button class="hm-feat" data-go="cutout"><i class="hm-ico i2">✂️</i><strong>Détourer une image</strong><span>Retire l'arrière-plan d'une photo en quelques secondes.</span><em class="hm-go">→</em></button>
+          <button class="hm-feat" data-go="mp3"><i class="hm-ico i1">🎵</i><strong>Extraire le MP3</strong><span>Récupère le son d'une vidéo et télécharge-le en MP3.</span><em class="hm-go">→</em></button>
+          <button class="hm-feat" data-go="password"><i class="hm-ico i6">🔐</i><strong>Mot de passe</strong><span>Crée un mot de passe solide, à copier.</span><em class="hm-go">→</em></button>
 
       <div class="hm-discord">
         <i class="hm-dico" aria-hidden="true">💬</i>
@@ -208,6 +207,7 @@
            <button class="tool-card" data-go="countdown"><i class="tc-ico">📅</i><strong>Compte à rebours</strong><span>Les jours qui restent avant ton examen.</span><em class="tc-go">→</em></button>
                       <button class="tool-card" data-go="studyplan"><i class="tc-ico">🗓️</i><strong>Planning de révisions</strong><span>Répartis tes séances jusqu'au jour de l'examen.</span><em class="tc-go">→</em></button>
                       <button class="tool-card" data-go="gradeconv"><i class="tc-ico">🔄</i><strong>Convertisseur de notes</strong><span>Passe une note de /20 à /10, /100 ou en pourcentage.</span><em class="tc-go">→</em></button>
+                     <button class="tool-card" data-go="mindmap"><i class="tc-ico">🧠</i><strong>Créateur de cartes mentales</strong><span>Organise tes idées en branches et télécharge ta carte.</span><em class="tc-go">→</em></button>
           </div>
         </div>
 
@@ -248,6 +248,7 @@
             <button class="tool-card" data-go="notes"><i class="tc-ico">🗒️</i><strong>Bloc-notes</strong><span>Écris tes notes, elles sont gardées dans ton navigateur.</span><em class="tc-go">→</em></button>
                         <button class="tool-card" data-go="worldclock"><i class="tc-ico">🌍</i><strong>Horloge mondiale</strong><span>Compare l'heure dans plusieurs villes et pays.</span><em class="tc-go">→</em></button>
             <button class="tool-card" data-go="trip"><i class="tc-ico">🧳</i><strong>Checklist de voyage</strong><span>Crée ta liste de choses à emporter et coche-les.</span><em class="tc-go">→</em></button>
+                     <button class="tool-card" data-go="calendar"><i class="tc-ico">🗓️</i><strong>Créateur de calendrier</strong><span>Un mois ou une année à imprimer, avec tes événements.</span><em class="tc-go">→</em></button>
           </div>
         </div>
                 <div class="home-cat">
@@ -2061,6 +2062,121 @@ Hugo</textarea>
 
         <p id="wmStatus" class="status" role="status"></p>
         <p class="gr-note">Ta photo reste sur ton appareil : rien n'est envoyé. Un filigrane décourage la réutilisation de ta photo, mais il ne l'empêche pas : un filigrane dans un coin peut être rogné, et même une mosaïque peut être retouchée par quelqu'un de très motivé. Utilise uniquement des textes et des logos dont tu as le droit de te servir.</p>
+      </div>
+    </section>
+      <!-- Cartes mentales -->
+    <section id="mindmap" class="panel">
+      <h1>Crée ta carte mentale.</h1>
+      <p class="sub">Écris ton idée centrale, ajoute des branches et des sous-branches : la carte se dessine toute seule. Télécharge-la en image.</p>
+
+      <div class="card">
+        <label class="select">
+          <span>Idée centrale</span>
+          <input id="mpTitle" class="text-in" type="text" maxlength="50" placeholder="ex : Préparer le bac" autocomplete="off">
+        </label>
+
+        <h2 class="fc-title">Branches</h2>
+        <div id="mpTree" class="mp-tree"></div>
+        <div class="row mp-actions">
+          <button id="mpAddBranch" class="primary">+ Ajouter une branche</button>
+          <button id="mpExample" class="ghost-btn" type="button">Voir un exemple</button>
+          <button id="mpClear" class="ghost-btn" type="button">Tout effacer</button>
+        </div>
+        <p id="mpInfo" class="gr-info mp-center"></p>
+
+        <div class="row mp-opts">
+          <label class="select">
+            <span>Fond de l'image</span>
+            <select id="mpBg">
+              <option value="light">Clair</option>
+              <option value="dark">Sombre</option>
+            </select>
+          </label>
+          <label class="check"><input id="mpFit" type="checkbox" checked> Adapter à la largeur de l'écran</label>
+        </div>
+
+        <div id="mpStage" class="mp-stage fit" hidden>
+          <canvas id="mpCanvas" width="10" height="10" aria-label="Aperçu de ta carte mentale"></canvas>
+        </div>
+
+        <div class="row mp-actions">
+          <button id="mpDownload" class="primary">Télécharger en image</button>
+          <button id="mpCopy" class="ghost-btn" type="button">Copier en liste</button>
+        </div>
+        <p id="mpStatus" class="status" role="status"></p>
+        <p class="gr-note">Ta carte est enregistrée dans ton navigateur et n'est envoyée nulle part. Si tu vides les données du site, elle disparaît : télécharge-la pour la garder. Jusqu'à 60 éléments sur 4 niveaux.</p>
+      </div>
+    </section>
+
+    <!-- Créateur de calendrier -->
+    <section id="calendar" class="panel">
+      <h1>Crée ton calendrier.</h1>
+      <p class="sub">Choisis un mois ou une année, ajoute tes événements et télécharge un calendrier à imprimer. Tout se fait sur ton appareil.</p>
+
+      <div class="card">
+        <div class="chips" id="clModes">
+          <button class="chip active" data-mode="month" type="button">Mois</button>
+          <button class="chip" data-mode="year" type="button">Année</button>
+        </div>
+
+        <div id="clNav" class="cl-nav">
+          <button id="clPrev" class="ghost-btn" type="button" aria-label="Précédent">‹</button>
+          <label id="clMonthBox" class="select">
+            <span>Mois</span>
+            <select id="clMonthSel"></select>
+          </label>
+          <label class="select">
+            <span>Année</span>
+            <input id="clYear" class="text-in" type="number" min="1900" max="2200" step="1">
+          </label>
+          <button id="clNext" class="ghost-btn" type="button" aria-label="Suivant">›</button>
+        </div>
+
+        <div class="row cl-opts">
+          <label class="select">
+            <span>Premier jour</span>
+            <select id="clFirst">
+              <option value="mon">Lundi</option>
+              <option value="sun">Dimanche</option>
+            </select>
+          </label>
+          <label class="select">
+            <span>Couleur</span>
+            <input id="clColor" class="color-in" type="color" value="#1f7bff">
+          </label>
+          <label class="select grow">
+            <span>Titre (facultatif)</span>
+            <input id="clTitle" class="text-in" type="text" maxlength="40" placeholder="ex : Planning famille" autocomplete="off">
+          </label>
+        </div>
+        <div class="row cl-opts">
+          <label class="check"><input id="clHol" type="checkbox" checked> Jours fériés (France)</label>
+          <label id="clWeeksBox" class="check"><input id="clWeeks" type="checkbox"> Numéros de semaine</label>
+        </div>
+
+        <div class="cl-stage"><canvas id="clCanvas" width="1754" height="1240" aria-label="Aperçu du calendrier"></canvas></div>
+
+        <div class="row cl-actions">
+          <button id="clDownload" class="primary">Télécharger l'image</button>
+          <button id="clPrint" class="ghost-btn" type="button">🖨️ Imprimer</button>
+        </div>
+
+        <h2 class="fc-title">Mes événements</h2>
+        <div class="cl-add">
+          <label class="select">
+            <span>Date</span>
+            <input id="clDate" class="text-in" type="date">
+          </label>
+          <label class="select">
+            <span>Événement</span>
+            <input id="clText" class="text-in" type="text" maxlength="40" placeholder="ex : Anniversaire de Léa" autocomplete="off">
+          </label>
+          <button id="clAdd" class="primary">Ajouter</button>
+        </div>
+        <ul id="clList" class="cl-list"></ul>
+
+        <p id="clStatus" class="status" role="status"></p>
+        <p class="gr-note">Tes événements et tes réglages restent sur ton appareil (dans ce navigateur) et ne sont envoyés nulle part. Les jours fériés sont ceux de la France métropolitaine : les jours propres à l'Alsace-Moselle et aux territoires d'outre-mer n'y figurent pas. Vérifie les dates importantes avant d'imprimer.</p>
       </div>
     </section>
   </main>
