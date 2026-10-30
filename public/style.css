@@ -1464,3 +1464,14 @@ body:not(:has(#home.active)) .back-home { display: inline-block; }
   .gc-box:hover, .mm-card:hover, .sb-btn:hover, .home-updates:hover { transform: none; }
   .tt-cell:hover:not(:disabled) { transform: none; }
 }
+
+/* --- Accueil : empêche tout débordement horizontal --- */
+.hm-hero { grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); }
+.hm-text, .hm-visual, .hm-card, .hc-search { min-width: 0; }
+.hc-search input { min-width: 0; width: 100%; }
+.hm-hero h1, .hm-sub { overflow-wrap: anywhere; }
+@media (max-width: 800px) {
+  .hm-hero { grid-template-columns: minmax(0, 1fr); }
+  .hm-card { max-width: 100%; }
+  .hc-chips { min-width: 0; }
+}
