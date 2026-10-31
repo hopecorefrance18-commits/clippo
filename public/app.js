@@ -3944,139 +3944,147 @@ spDate.min = spIso(spAddDays(spToday(), 1));
 spRender();
 document.addEventListener("visibilitychange", () => { if (!document.hidden) spRender(); });
 
-// ---------- Favoris et derniers outils utilisés ----------
-const fvBox = $("fvBox");
-if (fvBox) {
-  const FV_FAV_KEY = "clippo_favs", FV_REC_KEY = "clippo_recent", FV_FAV_MAX = 12, FV_REC_MAX = 8, FV_REC_SHOW = 5;
-  const fvSearch = document.getElementById("homeSearch");
-  const fvTools = {};
 
-  // Noms et icônes : lus dans les cartes de l'accueil
+// ---------- Podium des outils les plus utilisés ----------
+const podBox = $("podBox");
+if (podBox) {
+  const POD_KEY = "clippo_usage", POD_REC_KEY = "clippo_recent", POD_REC_MAX = 8, POD_REC_SHOW = 5;
+  const POD_MEDALS = ["🥇", "🥈", "🥉"];
+  const podSearch = document.getElementById("homeSearch");
+  const podTools = {};
   document.querySelectorAll("#home .tool-card[data-go]").forEach((c) => {
     const id = c.dataset.go;
-    if (fvTools[id]) return;
+    if (podTools[id]) return;
     const ico = c.querySelector(".tc-ico"), name = c.querySelector("strong");
-    fvTools[id] = { name: name ? name.textContent.trim() : id, icon: ico ? ico.textContent.trim() : "🧰" };
+    podTools[id] = { name: name ? name.textContent.trim() : id, icon: ico ? ico.textContent.trim() : "🧰" };
   });
 
-  function fvRead(key, max) {
+  function podLoadUsage() {
     try {
-      const d = JSON.parse(localStorage.getItem(key) || "[]");
-      return Array.isArray(d) ? [...new Set(d.map(String))].filter((id) => fvTools[id]).slice(0, max) : [];
+      const o = JSON.parse(localStorage.getItem(POD_KEY) || "{}");
+      const out = {};
+      if (o && typeof o === "object" && !Array.isArray(o)) {
+        Object.keys(o).forEach((id) => {
+          const v = o[id];
+          if (podTools[id] && Array.isArray(v) && Number(v[0]) > 0) out[id] = [Math.min(Math.floor(Number(v[0])), 999999), Number(v[1]) || 0];
+        });
+      }
+      return out;
+    } catch { return {}; }
+  }
+  function podLoadRecent() {
+    try {
+      const d = JSON.parse(localStorage.getItem(POD_REC_KEY) || "[]");
+      return Array.isArray(d) ? [...new Set(d.map(String))].filter((id) => podTools[id]).slice(0, POD_REC_MAX) : [];
     } catch { return []; }
   }
-  function fvWrite(key, list) {
-    try { localStorage.setItem(key, JSON.stringify(list)); } catch { /* stockage indisponible */ }
-  }
-  let fvFavs = fvRead(FV_FAV_KEY, FV_FAV_MAX), fvRecent = fvRead(FV_REC_KEY, FV_REC_MAX);
+  function podSave(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* stockage indisponible */ } }
 
-  function fvOpen(id) {
+  let podUsage = podLoadUsage(), podRecent = podLoadRecent(), podLast = { id: "", t: 0 };
+  try { localStorage.removeItem("clippo_favs"); } catch { /* ignoré */ }
+
+  function podOpen(id) {
     const tab = document.querySelector(`.tab[data-tab="${id}"]`);
     if (tab) tab.click(); else openTab(id);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
-
-  function fvItem(id) {
-    const t = fvTools[id];
+  function podChip(id) {
+    const t = podTools[id];
     const b = document.createElement("button");
     b.type = "button";
-    b.className = "fv-item";
+    b.className = "pod-chip";
     const i = document.createElement("span");
     i.textContent = t.icon;
     i.setAttribute("aria-hidden", "true");
     const n = document.createElement("span");
     n.textContent = t.name;
     b.append(i, n);
-    b.addEventListener("click", () => fvOpen(id));
+    b.addEventListener("click", () => podOpen(id));
     return b;
   }
+  function podTop() {
+    return Object.keys(podUsage).sort((a, b) => podUsage[b][0] - podUsage[a][0] || podUsage[b][1] - podUsage[a][1]).slice(0, 3);
+  }
 
-  function fvMark() { // met à jour toutes les étoiles
-    document.querySelectorAll(".fv-star, .fv-pbtn").forEach((b) => {
-      const on = fvFavs.includes(b.dataset.id), name = fvTools[b.dataset.id].name;
-      b.classList.toggle("on", on);
-      b.setAttribute("aria-pressed", String(on));
-      if (b.classList.contains("fv-star")) {
-        b.textContent = on ? "★" : "☆";
-        b.setAttribute("aria-label", (on ? "Retirer des favoris : " : "Ajouter aux favoris : ") + name);
+  function podRender() {
+    const searching = !!(podSearch && podSearch.value.trim());
+    podBox.hidden = searching;
+    const top = podTop();
+    const stage = $("podium");
+    stage.innerHTML = "";
+    [1, 0, 2].forEach((i) => { // ordre visuel : 2e, 1er, 3e
+      const id = top[i];
+      const col = document.createElement("div");
+      col.className = "pod-col r" + (i + 1) + (id ? "" : " empty");
+      const head = document.createElement(id ? "button" : "div");
+      head.className = "pod-tool";
+      const medal = document.createElement("span");
+      medal.className = "pod-medal";
+      medal.textContent = POD_MEDALS[i];
+      medal.setAttribute("aria-hidden", "true");
+      const ico = document.createElement("span");
+      ico.className = "pod-ico";
+      ico.setAttribute("aria-hidden", "true");
+      const name = document.createElement("strong");
+      const meta = document.createElement("small");
+      if (id) {
+        head.type = "button";
+        head.setAttribute("aria-label", `${i + 1}. ${podTools[id].name}`);
+        ico.textContent = podTools[id].icon;
+        name.textContent = podTools[id].name;
+        meta.textContent = "🔥 " + podUsage[id][0];
+        head.addEventListener("click", () => podOpen(id));
       } else {
-        b.textContent = on ? "★ Dans mes favoris" : "☆ Ajouter aux favoris";
+        ico.textContent = "?";
+        name.textContent = "Libre";
+        meta.textContent = "\u00a0";
       }
+      head.append(medal, ico, name, meta);
+      const block = document.createElement("div");
+      block.className = "pod-block";
+      block.setAttribute("aria-hidden", "true");
+      block.textContent = String(i + 1);
+      col.append(head, block);
+      stage.appendChild(col);
     });
-  }
+    $("podSub").textContent = top.length ? "Basé sur tes ouvertures d'outils" : "Ouvre des outils pour remplir ton podium";
+    $("podReset").hidden = !top.length;
 
-  function fvRender() {
-    const searching = !!(fvSearch && fvSearch.value.trim());
-    const favEl = $("fvFavs"), recEl = $("fvRec");
-    favEl.innerHTML = "";
+    const recEl = $("podRec");
     recEl.innerHTML = "";
-    fvFavs.forEach((id) => favEl.appendChild(fvItem(id)));
-    const rec = fvRecent.filter((id) => !fvFavs.includes(id)).slice(0, FV_REC_SHOW);
-    rec.forEach((id) => recEl.appendChild(fvItem(id)));
-    $("fvFavsBox").hidden = !fvFavs.length;
-    $("fvRecBox").hidden = !rec.length;
-    fvBox.hidden = searching || (!fvFavs.length && !rec.length);
-    fvMark();
+    const rec = podRecent.slice(0, POD_REC_SHOW);
+    rec.forEach((id) => recEl.appendChild(podChip(id)));
+    $("podRecBox").hidden = !rec.length;
   }
 
-  function fvToggle(id) {
-    if (fvFavs.includes(id)) fvFavs = fvFavs.filter((x) => x !== id);
-    else if (fvFavs.length >= FV_FAV_MAX) return alert(`Tu as déjà ${FV_FAV_MAX} favoris. Retire-en un pour en ajouter un autre.`);
-    else fvFavs.push(id);
-    fvWrite(FV_FAV_KEY, fvFavs);
-    fvRender();
+  function podTrack(id) {
+    if (!podTools[id]) return;
+    const now = Date.now();
+    if (podLast.id === id && now - podLast.t < 4000) return; // évite de compter deux fois le même clic
+    podLast = { id, t: now };
+    const u = podUsage[id] || [0, 0];
+    podUsage[id] = [Math.min(u[0] + 1, 999999), now];
+    podRecent = [id, ...podRecent.filter((x) => x !== id)].slice(0, POD_REC_MAX);
+    podSave(POD_KEY, podUsage);
+    podSave(POD_REC_KEY, podRecent);
+    podRender();
   }
 
-  function fvTrack(id) {
-    if (!fvTools[id]) return;
-    fvRecent = [id, ...fvRecent.filter((x) => x !== id)].slice(0, FV_REC_MAX);
-    fvWrite(FV_REC_KEY, fvRecent);
-    fvRender();
-  }
-
-  // Étoile dans le coin de chaque carte de « Tous les outils »
-  document.querySelectorAll("#home .tool-card[data-go]").forEach((card) => {
-    const id = card.dataset.go;
-    const wrap = document.createElement("div");
-    wrap.className = "fv-wrap";
-    card.parentNode.insertBefore(wrap, card);
-    wrap.appendChild(card);
-    const star = document.createElement("button");
-    star.type = "button";
-    star.className = "fv-star";
-    star.dataset.id = id;
-    star.addEventListener("click", () => fvToggle(id));
-    wrap.appendChild(star);
+  $("podClear").addEventListener("click", () => { podRecent = []; podSave(POD_REC_KEY, podRecent); podRender(); });
+  $("podReset").addEventListener("click", () => {
+    if (!confirm("Remettre ton podium à zéro ?")) return;
+    podUsage = {};
+    podSave(POD_KEY, podUsage);
+    podRender();
   });
+  if (podSearch) podSearch.addEventListener("input", podRender);
 
-  // Bouton « Ajouter aux favoris » dans chaque outil
-  Object.keys(fvTools).forEach((id) => {
-    const panel = document.getElementById(id);
-    if (!panel || !panel.classList.contains("panel")) return;
-    const anchor = panel.querySelector(".sub") || panel.querySelector("h1");
-    if (!anchor) return;
-    const b = document.createElement("button");
-    b.type = "button";
-    b.className = "fv-pbtn";
-    b.dataset.id = id;
-    b.addEventListener("click", () => fvToggle(id));
-    anchor.insertAdjacentElement("afterend", b);
-  });
-
-  $("fvClear").addEventListener("click", () => {
-    fvRecent = [];
-    fvWrite(FV_REC_KEY, fvRecent);
-    fvRender();
-  });
-  if (fvSearch) fvSearch.addEventListener("input", fvRender);
-
-  // Chaque ouverture d'outil est notée (menu, cartes, raccourcis, liens directs)
-  const fvOriginalOpen = openTab;
-  openTab = (id) => { fvOriginalOpen(id); fvTrack(id); };
-  const fvStart = location.hash.slice(1);
-  if (fvTools[fvStart]) fvTrack(fvStart);
-
-  fvRender();
+  // Chaque ouverture d'outil est comptée (menu, cartes, raccourcis, liens directs)
+  const podOpenTab = openTab;
+  openTab = (id) => { podOpenTab(id); podTrack(id); };
+  const podStart = location.hash.slice(1);
+  if (podTools[podStart]) podTrack(podStart);
+  podRender();
 }
 
 // ---------- Palette de couleurs ----------
@@ -6260,144 +6268,237 @@ if (document.fonts && document.fonts.load) {
   Promise.all(['500 20px "DM Sans"', '700 28px "DM Sans"', '800 84px "DM Sans"'].map((f) => document.fonts.load(f))).then(clDraw).catch(() => {});
 }
 
-// ---------- Podium des outils les plus utilisés ----------
-const podBox = $("podBox");
-if (podBox) {
-  const POD_KEY = "clippo_usage", POD_REC_KEY = "clippo_recent", POD_REC_MAX = 8, POD_REC_SHOW = 5;
-  const POD_MEDALS = ["🥇", "🥈", "🥉"];
-  const podSearch = document.getElementById("homeSearch");
-  const podTools = {};
-  document.querySelectorAll("#home .tool-card[data-go]").forEach((c) => {
-    const id = c.dataset.go;
-    if (podTools[id]) return;
-    const ico = c.querySelector(".tc-ico"), name = c.querySelector("strong");
-    podTools[id] = { name: name ? name.textContent.trim() : id, icon: ico ? ico.textContent.trim() : "🧰" };
+// ---------- Langues et réglages ----------
+const LG_KEY = "clippo_lang";
+const LG_LIST = [
+  { code: "fr", label: "Français", dir: "ltr" },
+  { code: "en", label: "English", dir: "ltr" },
+  { code: "es", label: "Español", dir: "ltr" },
+  { code: "zh", label: "中文", dir: "ltr" },
+  { code: "hi", label: "हिन्दी", dir: "ltr" },
+  { code: "ar", label: "العربية", dir: "rtl" },
+  { code: "pt", label: "Português", dir: "ltr" },
+  { code: "ru", label: "Русский", dir: "ltr" },
+];
+const LG_COLS = ["fr", "en", "es", "zh", "hi", "ar", "pt", "ru"];
+// Une ligne par texte : [français, en, es, zh, hi, ar, pt, ru]. Pour ajouter un texte, ajoute une ligne.
+const LG_ROWS = [
+  ["Accueil", "Home", "Inicio", "首页", "होम", "الرئيسية", "Início", "Главная"],
+  ["Éducatif", "Education", "Educación", "学习", "शिक्षा", "التعليم", "Educação", "Обучение"],
+  ["Médias", "Media", "Medios", "媒体", "मीडिया", "الوسائط", "Mídia", "Медиа"],
+  ["Créateurs", "Creators", "Creadores", "创作者", "क्रिएटर्स", "المبدعون", "Criadores", "Для авторов"],
+  ["Pratique", "Practical", "Práctico", "实用", "उपयोगी", "عملي", "Prático", "Полезное"],
+  ["Argent", "Money", "Dinero", "理财", "पैसा", "المال", "Dinheiro", "Деньги"],
+  ["Jeux", "Games", "Juegos", "游戏", "गेम्स", "ألعاب", "Jogos", "Игры"],
+  ["Mises à jour", "Updates", "Novedades", "更新", "अपडेट", "التحديثات", "Novidades", "Обновления"],
+  ["📰 Mises à jour", "📰 Updates", "📰 Novedades", "📰 更新", "📰 अपडेट", "📰 التحديثات", "📰 Novidades", "📰 Обновления"],
+  ["🚀 Outils en ligne gratuits", "🚀 Free online tools", "🚀 Herramientas en línea gratuitas", "🚀 免费在线工具", "🚀 मुफ़्त ऑनलाइन टूल", "🚀 أدوات مجانية عبر الإنترنت", "🚀 Ferramentas online gratuitas", "🚀 Бесплатные онлайн-инструменты"],
+  ["Tes outils en ligne.", "Your online tools.", "Tus herramientas en línea.", "你的在线工具。", "आपके ऑनलाइन टूल।", "أدواتك عبر الإنترنت.", "Suas ferramentas online.", "Твои онлайн-инструменты."],
+  ["Simples. Rapides. Gratuits.", "Simple. Fast. Free.", "Simples. Rápidas. Gratis.", "简单。快速。免费。", "आसान। तेज़। मुफ़्त।", "بسيطة. سريعة. مجانية.", "Simples. Rápidas. Grátis.", "Просто. Быстро. Бесплатно."],
+  ["Extrais le son d'une vidéo, détoure une image, crée un QR code, organise toi et bien plus encore. Tout ça en un seul site, sans installation et sans compte.",
+    "Extract the sound from a video, cut out an image, create a QR code, get organized and much more. All on one site, with no installation and no account.",
+    "Extrae el sonido de un vídeo, recorta una imagen, crea un código QR, organízate y mucho más. Todo en un solo sitio, sin instalar nada y sin cuenta.",
+    "提取视频中的声音、抠图、生成二维码、整理你的生活，还有更多功能。全部集中在一个网站，无需安装，无需注册。",
+    "वीडियो से आवाज़ निकालें, इमेज का बैकग्राउंड हटाएँ, QR कोड बनाएँ, खुद को व्यवस्थित करें और भी बहुत कुछ। सब कुछ एक ही साइट पर, बिना इंस्टॉल किए और बिना अकाउंट के।",
+    "استخرج صوت فيديو، واقتطع صورة، وأنشئ رمز QR، ونظّم وقتك وأكثر من ذلك بكثير. كل ذلك في موقع واحد، دون تثبيت ودون حساب.",
+    "Extraia o som de um vídeo, recorte uma imagem, crie um QR code, organize-se e muito mais. Tudo em um só site, sem instalação e sem cadastro.",
+    "Извлекайте звук из видео, вырезайте фон у изображений, создавайте QR-коды, организуйте свои дела и многое другое. Всё на одном сайте — без установки и без аккаунта."],
+  ["Commencer maintenant →", "Get started →", "Empezar ahora →", "立即开始 →", "अभी शुरू करें →", "ابدأ الآن ←", "Começar agora →", "Начать →"],
+  ["Voir tous les outils", "See all tools", "Ver todas las herramientas", "查看全部工具", "सभी टूल देखें", "عرض كل الأدوات", "Ver todas as ferramentas", "Все инструменты"],
+  ["Les plus utilisés", "Most used", "Los más usados", "最常用", "सबसे ज़्यादा उपयोग किए गए", "الأكثر استخدامًا", "Mais usados", "Часто используют"],
+  ["Cherche un outil… (ex : photo, argent, pdf, heure)", "Search for a tool… (e.g. photo, pdf, qr, budget)", "Busca una herramienta… (p. ej. photo, pdf, qr, budget)", "搜索工具……（例如 photo、pdf、qr、budget）", "टूल खोजें… (जैसे photo, pdf, qr, budget)", "ابحث عن أداة… (مثل photo, pdf, qr, budget)", "Procure uma ferramenta… (ex.: photo, pdf, qr, budget)", "Найти инструмент… (например: photo, pdf, qr, budget)"],
+  ["📱 QR code", "📱 QR code", "📱 Código QR", "📱 二维码", "📱 QR कोड", "📱 رمز QR", "📱 QR code", "📱 QR-код"],
+  ["🫥 Flouter", "🫥 Blur", "🫥 Desenfocar", "🫥 模糊", "🫥 ब्लर", "🫥 تمويه", "🫥 Desfocar", "🫥 Размытие"],
+  ["🖼️ Compresser", "🖼️ Compress", "🖼️ Comprimir", "🖼️ 压缩", "🖼️ कंप्रेस", "🖼️ ضغط", "🖼️ Comprimir", "🖼️ Сжатие"],
+  ["🔐 Mot de passe", "🔐 Password", "🔐 Contraseña", "🔐 密码", "🔐 पासवर्ड", "🔐 كلمة المرور", "🔐 Senha", "🔐 Пароль"],
+  ["💶 Budget", "💶 Budget", "💶 Presupuesto", "💶 预算", "💶 बजट", "💶 الميزانية", "💶 Orçamento", "💶 Бюджет"],
+  ["🗓️ Planning", "🗓️ Planner", "🗓️ Planificador", "🗓️ 计划表", "🗓️ प्लानर", "🗓️ مخطط", "🗓️ Planejador", "🗓️ Планировщик"],
+  ["NOS OUTILS", "OUR TOOLS", "NUESTRAS HERRAMIENTAS", "我们的工具", "हमारे टूल", "أدواتنا", "NOSSAS FERRAMENTAS", "НАШИ ИНСТРУМЕНТЫ"],
+  ["Les outils les plus populaires", "The most popular tools", "Las herramientas más populares", "最受欢迎的工具", "सबसे लोकप्रिय टूल", "الأدوات الأكثر شعبية", "As ferramentas mais populares", "Самые популярные инструменты"],
+  ["Voir tous les outils →", "See all tools →", "Ver todas las herramientas →", "查看全部工具 →", "सभी टूल देखें →", "عرض كل الأدوات ←", "Ver todas as ferramentas →", "Все инструменты →"],
+  ["TOUS LES OUTILS", "ALL TOOLS", "TODAS LAS HERRAMIENTAS", "全部工具", "सभी टूल", "كل الأدوات", "TODAS AS FERRAMENTAS", "ВСЕ ИНСТРУМЕНТЫ"],
+  ["Tout est", "Everything", "Todo", "一切", "सब कुछ", "كل شيء", "Tudo", "Всё"],
+  ["au même endroit", "in one place", "en un solo lugar", "尽在一处", "एक ही जगह", "في مكان واحد", "em um só lugar", "в одном месте"],
+  ["📚 Éducatif", "📚 Education", "📚 Educación", "📚 学习", "📚 शिक्षा", "📚 التعليم", "📚 Educação", "📚 Обучение"],
+  ["🎬 Médias", "🎬 Media", "🎬 Medios", "🎬 媒体", "🎬 मीडिया", "🎬 الوسائط", "🎬 Mídia", "🎬 Медиа"],
+  ["🎨 Créateurs", "🎨 Creators", "🎨 Creadores", "🎨 创作者", "🎨 क्रिएटर्स", "🎨 المبدعون", "🎨 Criadores", "🎨 Для авторов"],
+  ["🧰 Pratique", "🧰 Practical", "🧰 Práctico", "🧰 实用", "🧰 उपयोगी", "🧰 عملي", "🧰 Prático", "🧰 Полезное"],
+  ["💶 Argent", "💶 Money", "💶 Dinero", "💶 理财", "💶 पैसा", "💶 المال", "💶 Dinheiro", "💶 Деньги"],
+  ["🎮 Jeux", "🎮 Games", "🎮 Juegos", "🎮 游戏", "🎮 गेम्स", "🎮 ألعاب", "🎮 Jogos", "🎮 Игры"],
+  ["Rejoins notre Discord !", "Join our Discord!", "¡Únete a nuestro Discord!", "加入我们的 Discord！", "हमारे Discord से जुड़ें!", "انضم إلى خادم Discord الخاص بنا!", "Entre no nosso Discord!", "Присоединяйся к нашему Discord!"],
+  ["Propose tes idées, signale des bugs et aide-nous à améliorer Clippo.", "Share your ideas, report bugs and help us improve Clippo.", "Propón ideas, avisa de errores y ayúdanos a mejorar Clippo.", "提出你的想法，反馈问题，帮助我们改进 Clippo。", "अपने आइडिया बताएँ, बग रिपोर्ट करें और Clippo को बेहतर बनाने में हमारी मदद करें।", "اقترح أفكارك، وبلّغ عن الأخطاء، وساعدنا على تحسين Clippo.", "Sugira ideias, avise sobre erros e ajude-nos a melhorar o Clippo.", "Предлагай идеи, сообщай об ошибках и помогай нам улучшать Clippo."],
+  ["Idées et suggestions", "Ideas and suggestions", "Ideas y sugerencias", "想法与建议", "आइडिया और सुझाव", "أفكار واقتراحات", "Ideias e sugestões", "Идеи и предложения"],
+  ["Signaler un bug", "Report a bug", "Informar de un error", "反馈问题", "बग रिपोर्ट करें", "الإبلاغ عن خطأ", "Informar um erro", "Сообщить об ошибке"],
+  ["Communauté", "Community", "Comunidad", "社区", "समुदाय", "المجتمع", "Comunidade", "Сообщество"],
+  ["Rejoindre →", "Join →", "Unirme →", "加入 →", "जुड़ें →", "انضم ←", "Entrar →", "Присоединиться →"],
+  ["Outils gratuits", "Free tools", "Herramientas gratis", "免费工具", "मुफ़्त टूल", "أدوات مجانية", "Ferramentas grátis", "Бесплатных инструментов"],
+  ["Gratuit", "Free", "Gratis", "免费", "मुफ़्त", "مجاني", "Grátis", "Бесплатно"],
+  ["Inscription", "Sign-up", "Registro", "注册", "साइन-अप", "تسجيل", "Cadastro", "Регистрация"],
+  ["Sur ton appareil", "On your device", "En tu dispositivo", "在你的设备上", "आपके डिवाइस पर", "على جهازك", "No seu dispositivo", "На твоём устройстве"],
+  ["☕ Clippo est gratuit et sans compte. Si l'outil t'aide, tu peux soutenir son développement.", "☕ Clippo is free and needs no account. If it helps you, you can support its development.", "☕ Clippo es gratis y no necesita cuenta. Si te ayuda, puedes apoyar su desarrollo.", "☕ Clippo 免费使用，无需账号。如果它对你有帮助，欢迎支持它的开发。", "☕ Clippo मुफ़्त है और इसके लिए अकाउंट नहीं चाहिए। अगर यह आपके काम आता है, तो आप इसके विकास में सहयोग कर सकते हैं।", "☕ Clippo مجاني ولا يحتاج إلى حساب. إذا أفادك، يمكنك دعم تطويره.", "☕ O Clippo é grátis e não precisa de conta. Se ele te ajuda, você pode apoiar o desenvolvimento.", "☕ Clippo бесплатен и не требует аккаунта. Если он тебе полезен, можешь поддержать его развитие."],
+  ["Soutenir Clippo", "Support Clippo", "Apoyar a Clippo", "支持 Clippo", "Clippo का समर्थन करें", "ادعم Clippo", "Apoiar o Clippo", "Поддержать Clippo"],
+  ["☕ Soutenir Clippo", "☕ Support Clippo", "☕ Apoyar a Clippo", "☕ 支持 Clippo", "☕ Clippo का समर्थन करें", "☕ ادعم Clippo", "☕ Apoiar o Clippo", "☕ Поддержать Clippo"],
+  ["Pour toutes idées ou bugs veuillez nous le rapporter sur", "For ideas or bugs, please tell us on", "Para ideas o errores, cuéntanoslo en", "有想法或发现问题？请到", "आइडिया या बग के लिए हमें यहाँ बताएँ:", "للأفكار أو الأخطاء، يرجى إبلاغنا عبر", "Para ideias ou erros, avise-nos no", "Идеи и сообщения об ошибках присылайте нам в"],
+  ["!", "!", "!", "告诉我们！", "!", "!", "!", "!"],
+  ["Guides", "Guides", "Guías", "指南", "गाइड", "الأدلة", "Guias", "Руководства"],
+  ["À propos", "About", "Acerca de", "关于", "हमारे बारे में", "حول", "Sobre", "О проекте"],
+  ["Mentions légales", "Legal notice", "Aviso legal", "法律声明", "कानूनी सूचना", "الإشعار القانوني", "Aviso legal", "Правовая информация"],
+  ["Confidentialité", "Privacy", "Privacidad", "隐私", "गोपनीयता", "الخصوصية", "Privacidade", "Конфиденциальность"],
+  ["🏆 Ton podium", "🏆 Your podium", "🏆 Tu podio", "🏆 你的排行榜", "🏆 आपका पोडियम", "🏆 منصتك", "🏆 Seu pódio", "🏆 Твой пьедестал"],
+  ["Basé sur tes ouvertures d'outils", "Based on the tools you open", "Basado en las herramientas que abres", "根据你打开工具的次数", "आपके खोले गए टूल के आधार पर", "بناءً على الأدوات التي تفتحها", "Com base nas ferramentas que você abre", "На основе открытых тобой инструментов"],
+  ["Ouvre des outils pour remplir ton podium", "Open some tools to fill your podium", "Abre herramientas para llenar tu podio", "多用几个工具，排行榜就会出现", "अपना पोडियम भरने के लिए कुछ टूल खोलें", "افتح بعض الأدوات لملء منصتك", "Abra ferramentas para preencher seu pódio", "Открывай инструменты, чтобы заполнить пьедестал"],
+  ["Libre", "Open", "Libre", "空位", "खाली", "شاغر", "Livre", "Свободно"],
+  ["🕘 Récemment utilisés", "🕘 Recently used", "🕘 Usados recientemente", "🕘 最近使用", "🕘 हाल ही में इस्तेमाल किए गए", "🕘 المستخدمة مؤخرًا", "🕘 Usados recentemente", "🕘 Недавно использованные"],
+  ["Effacer", "Clear", "Borrar", "清除", "हटाएँ", "مسح", "Limpar", "Очистить"],
+  ["Remettre à zéro", "Reset", "Restablecer", "重置", "रीसेट करें", "إعادة التعيين", "Redefinir", "Сбросить"],
+  ["Réglages", "Settings", "Ajustes", "设置", "सेटिंग्स", "الإعدادات", "Configurações", "Настройки"],
+  ["🌐 Langue", "🌐 Language", "🌐 Idioma", "🌐 语言", "🌐 भाषा", "🌐 اللغة", "🌐 Idioma", "🌐 Язык"],
+  ["Choisis la langue de l'interface. Les textes qui ne sont pas encore traduits restent en français.", "Choose the interface language. Texts that are not translated yet stay in French.", "Elige el idioma de la interfaz. Los textos que aún no están traducidos siguen en francés.", "选择界面语言。尚未翻译的文字仍显示为法语。", "इंटरफ़ेस की भाषा चुनें। जिन टेक्स्ट का अनुवाद अभी नहीं हुआ है, वे फ़्रेंच में ही रहेंगे।", "اختر لغة الواجهة. النصوص التي لم تُترجم بعد تبقى بالفرنسية.", "Escolha o idioma da interface. Os textos ainda não traduzidos continuam em francês.", "Выбери язык интерфейса. Тексты, которые ещё не переведены, остаются на французском."],
+  ["Pour traduire aussi le contenu des outils, utilise la traduction de ton navigateur (clic droit, puis « Traduire »).", "To translate the content of the tools too, use your browser's translation (right-click, then “Translate”).", "Para traducir también el contenido de las herramientas, usa la traducción de tu navegador (clic derecho y «Traducir»).", "如需同时翻译各工具中的内容，请使用浏览器的翻译功能（右键单击，然后选择“翻译”）。", "टूल की सामग्री का भी अनुवाद करने के लिए अपने ब्राउज़र का अनुवाद फ़ीचर इस्तेमाल करें (राइट-क्लिक करें, फिर “अनुवाद करें”)।", "لترجمة محتوى الأدوات أيضًا، استخدم ترجمة المتصفح (انقر بزر الماوس الأيمن ثم «ترجمة»).", "Para traduzir também o conteúdo das ferramentas, use a tradução do seu navegador (clique com o botão direito e “Traduzir”).", "Чтобы перевести и содержимое инструментов, используй перевод в браузере (правый клик, затем «Перевести»)."],
+  ["Fermer", "Close", "Cerrar", "关闭", "बंद करें", "إغلاق", "Fechar", "Закрыть"],
+  ["Ouvrir le journal des mises à jour", "Open the updates journal", "Abrir el diario de novedades", "打开更新日志", "अपडेट जर्नल खोलें", "فتح سجل التحديثات", "Abrir o diário de novidades", "Открыть журнал обновлений"],
+  ["Remonter en haut de la page", "Back to top", "Volver arriba", "回到顶部", "ऊपर जाएँ", "العودة إلى الأعلى", "Voltar ao topo", "Наверх"],
+];
+
+const lgKey = (s) => String(s).replace(/\s+/g, " ").trim();
+const lgMap = new Map(LG_ROWS.map((r) => [lgKey(r[0]), r]));
+const LG_ATTRS = ["placeholder", "aria-label", "title", "alt"];
+const lgNodeOrig = new WeakMap(), lgNodeLast = new WeakMap(), lgAttrRec = new WeakMap();
+let lgCode = "fr", lgCol = 0;
+
+function lgTextNode(n) {
+  const p = n.parentNode;
+  if (!p || /^(SCRIPT|STYLE|TEXTAREA|NOSCRIPT)$/.test(p.nodeName)) return;
+  const val = n.nodeValue;
+  if (lgNodeLast.get(n) === val) return; // déjà traduit
+  const row = lgMap.get(lgKey(val));
+  if (!row || !row[lgCol]) return;
+  const out = val.match(/^\s*/)[0] + row[lgCol] + val.match(/\s*$/)[0];
+  lgNodeOrig.set(n, val);
+  lgNodeLast.set(n, out);
+  n.nodeValue = out;
+}
+function lgAttrsOf(el) {
+  for (const a of LG_ATTRS) {
+    const v = el.getAttribute(a);
+    if (v === null) continue;
+    const rec = lgAttrRec.get(el) || {};
+    if (rec[a] && rec[a][1] === v) continue;
+    const row = lgMap.get(lgKey(v));
+    if (!row || !row[lgCol]) continue;
+    rec[a] = [v, row[lgCol]];
+    lgAttrRec.set(el, rec);
+    el.setAttribute(a, row[lgCol]);
+  }
+}
+function lgTree(root) {
+  if (root.nodeType === 3) return lgTextNode(root);
+  if (root.nodeType !== 1 || /^(SCRIPT|STYLE)$/.test(root.nodeName)) return;
+  lgAttrsOf(root);
+  const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT);
+  let n;
+  while ((n = w.nextNode())) { if (n.nodeType === 3) lgTextNode(n); else lgAttrsOf(n); }
+}
+function lgRestore() { // remet tous les textes en français
+  const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  let n;
+  while ((n = w.nextNode())) {
+    if (lgNodeLast.get(n) === n.nodeValue && lgNodeOrig.has(n)) n.nodeValue = lgNodeOrig.get(n);
+    lgNodeOrig.delete(n);
+    lgNodeLast.delete(n);
+  }
+  document.querySelectorAll(LG_ATTRS.map((a) => `[${a}]`).join(",")).forEach((el) => {
+    const rec = lgAttrRec.get(el);
+    if (!rec) return;
+    Object.keys(rec).forEach((a) => { if (el.getAttribute(a) === rec[a][1]) el.setAttribute(a, rec[a][0]); });
+    lgAttrRec.delete(el);
   });
+}
 
-  function podLoadUsage() {
-    try {
-      const o = JSON.parse(localStorage.getItem(POD_KEY) || "{}");
-      const out = {};
-      if (o && typeof o === "object" && !Array.isArray(o)) {
-        Object.keys(o).forEach((id) => {
-          const v = o[id];
-          if (podTools[id] && Array.isArray(v) && Number(v[0]) > 0) out[id] = [Math.min(Math.floor(Number(v[0])), 999999), Number(v[1]) || 0];
-        });
-      }
-      return out;
-    } catch { return {}; }
-  }
-  function podLoadRecent() {
-    try {
-      const d = JSON.parse(localStorage.getItem(POD_REC_KEY) || "[]");
-      return Array.isArray(d) ? [...new Set(d.map(String))].filter((id) => podTools[id]).slice(0, POD_REC_MAX) : [];
-    } catch { return []; }
-  }
-  function podSave(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* stockage indisponible */ } }
+// Les textes créés plus tard par les outils sont traduits au passage
+const lgObs = new MutationObserver((list) => {
+  if (lgCode === "fr") return;
+  list.forEach((m) => {
+    if (m.type === "childList") m.addedNodes.forEach(lgTree);
+    else if (m.type === "characterData") lgTextNode(m.target);
+    else if (m.type === "attributes") lgAttrsOf(m.target);
+  });
+});
 
-  let podUsage = podLoadUsage(), podRecent = podLoadRecent(), podLast = { id: "", t: 0 };
-  try { localStorage.removeItem("clippo_favs"); } catch { /* ignoré */ }
-
-  function podOpen(id) {
-    const tab = document.querySelector(`.tab[data-tab="${id}"]`);
-    if (tab) tab.click(); else openTab(id);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+const cfgBtn = $("cfgBtn"), cfgPanel = $("cfgPanel"), cfgOverlay = $("cfgOverlay"), cfgLangs = $("cfgLangs");
+function cfgMark() {
+  if (!cfgLangs) return;
+  cfgLangs.querySelectorAll(".cfg-lang").forEach((b) => {
+    const on = b.dataset.code === lgCode;
+    b.classList.toggle("on", on);
+    b.setAttribute("aria-pressed", String(on));
+  });
+}
+function lgSet(code, save) {
+  const item = LG_LIST.find((l) => l.code === code) || LG_LIST[0];
+  lgObs.disconnect();
+  lgRestore();
+  lgCode = item.code;
+  lgCol = Math.max(0, LG_COLS.indexOf(item.code));
+  document.documentElement.lang = item.code;
+  document.documentElement.dir = item.dir;
+  if (lgCode !== "fr") {
+    lgTree(document.body);
+    lgObs.observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: LG_ATTRS });
   }
-  function podChip(id) {
-    const t = podTools[id];
+  if (save) { try { localStorage.setItem(LG_KEY, item.code); } catch { /* stockage indisponible */ } }
+  cfgMark();
+}
+
+if (cfgBtn && cfgPanel && cfgOverlay && cfgLangs) {
+  LG_LIST.forEach((l) => {
     const b = document.createElement("button");
     b.type = "button";
-    b.className = "pod-chip";
-    const i = document.createElement("span");
-    i.textContent = t.icon;
-    i.setAttribute("aria-hidden", "true");
-    const n = document.createElement("span");
-    n.textContent = t.name;
-    b.append(i, n);
-    b.addEventListener("click", () => podOpen(id));
-    return b;
-  }
-  function podTop() {
-    return Object.keys(podUsage).sort((a, b) => podUsage[b][0] - podUsage[a][0] || podUsage[b][1] - podUsage[a][1]).slice(0, 3);
-  }
-
-  function podRender() {
-    const searching = !!(podSearch && podSearch.value.trim());
-    podBox.hidden = searching;
-    const top = podTop();
-    const stage = $("podium");
-    stage.innerHTML = "";
-    [1, 0, 2].forEach((i) => { // ordre visuel : 2e, 1er, 3e
-      const id = top[i];
-      const col = document.createElement("div");
-      col.className = "pod-col r" + (i + 1) + (id ? "" : " empty");
-      const head = document.createElement(id ? "button" : "div");
-      head.className = "pod-tool";
-      const medal = document.createElement("span");
-      medal.className = "pod-medal";
-      medal.textContent = POD_MEDALS[i];
-      medal.setAttribute("aria-hidden", "true");
-      const ico = document.createElement("span");
-      ico.className = "pod-ico";
-      ico.setAttribute("aria-hidden", "true");
-      const name = document.createElement("strong");
-      const meta = document.createElement("small");
-      if (id) {
-        head.type = "button";
-        head.setAttribute("aria-label", `${i + 1}. ${podTools[id].name}`);
-        ico.textContent = podTools[id].icon;
-        name.textContent = podTools[id].name;
-        meta.textContent = "🔥 " + podUsage[id][0];
-        head.addEventListener("click", () => podOpen(id));
-      } else {
-        ico.textContent = "?";
-        name.textContent = "Libre";
-        meta.textContent = "\u00a0";
-      }
-      head.append(medal, ico, name, meta);
-      const block = document.createElement("div");
-      block.className = "pod-block";
-      block.setAttribute("aria-hidden", "true");
-      block.textContent = String(i + 1);
-      col.append(head, block);
-      stage.appendChild(col);
-    });
-    $("podSub").textContent = top.length ? "Basé sur tes ouvertures d'outils" : "Ouvre des outils pour remplir ton podium";
-    $("podReset").hidden = !top.length;
-
-    const recEl = $("podRec");
-    recEl.innerHTML = "";
-    const rec = podRecent.slice(0, POD_REC_SHOW);
-    rec.forEach((id) => recEl.appendChild(podChip(id)));
-    $("podRecBox").hidden = !rec.length;
-  }
-
-  function podTrack(id) {
-    if (!podTools[id]) return;
-    const now = Date.now();
-    if (podLast.id === id && now - podLast.t < 4000) return; // évite de compter deux fois le même clic
-    podLast = { id, t: now };
-    const u = podUsage[id] || [0, 0];
-    podUsage[id] = [Math.min(u[0] + 1, 999999), now];
-    podRecent = [id, ...podRecent.filter((x) => x !== id)].slice(0, POD_REC_MAX);
-    podSave(POD_KEY, podUsage);
-    podSave(POD_REC_KEY, podRecent);
-    podRender();
-  }
-
-  $("podClear").addEventListener("click", () => { podRecent = []; podSave(POD_REC_KEY, podRecent); podRender(); });
-  $("podReset").addEventListener("click", () => {
-    if (!confirm("Remettre ton podium à zéro ?")) return;
-    podUsage = {};
-    podSave(POD_KEY, podUsage);
-    podRender();
+    b.className = "cfg-lang";
+    b.dataset.code = l.code;
+    b.lang = l.code;
+    b.setAttribute("dir", "auto");
+    b.textContent = l.label;
+    b.addEventListener("click", () => lgSet(l.code, true));
+    cfgLangs.appendChild(b);
   });
-  if (podSearch) podSearch.addEventListener("input", podRender);
+  const cfgOpen = () => {
+    cfgPanel.hidden = false;
+    cfgOverlay.hidden = false;
+    cfgBtn.setAttribute("aria-expanded", "true");
+    $("cfgClose").focus();
+  };
+  const cfgClose = () => {
+    cfgPanel.hidden = true;
+    cfgOverlay.hidden = true;
+    cfgBtn.setAttribute("aria-expanded", "false");
+    cfgBtn.focus();
+  };
+  cfgBtn.addEventListener("click", cfgOpen);
+  $("cfgClose").addEventListener("click", cfgClose);
+  cfgOverlay.addEventListener("click", cfgClose);
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !cfgPanel.hidden) cfgClose(); });
 
-  // Chaque ouverture d'outil est comptée (menu, cartes, raccourcis, liens directs)
-  const podOpenTab = openTab;
-  openTab = (id) => { podOpenTab(id); podTrack(id); };
-  const podStart = location.hash.slice(1);
-  if (podTools[podStart]) podTrack(podStart);
-  podRender();
+  let lgSaved = "fr";
+  try { lgSaved = localStorage.getItem(LG_KEY) || "fr"; } catch { /* stockage indisponible */ }
+  cfgMark();
+  if (lgSaved !== "fr") lgSet(lgSaved, false);
 }
+
+// Outil pour compléter les traductions : à lancer en français, depuis la Console (F12)
+window.clippoMissing = () => {
+  if (lgCode !== "fr") { console.log("Repasse d'abord en français (⚙️ → Français), puis relance clippoMissing()."); return 0; }
+  const found = new Set();
+  const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  let n;
+  while ((n = w.nextNode())) {
+    const p = n.parentNode;
+    if (!p || /^(SCRIPT|STYLE|TEXTAREA|NOSCRIPT)$/.test(p.nodeName)) continue;
+    const k = lgKey(n.nodeValue);
+    if (k.length > 1 && /\p{L}/u.test(k) && !lgMap.has(k)) found.add(k);
+  }
+  console.log(found.size + " textes sans traduction :\n" + [...found].map((s) => JSON.stringify(s)).join(",\n"));
+  return found.size;
+};
+
+
