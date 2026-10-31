@@ -150,18 +150,19 @@
         <span class="sb-text">☕ Clippo est gratuit et sans compte. Si l'outil t'aide, tu peux soutenir son développement.</span>
         <a class="sb-btn" href="https://ko-fi.com/frenchnono" target="_blank" rel="noopener">Soutenir Clippo</a>
       </aside>
-
-            <div id="fvBox" class="fv-box" hidden>
-        <div id="fvFavsBox" class="fv-sec" hidden>
-          <h3 class="fv-title">⭐ Mes favoris</h3>
-          <div id="fvFavs" class="fv-row"></div>
+      <div id="podBox" class="pod-box">
+        <div class="pod-head">
+          <h3 class="pod-title">🏆 Ton podium</h3>
+          <button id="podReset" class="pod-clear" type="button" hidden>Remettre à zéro</button>
         </div>
-        <div id="fvRecBox" class="fv-sec" hidden>
-          <div class="fv-head">
-            <h3 class="fv-title">🕘 Récemment utilisés</h3>
-            <button id="fvClear" class="fv-clear" type="button">Effacer</button>
+        <p id="podSub" class="pod-sub"></p>
+        <div id="podium" class="podium"></div>
+        <div id="podRecBox" class="pod-rec" hidden>
+          <div class="pod-rechead">
+            <span>🕘 Récemment utilisés</span>
+            <button id="podClear" class="pod-clear" type="button">Effacer</button>
           </div>
-          <div id="fvRec" class="fv-row"></div>
+          <div id="podRec" class="pod-row"></div>
         </div>
       </div>
       <div id="tools" class="hm-sec">
@@ -2193,7 +2194,20 @@ Hugo</textarea>
     <footer class="foot">
    
     <p><a href="guides.html">Guides</a> · <a href="a-propos.html">À propos</a> · <a href="mentions-legales.html">Mentions légales</a> · <a href="confidentialite.html">Confidentialité</a></p>
-  </footer>
+      <p class="cfg-wrap"><button id="cfgBtn" class="cfg-btn" type="button" aria-label="Réglages" title="Réglages" aria-haspopup="dialog" aria-expanded="false">⚙️</button></p>
+    </footer>
+  
+  <div id="cfgOverlay" class="cfg-overlay" hidden></div>
+  <section id="cfgPanel" class="cfg-panel" role="dialog" aria-modal="true" aria-labelledby="cfgTitle" hidden>
+    <div class="cfg-head">
+      <h2 id="cfgTitle">Réglages</h2>
+      <button id="cfgClose" class="cfg-close" type="button" aria-label="Fermer">×</button>
+    </div>
+    <h3 class="cfg-h">🌐 Langue</h3>
+    <p class="cfg-note">Choisis la langue de l'interface. Les textes qui ne sont pas encore traduits restent en français.</p>
+    <div id="cfgLangs" class="cfg-langs"></div>
+    <p class="cfg-note">Pour traduire aussi le contenu des outils, utilise la traduction de ton navigateur (clic droit, puis « Traduire »).</p>
+  </section>
   
   <button id="toTop" class="to-top" type="button" aria-label="Remonter en haut de la page" hidden>↑</button>
   
