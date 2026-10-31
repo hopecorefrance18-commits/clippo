@@ -6259,3 +6259,145 @@ clSetMode("month");
 if (document.fonts && document.fonts.load) {
   Promise.all(['500 20px "DM Sans"', '700 28px "DM Sans"', '800 84px "DM Sans"'].map((f) => document.fonts.load(f))).then(clDraw).catch(() => {});
 }
+
+// ---------- Podium des outils les plus utilisés ----------
+const podBox = $("podBox");
+if (podBox) {
+  const POD_KEY = "clippo_usage", POD_REC_KEY = "clippo_recent", POD_REC_MAX = 8, POD_REC_SHOW = 5;
+  const POD_MEDALS = ["🥇", "🥈", "🥉"];
+  const podSearch = document.getElementById("homeSearch");
+  const podTools = {};
+  document.querySelectorAll("#home .tool-card[data-go]").forEach((c) => {
+    const id = c.dataset.go;
+    if (podTools[id]) return;
+    const ico = c.querySelector(".tc-ico"), name = c.querySelector("strong");
+    podTools[id] = { name: name ? name.textContent.trim() : id, icon: ico ? ico.textContent.trim() : "🧰" };
+  });
+
+  function podLoadUsage() {
+    try {
+      const o = JSON.parse(localStorage.getItem(POD_KEY) || "{}");
+      const out = {};
+      if (o && typeof o === "object" && !Array.isArray(o)) {
+        Object.keys(o).forEach((id) => {
+          const v = o[id];
+          if (podTools[id] && Array.isArray(v) && Number(v[0]) > 0) out[id] = [Math.min(Math.floor(Number(v[0])), 999999), Number(v[1]) || 0];
+        });
+      }
+      return out;
+    } catch { return {}; }
+  }
+  function podLoadRecent() {
+    try {
+      const d = JSON.parse(localStorage.getItem(POD_REC_KEY) || "[]");
+      return Array.isArray(d) ? [...new Set(d.map(String))].filter((id) => podTools[id]).slice(0, POD_REC_MAX) : [];
+    } catch { return []; }
+  }
+  function podSave(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* stockage indisponible */ } }
+
+  let podUsage = podLoadUsage(), podRecent = podLoadRecent(), podLast = { id: "", t: 0 };
+  try { localStorage.removeItem("clippo_favs"); } catch { /* ignoré */ }
+
+  function podOpen(id) {
+    const tab = document.querySelector(`.tab[data-tab="${id}"]`);
+    if (tab) tab.click(); else openTab(id);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+  function podChip(id) {
+    const t = podTools[id];
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "pod-chip";
+    const i = document.createElement("span");
+    i.textContent = t.icon;
+    i.setAttribute("aria-hidden", "true");
+    const n = document.createElement("span");
+    n.textContent = t.name;
+    b.append(i, n);
+    b.addEventListener("click", () => podOpen(id));
+    return b;
+  }
+  function podTop() {
+    return Object.keys(podUsage).sort((a, b) => podUsage[b][0] - podUsage[a][0] || podUsage[b][1] - podUsage[a][1]).slice(0, 3);
+  }
+
+  function podRender() {
+    const searching = !!(podSearch && podSearch.value.trim());
+    podBox.hidden = searching;
+    const top = podTop();
+    const stage = $("podium");
+    stage.innerHTML = "";
+    [1, 0, 2].forEach((i) => { // ordre visuel : 2e, 1er, 3e
+      const id = top[i];
+      const col = document.createElement("div");
+      col.className = "pod-col r" + (i + 1) + (id ? "" : " empty");
+      const head = document.createElement(id ? "button" : "div");
+      head.className = "pod-tool";
+      const medal = document.createElement("span");
+      medal.className = "pod-medal";
+      medal.textContent = POD_MEDALS[i];
+      medal.setAttribute("aria-hidden", "true");
+      const ico = document.createElement("span");
+      ico.className = "pod-ico";
+      ico.setAttribute("aria-hidden", "true");
+      const name = document.createElement("strong");
+      const meta = document.createElement("small");
+      if (id) {
+        head.type = "button";
+        head.setAttribute("aria-label", `${i + 1}. ${podTools[id].name}`);
+        ico.textContent = podTools[id].icon;
+        name.textContent = podTools[id].name;
+        meta.textContent = "🔥 " + podUsage[id][0];
+        head.addEventListener("click", () => podOpen(id));
+      } else {
+        ico.textContent = "?";
+        name.textContent = "Libre";
+        meta.textContent = "\u00a0";
+      }
+      head.append(medal, ico, name, meta);
+      const block = document.createElement("div");
+      block.className = "pod-block";
+      block.setAttribute("aria-hidden", "true");
+      block.textContent = String(i + 1);
+      col.append(head, block);
+      stage.appendChild(col);
+    });
+    $("podSub").textContent = top.length ? "Basé sur tes ouvertures d'outils" : "Ouvre des outils pour remplir ton podium";
+    $("podReset").hidden = !top.length;
+
+    const recEl = $("podRec");
+    recEl.innerHTML = "";
+    const rec = podRecent.slice(0, POD_REC_SHOW);
+    rec.forEach((id) => recEl.appendChild(podChip(id)));
+    $("podRecBox").hidden = !rec.length;
+  }
+
+  function podTrack(id) {
+    if (!podTools[id]) return;
+    const now = Date.now();
+    if (podLast.id === id && now - podLast.t < 4000) return; // évite de compter deux fois le même clic
+    podLast = { id, t: now };
+    const u = podUsage[id] || [0, 0];
+    podUsage[id] = [Math.min(u[0] + 1, 999999), now];
+    podRecent = [id, ...podRecent.filter((x) => x !== id)].slice(0, POD_REC_MAX);
+    podSave(POD_KEY, podUsage);
+    podSave(POD_REC_KEY, podRecent);
+    podRender();
+  }
+
+  $("podClear").addEventListener("click", () => { podRecent = []; podSave(POD_REC_KEY, podRecent); podRender(); });
+  $("podReset").addEventListener("click", () => {
+    if (!confirm("Remettre ton podium à zéro ?")) return;
+    podUsage = {};
+    podSave(POD_KEY, podUsage);
+    podRender();
+  });
+  if (podSearch) podSearch.addEventListener("input", podRender);
+
+  // Chaque ouverture d'outil est comptée (menu, cartes, raccourcis, liens directs)
+  const podOpenTab = openTab;
+  openTab = (id) => { podOpenTab(id); podTrack(id); };
+  const podStart = location.hash.slice(1);
+  if (podTools[podStart]) podTrack(podStart);
+  podRender();
+}
