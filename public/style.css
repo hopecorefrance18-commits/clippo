@@ -1797,3 +1797,14 @@ button.pod-tool { cursor: pointer; }
 @media (max-width: 380px) {
   .home-tools .tool-card { flex: 0 0 100%; width: 100%; }
 }
+
+/* --- Bouton réglages : en haut, à côté du journal --- */
+.cfg-wrap { display: none; }
+.cfg-btn.cfg-top {
+  position: fixed; top: 14px; right: 76px; z-index: 60; width: 52px; height: 52px; font-size: 1.4rem;
+  background: var(--ink-2); box-shadow: 0 6px 20px rgba(0, 0, 0, .4);
+}
+.cfg-btn.cfg-top:hover { transform: rotate(60deg); background: var(--pink); border-color: transparent; }
+@media (max-width: 700px) {
+  .cfg-btn.cfg-top { top: 12px; right: 66px; width: 46px; height: 46px; font-size: 1.25rem; }
+}
