@@ -2193,7 +2193,7 @@ Hugo</textarea>
     <footer class="foot">
    
     <p><a href="guides.html">Guides</a> · <a href="a-propos.html">À propos</a> · <a href="mentions-legales.html">Mentions légales</a> · <a href="confidentialite.html">Confidentialité</a></p>
-      <p class="cfg-wrap"><button id="cfgBtn" class="cfg-btn" type="button" aria-label="Réglages" title="Réglages" aria-haspopup="dialog" aria-expanded="false">⚙️</button></p>
+    
     </footer>
   
   <div id="cfgOverlay" class="cfg-overlay" hidden></div>
@@ -2205,11 +2205,13 @@ Hugo</textarea>
     <h3 class="cfg-h">🌐 Langue</h3>
     <p class="cfg-note">Choisis la langue de l'interface. Les textes qui ne sont pas encore traduits restent en français.</p>
     <div id="cfgLangs" class="cfg-langs"></div>
+        <p id="cfgStatus" class="cfg-note" role="status"></p>
     <p class="cfg-note">Pour traduire aussi le contenu des outils, utilise la traduction de ton navigateur (clic droit, puis « Traduire »).</p>
   </section>
   
   <button id="toTop" class="to-top" type="button" aria-label="Remonter en haut de la page" hidden>↑</button>
-  
+
+            <button id="cfgBtn" class="cfg-btn cfg-top" type="button" aria-label="Réglages" title="Réglages" aria-haspopup="dialog" aria-expanded="false">⚙️</button>
   <button id="jrBtn" class="jr-btn" type="button" aria-label="Ouvrir le journal des mises à jour" aria-expanded="false">
     <span aria-hidden="true">📰</span>
     <span id="jrBadge" class="jr-badge" hidden>1</span>
@@ -2223,6 +2225,13 @@ Hugo</textarea>
     <div id="jrBody" class="jr-body"></div>
   </aside>
 
+            <script>
+    window.__clippoStatic = new WeakSet();
+    (function () {
+      var w = document.createTreeWalker(document.body, NodeFilter.SHOW_ALL), n;
+      while ((n = w.nextNode())) window.__clippoStatic.add(n);
+    })();
+  </script>
   <script type="module" src="app.js"></script>
 </body>
 </html>
