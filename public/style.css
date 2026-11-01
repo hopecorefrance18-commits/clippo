@@ -1654,3 +1654,102 @@ button.pod-tool { cursor: pointer; }
 [dir="rtl"] .hm-feat span { padding-right: 0; padding-left: 44px; }
 [dir="rtl"] .hm-go { right: auto; left: 18px; transform: scaleX(-1); }
 @media (max-width: 700px) { [dir="rtl"] .tool-card { padding: 12px; } }
+
+/* --- Outils les plus populaires : version stylée --- */
+.hm-link {
+  padding: 10px 16px; border: 1px solid rgba(255, 255, 255, .18); border-radius: 999px;
+  background: rgba(255, 255, 255, .05); text-decoration: none;
+}
+.hm-link:hover { text-decoration: none; border-color: var(--aqua); }
+
+.hm-grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 16px; }
+.hm-feat {
+  --glow: 31, 123, 255;
+  grid-column: span 3; grid-template-rows: auto 1fr auto; align-content: normal;
+  position: relative; overflow: hidden; isolation: isolate; min-height: 196px; padding: 22px; gap: 8px;
+  border-radius: 22px; border: 1px solid rgba(var(--glow), .45);
+  background:
+    radial-gradient(120% 90% at 0% 0%, rgba(var(--glow), .34), transparent 62%),
+    linear-gradient(180deg, rgba(14, 26, 54, .8), rgba(8, 15, 34, .92));
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .28);
+  transition: transform .2s, border-color .2s, box-shadow .2s;
+  animation: hmFeatIn .5s cubic-bezier(.2, .8, .2, 1) backwards;
+}
+.hm-feat:nth-child(2) { animation-delay: .06s; }
+.hm-feat:nth-child(3) { animation-delay: .12s; }
+.hm-feat:nth-child(4) { animation-delay: .18s; }
+.hm-feat:nth-child(5) { animation-delay: .24s; }
+.hm-feat:nth-child(6) { animation-delay: .3s; }
+@keyframes hmFeatIn { from { opacity: 0; transform: translateY(14px); } }
+
+.hm-feat[data-c="1"] { --glow: 31, 123, 255; }
+.hm-feat[data-c="2"] { --glow: 139, 92, 246; }
+.hm-feat[data-c="3"] { --glow: 6, 182, 212; }
+.hm-feat[data-c="4"] { --glow: 249, 115, 22; }
+.hm-feat[data-c="5"] { --glow: 34, 197, 94; }
+.hm-feat[data-c="6"] { --glow: 236, 72, 153; }
+
+/* Grand émoji en filigrane */
+.hm-feat::after {
+  content: attr(data-emoji); content: attr(data-emoji) / "";
+  position: absolute; right: -10px; top: -14px; z-index: -1; font-size: 7rem; line-height: 1;
+  opacity: .1; transform: rotate(14deg); pointer-events: none;
+}
+.hm-tag {
+  position: absolute; top: 16px; right: 16px; padding: 4px 10px; border-radius: 999px;
+  font: 700 .7rem "DM Sans", sans-serif; letter-spacing: .07em; text-transform: uppercase;
+  color: #dbe7ff; background: rgba(255, 255, 255, .08); border: 1px solid rgba(255, 255, 255, .16);
+}
+.hm-feat .hm-ico {
+  width: 60px; height: 60px; margin: 0; align-self: start; justify-self: start; border-radius: 18px; font-size: 1.9rem;
+  background: linear-gradient(135deg, rgb(var(--glow)), rgba(var(--glow), .55));
+  box-shadow: 0 10px 26px rgba(var(--glow), .45), inset 0 1px 0 rgba(255, 255, 255, .35);
+}
+.hm-feat strong { align-self: end; font-size: 1.15rem; line-height: 1.15; }
+.hm-feat span { color: #b9c6e6; font-size: .95rem; line-height: 1.45; padding-right: 46px; }
+.hm-feat .hm-go { z-index: 1; border-color: rgba(var(--glow), .9); color: #fff; background: rgba(var(--glow), .25); }
+.hm-feat:active { transform: scale(.985); }
+@media (hover: hover) {
+  .hm-feat:hover {
+    transform: translateY(-5px); border-color: rgba(var(--glow), .95);
+    box-shadow: 0 20px 46px rgba(var(--glow), .3);
+  }
+  .hm-feat:hover .hm-go { background: rgb(var(--glow)); }
+}
+
+/* Les deux premiers outils en grand (ordinateur) */
+.hm-feat:nth-child(-n+2) { grid-column: span 6; min-height: 226px; padding: 26px; }
+.hm-feat:nth-child(-n+2) .hm-ico { width: 72px; height: 72px; border-radius: 22px; font-size: 2.3rem; }
+.hm-feat:nth-child(-n+2) strong { font-size: 1.5rem; }
+.hm-feat:nth-child(-n+2) span { font-size: 1.02rem; }
+.hm-feat:nth-child(-n+2)::after { font-size: 9rem; right: -4px; top: -20px; }
+
+/* Tablette : deux colonnes égales */
+@media (max-width: 1000px) {
+  .hm-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .hm-feat, .hm-feat:nth-child(-n+2) { grid-column: auto; min-height: 196px; padding: 22px; }
+  .hm-feat:nth-child(-n+2) .hm-ico { width: 60px; height: 60px; border-radius: 18px; font-size: 1.9rem; }
+  .hm-feat:nth-child(-n+2) strong { font-size: 1.15rem; }
+  .hm-feat:nth-child(-n+2) span { font-size: .95rem; }
+  .hm-feat:nth-child(-n+2)::after { font-size: 7rem; right: -10px; top: -14px; }
+}
+
+/* Téléphone : carrousel à faire glisser */
+@media (max-width: 700px) {
+  .hm-grid {
+    display: flex; gap: 12px; overflow-x: auto; margin: 0 -14px; padding: 6px 14px 16px;
+    scroll-snap-type: x mandatory; scroll-padding-inline: 14px; overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch; scrollbar-width: none;
+  }
+  .hm-grid::-webkit-scrollbar { display: none; }
+  .hm-feat, .hm-feat:nth-child(-n+2) {
+    flex: 0 0 78%; max-width: 310px; min-height: 204px; padding: 18px; scroll-snap-align: center;
+  }
+  .hm-feat .hm-ico, .hm-feat:nth-child(-n+2) .hm-ico { width: 54px; height: 54px; border-radius: 16px; font-size: 1.7rem; }
+  .hm-link { padding: 8px 14px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hm-feat { animation: none; transition: none; }
+  .hm-feat:hover, .hm-feat:active { transform: none; }
+}
