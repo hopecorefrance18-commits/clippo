@@ -3459,7 +3459,7 @@ const JR_KEY = "clippo_updates_seen";
 function jrKeys() { // une clé par entrée : date + titre, de la plus récente à la plus ancienne
   return [...document.querySelectorAll("#updates .upd-item")].map((a) => {
     const t = a.querySelector("time"), h = a.querySelector("h3");
-    return (t ? t.getAttribute("datetime") : "") + "|" + (h ? h.textContent.trim() : "");
+        return t ? t.getAttribute("datetime") || "" : "";
   });
 }
 function jrUnread() {
@@ -6500,5 +6500,224 @@ window.clippoMissing = () => {
   console.log(found.size + " textes sans traduction :\n" + [...found].map((s) => JSON.stringify(s)).join(",\n"));
   return found.size;
 };
+
+// ---------- Traduction automatique du contenu (sur l'appareil) ----------
+const MT_CODE = { en: "en", es: "es", zh: "zh", hi: "hi", ar: "ar", pt: "pt", ru: "ru" };
+const MT_KEY = "clippo_mt_";
+// Zones créées par le site (et pas par l'utilisateur) dont on traduit aussi les textes
+const MT_DYN = ".hs-box, #podium, #podRec, .jr-body, .status, .gr-info, .copy-btn, .primary, .ghost-btn, .chip, .sv-plan, .rd-line";
+// Ordre des langues : fr, en, es, zh, hi, ar, pt, ru
+const MT_MSG = {
+  on: [
+    "Traduction automatique du contenu activée (sur ton appareil).",
+    "Automatic content translation is on (on your device).",
+    "Traducción automática del contenido activada (en tu dispositivo).",
+    "已启用内容自动翻译（在你的设备上完成）。",
+    "सामग्री का स्वचालित अनुवाद चालू है (आपके डिवाइस पर)।",
+    "الترجمة التلقائية للمحتوى مفعّلة (على جهازك).",
+    "Tradução automática do conteúdo ativada (no seu dispositivo).",
+    "Автоматический перевод содержимого включён (на твоём устройстве).",
+  ],
+  load: [
+    "Préparation de la traduction…",
+    "Preparing the translation…",
+    "Preparando la traducción…",
+    "正在准备翻译……",
+    "अनुवाद तैयार किया जा रहा है…",
+    "جارٍ تجهيز الترجمة…",
+    "Preparando a tradução…",
+    "Подготовка перевода…",
+  ],
+  no: [
+    "La traduction automatique du contenu n'est pas disponible ici : seuls le menu, l'accueil et le pied de page sont traduits. Elle fonctionne sur Chrome ou Edge, sur ordinateur.",
+    "Automatic content translation isn't available here: only the menu, home page and footer are translated. It works in Chrome or Edge on a computer.",
+    "La traducción automática del contenido no está disponible aquí: solo se traducen el menú, el inicio y el pie de página. Funciona en Chrome o Edge en un ordenador.",
+    "此处无法使用内容自动翻译：只有菜单、首页和页脚会被翻译。它可在电脑版 Chrome 或 Edge 中使用。",
+    "यहाँ सामग्री का स्वचालित अनुवाद उपलब्ध नहीं है: केवल मेनू, होम पेज और फ़ुटर का अनुवाद होता है। यह कंप्यूटर पर Chrome या Edge में काम करता है।",
+    "الترجمة التلقائية للمحتوى غير متاحة هنا: تُترجم القائمة والصفحة الرئيسية والتذييل فقط. تعمل في Chrome أو Edge على الكمبيوتر.",
+    "A tradução automática do conteúdo não está disponível aqui: só o menu, o início e o rodapé são traduzidos. Ela funciona no Chrome ou no Edge, em computador.",
+    "Автоматический перевод содержимого здесь недоступен: переводятся только меню, главная страница и нижняя часть. Он работает в Chrome или Edge на компьютере.",
+  ],
+  tap: [
+    "Appuie sur la langue pour installer la traduction automatique (téléchargement unique).",
+    "Tap the language to install automatic translation (one-time download).",
+    "Pulsa el idioma para instalar la traducción automática (descarga única).",
+    "点按该语言即可安装自动翻译（仅需下载一次）。",
+    "स्वचालित अनुवाद इंस्टॉल करने के लिए भाषा पर टैप करें (एक बार का डाउनलोड)।",
+    "اضغط على اللغة لتثبيت الترجمة التلقائية (تنزيل لمرة واحدة).",
+    "Toque no idioma para instalar a tradução automática (download único).",
+    "Нажми на язык, чтобы установить автоматический перевод (разовая загрузка).",
+  ],
+};
+const mt = { active: false, gen: 0, tr: null, code: "", cache: new Map(), jobs: new Map(), timer: 0, busy: false, saveTimer: 0 };
+
+function mtStatus(kind, pct) {
+  const el = $("cfgStatus");
+  if (!el) return;
+  el.textContent = kind ? MT_MSG[kind][lgCol] + (kind === "load" && pct ? " " + pct + " %" : "") : "";
+}
+function mtReset() {
+  mt.gen++;
+  mt.active = false;
+  mt.code = "";
+  mt.jobs.clear();
+  mt.cache = new Map();
+  clearTimeout(mt.timer);
+  mt.timer = 0;
+  if (mt.tr && mt.tr.destroy) { try { mt.tr.destroy(); } catch { /* ignoré */ } }
+  mt.tr = null;
+}
+function mtLoadCache(code) {
+  mt.cache = new Map();
+  try {
+    const o = JSON.parse(localStorage.getItem(MT_KEY + code) || "{}");
+    if (o && typeof o === "object") Object.keys(o).slice(0, 3000).forEach((k) => { if (typeof o[k] === "string") mt.cache.set(k, o[k]); });
+  } catch { /* cache illisible */ }
+}
+function mtPersist() {
+  clearTimeout(mt.saveTimer);
+  mt.saveTimer = setTimeout(() => {
+    if (!mt.code) return;
+    const o = {};
+    let size = 0;
+    for (const [k, v] of mt.cache) { size += k.length + v.length; if (size > 250000) break; o[k] = v; }
+    try { localStorage.setItem(MT_KEY + mt.code, JSON.stringify(o)); } catch { /* stockage plein */ }
+  }, 1500);
+}
+
+// --- Quels textes traduire ? ---
+function mtWorth(key) {
+  return key.length >= 2 && key.length <= 1200 && /\p{L}/u.test(key) && !/^[A-Z0-9 .,:;!?%€$&+\-\/()]+$/.test(key) && !lgMap.has(key);
+}
+function mtOkNode(n) {
+  const p = n.parentNode;
+  if (!p || p.nodeType !== 1 || /^(SCRIPT|STYLE|TEXTAREA|NOSCRIPT)$/.test(p.nodeName) || p.closest('[translate="no"]')) return false;
+  const pan = p.closest(".panel");
+  if (pan && !pan.classList.contains("active")) return false; // les outils fermés sont traduits à l'ouverture
+  const st = window.__clippoStatic;
+  return !!((st && st.has(n)) || p.closest(MT_DYN));
+}
+function mtApplyText(n, key, out) {
+  const val = n.nodeValue;
+  if (lgKey(val) !== key || lgNodeLast.get(n) === val) return;
+  const res = val.match(/^\s*/)[0] + out + val.match(/\s*$/)[0];
+  lgNodeOrig.set(n, val);
+  lgNodeLast.set(n, res);
+  n.nodeValue = res;
+}
+function mtApplyAttr(el, a, key, out) {
+  const v = el.getAttribute(a);
+  if (v === null || lgKey(v) !== key) return;
+  const rec = lgAttrRec.get(el) || {};
+  if (rec[a] && rec[a][1] === v) return;
+  rec[a] = [v, out];
+  lgAttrRec.set(el, rec);
+  el.setAttribute(a, out);
+}
+function mtAdd(key, target) {
+  let list = mt.jobs.get(key);
+  if (!list) mt.jobs.set(key, (list = []));
+  list.push(target);
+  mtSchedule();
+}
+function mtEnqueueText(n) {
+  if (!mtOkNode(n)) return;
+  const val = n.nodeValue;
+  if (lgNodeLast.get(n) === val) return; // déjà traduit
+  const key = lgKey(val);
+  if (!mtWorth(key)) return;
+  const hit = mt.cache.get(key);
+  if (hit !== undefined) mtApplyText(n, key, hit); else mtAdd(key, { n });
+}
+function mtEnqueueAttrs(el) {
+  const st = window.__clippoStatic;
+  if (el.nodeType !== 1 || !st || !st.has(el) || /^(SCRIPT|STYLE)$/.test(el.nodeName) || el.closest('[translate="no"]')) return; // les attributs créés par les outils contiennent souvent le texte de l'utilisateur
+  const pan = el.closest(".panel");
+  if (pan && !pan.classList.contains("active")) return;
+  for (const a of LG_ATTRS) {
+    const v = el.getAttribute(a);
+    if (v === null) continue;
+    const rec = lgAttrRec.get(el);
+    if (rec && rec[a] && rec[a][1] === v) continue;
+    const key = lgKey(v);
+    if (!mtWorth(key)) continue;
+    const hit = mt.cache.get(key);
+    if (hit !== undefined) mtApplyAttr(el, a, key, hit); else mtAdd(key, { el, a });
+  }
+}
+
+// --- Traduction, un texte après l'autre (c'est ainsi que le navigateur la traite) ---
+function mtSchedule() {
+  if (mt.timer || !mt.tr) return;
+  mt.timer = setTimeout(mtRun, 40);
+}
+async function mtRun() {
+  mt.timer = 0;
+  if (mt.busy || !mt.tr) return;
+  mt.busy = true;
+  const gen = mt.gen, tr = mt.tr;
+  try {
+    while (mt.jobs.size && gen === mt.gen) {
+      const [key, list] = mt.jobs.entries().next().value;
+      mt.jobs.delete(key);
+      let out = mt.cache.get(key);
+      if (out === undefined) {
+        try { out = (await tr.translate(key)) || ""; } catch { out = ""; }
+        if (gen !== mt.gen) break;
+        if (out) { mt.cache.set(key, out); mtPersist(); }
+      }
+      if (out) list.forEach((t) => (t.n ? mtApplyText(t.n, key, out) : mtApplyAttr(t.el, t.a, key, out)));
+    }
+  } finally {
+    mt.busy = false;
+    if (mt.jobs.size) mtSchedule();
+  }
+}
+
+async function mtStart(code, click) {
+  const gen = mt.gen;
+  mtStatus("");
+  if (code === "fr" || !MT_CODE[code]) return;
+  if (!("Translator" in self)) return mtStatus("no");
+  mt.code = code;
+  mtLoadCache(code);
+  mt.active = true;
+  lgTree(document.body); // applique les traductions déjà gardées et met le reste en attente
+  const opts = { sourceLanguage: "fr", targetLanguage: MT_CODE[code] };
+  let av = "unavailable";
+  try { av = await Translator.availability(opts); } catch { /* ignoré */ }
+  if (gen !== mt.gen) return;
+  if (av === "unavailable") { mt.active = false; mt.jobs.clear(); return mtStatus("no"); }
+  if (av !== "available" && !click) return mtStatus("tap"); // le téléchargement demande un clic de l'utilisateur
+  mtStatus("load", 0);
+  try {
+    const tr = await Translator.create({
+      ...opts,
+      monitor(m) { m.addEventListener("downloadprogress", (e) => { if (gen === mt.gen) mtStatus("load", Math.round((e.loaded || 0) * 100)); }); },
+    });
+    if (gen !== mt.gen) { try { if (tr.destroy) tr.destroy(); } catch { /* ignoré */ } return; }
+    mt.tr = tr;
+    mtStatus("on");
+    mtSchedule();
+  } catch {
+    if (gen !== mt.gen) return;
+    mt.active = false;
+    mt.jobs.clear();
+    mtStatus(click ? "no" : "tap");
+  }
+}
+
+// On se branche sur le moteur de langues existant
+const mtBaseText = lgTextNode, mtBaseAttrs = lgAttrsOf, mtBaseSet = lgSet, mtBaseOpen = openTab;
+lgTextNode = function (n) { mtBaseText(n); if (mt.active) mtEnqueueText(n); };
+lgAttrsOf = function (el) { mtBaseAttrs(el); if (mt.active) mtEnqueueAttrs(el); };
+lgSet = function (code, save) { mtReset(); mtBaseSet(code, save); mtStart(lgCode, !!save); };
+openTab = function (id) { // un outil qu'on ouvre est traduit à ce moment-là
+  mtBaseOpen(id);
+  if (lgCode === "fr") return;
+  const p = document.getElementById(id);
+  if (p && p.classList.contains("panel")) lgTree(p);
+};
+if (lgCode !== "fr") mtStart(lgCode, false); // langue déjà choisie lors d'une visite précédente
 
 
