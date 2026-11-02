@@ -2490,6 +2490,8 @@ buRender();
 const homeSearch = $("homeSearch"), homeEmpty = $("homeEmpty");
 const HS_STOP = new Set("le la les un une des du de au aux en et ou a pour sur mon ma mes ton ta tes comment faire fait je veux voudrais besoin outil outils avec sans cherche trouver".split(" "));
 const HS_KW = {
+    sudoku: "sudoku grille chiffres logique jeu casse tete nombres",
+  crossword: "mots croises mot croise grille definitions jeu vocabulaire lettres",
   grades: "moyenne note notes calcul coefficient bulletin controle ecole college lycee bac scolaire",
   pomodoro: "minuteur timer chrono concentration travail travailler focus pause revision productivite temps",
   flashcards: "cartes carte fiches memoriser memoire reviser revision apprendre lecon quiz",
