@@ -6720,4 +6720,347 @@ openTab = function (id) { // un outil qu'on ouvre est traduit à ce moment-là
 };
 if (lgCode !== "fr") mtStart(lgCode, false); // langue déjà choisie lors d'une visite précédente
 
+// ---------- Sudoku ----------
+const SU_KEY = "clippo_sudoku";
+const SU_CLUES = { easy: 40, mid: 32, hard: 26 };
+const suPanel = $("sudoku"), suBoard = $("suBoard"), suPad = $("suPad"), suMsg = $("suMsg"), suLevel = $("suLevel");
+const suTimeEl = $("suTime"), suBestEl = $("suBest"), suHintsEl = $("suHints"), suNotesBtn = $("suNotes"), suUndoBtn = $("suUndo");
+const suBestTimes = { easy: 0, mid: 0, hard: 0 };
+const SU_R = [], SU_C = [], SU_B = [], SU_PEERS = [], suCells = [];
+for (let i = 0; i < 81; i++) {
+  SU_R[i] = Math.floor(i / 9);
+  SU_C[i] = i % 9;
+  SU_B[i] = Math.floor(SU_R[i] / 3) * 3 + Math.floor(SU_C[i] / 3);
+}
+for (let i = 0; i < 81; i++) {
+  SU_PEERS[i] = [];
+  for (let j = 0; j < 81; j++) if (j !== i && (SU_R[j] === SU_R[i] || SU_C[j] === SU_C[i] || SU_B[j] === SU_B[i])) SU_PEERS[i].push(j);
+}
+let su = null, suBusy = false, suPi = -1, suPn = 10, suPm = 0;
+
+function suPop(m) { let n = 0; while (m) { m &= m - 1; n++; } return n; }
+function suFmt(s) { return String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0"); }
+
+// Choisit la case vide qui a le moins de possibilités
+function suPick(g, rows, cols, boxes) {
+  suPi = -1; suPn = 10; suPm = 0;
+  for (let i = 0; i < 81; i++) {
+    if (g[i]) continue;
+    const cand = ~(rows[SU_R[i]] | cols[SU_C[i]] | boxes[SU_B[i]]) & 0x3fe;
+    const n = suPop(cand);
+    if (n < suPn) { suPn = n; suPi = i; suPm = cand; if (n <= 1) return; }
+  }
+}
+function suCount(src, limit, out) { // nombre de solutions (jusqu'à « limit »)
+  const g = Int8Array.from(src);
+  const rows = new Int16Array(9), cols = new Int16Array(9), boxes = new Int16Array(9);
+  for (let i = 0; i < 81; i++) if (g[i]) { const m = 1 << g[i]; rows[SU_R[i]] |= m; cols[SU_C[i]] |= m; boxes[SU_B[i]] |= m; }
+  let count = 0;
+  const rec = () => {
+    suPick(g, rows, cols, boxes);
+    const bi = suPi, bn = suPn, bm = suPm;
+    if (bi < 0) { count++; if (out && count === 1) out.set(g); return count >= limit; }
+    if (bn === 0) return false;
+    const r = SU_R[bi], c = SU_C[bi], b = SU_B[bi];
+    for (let v = 1; v <= 9; v++) {
+      const m = 1 << v;
+      if (!(bm & m)) continue;
+      g[bi] = v; rows[r] |= m; cols[c] |= m; boxes[b] |= m;
+      const stop = rec();
+      g[bi] = 0; rows[r] &= ~m; cols[c] &= ~m; boxes[b] &= ~m;
+      if (stop) return true;
+    }
+    return false;
+  };
+  rec();
+  return count;
+}
+function suFull() { // grille complète au hasard
+  const g = new Int8Array(81);
+  const rows = new Int16Array(9), cols = new Int16Array(9), boxes = new Int16Array(9);
+  const rec = () => {
+    suPick(g, rows, cols, boxes);
+    const bi = suPi, bn = suPn, bm = suPm;
+    if (bi < 0) return true;
+    if (bn === 0) return false;
+    const r = SU_R[bi], c = SU_C[bi], b = SU_B[bi];
+    for (const v of gmShuffle([1, 2, 3, 4, 5, 6, 7, 8, 9])) {
+      const m = 1 << v;
+      if (!(bm & m)) continue;
+      g[bi] = v; rows[r] |= m; cols[c] |= m; boxes[b] |= m;
+      if (rec()) return true;
+      g[bi] = 0; rows[r] &= ~m; cols[c] &= ~m; boxes[b] &= ~m;
+    }
+    return false;
+  };
+  rec();
+  return g;
+}
+function suMake(level) { // retire des chiffres tant que la solution reste unique
+  const sol = suFull(), puz = Int8Array.from(sol);
+  const target = SU_CLUES[level] || 32, t0 = Date.now();
+  let clues = 81;
+  for (const i of gmShuffle(Array.from({ length: 81 }, (_, k) => k))) {
+    if (clues <= target || Date.now() - t0 > 1600) break;
+    const keep = puz[i];
+    puz[i] = 0;
+    if (suCount(puz, 2) !== 1) puz[i] = keep; else clues--;
+  }
+  return { puz, sol };
+}
+
+function suInit(level, puz, sol) {
+  su = { level, puz, sol, val: Int8Array.from(puz), notes: new Int16Array(81), sel: -1, notesOn: false,
+    secs: 0, started: false, solved: false, hints: 0, hinted: new Set(), bad: new Set(), undo: [] };
+}
+function suSave() {
+  if (!su) return;
+  try {
+    localStorage.setItem(SU_KEY, JSON.stringify({
+      level: su.level, puz: Array.from(su.puz).join(""), sol: Array.from(su.sol).join(""), val: Array.from(su.val).join(""),
+      notes: Array.from(su.notes), secs: su.secs, started: su.started, solved: su.solved, hints: su.hints, hinted: [...su.hinted], best: suBestTimes,
+    }));
+  } catch { /* stockage indisponible */ }
+}
+function suLoad() {
+  try {
+    const d = JSON.parse(localStorage.getItem(SU_KEY) || "null");
+    if (!d || typeof d !== "object") return null;
+    ["easy", "mid", "hard"].forEach((k) => { const v = d.best && Number(d.best[k]); if (v > 0 && v < 1e6) suBestTimes[k] = Math.floor(v); });
+    const ok = (s) => typeof s === "string" && /^[0-9]{81}$/.test(s);
+    if (!SU_CLUES[d.level] || !ok(d.puz) || !ok(d.sol) || !ok(d.val)) return null;
+    const arr = (s) => Int8Array.from(s, (ch) => +ch);
+    const puz = arr(d.puz), sol = arr(d.sol), val = arr(d.val);
+    for (let i = 0; i < 81; i++) if (!sol[i] || (puz[i] && val[i] !== puz[i])) return null;
+    const chk = new Int8Array(81);
+    if (suCount(puz, 2, chk) !== 1) return null; // la solution enregistrée doit être la bonne
+    for (let i = 0; i < 81; i++) if (chk[i] !== sol[i]) return null;
+    const notes = new Int16Array(81);
+    if (Array.isArray(d.notes) && d.notes.length === 81) d.notes.forEach((n, i) => { notes[i] = (Number(n) & 0x3fe) || 0; });
+    return { level: d.level, puz, sol, val, notes, sel: -1, notesOn: false,
+      secs: Math.max(0, Math.min(Number(d.secs) || 0, 359999)), started: !!d.started, solved: !!d.solved,
+      hints: Math.max(0, Math.min(Number(d.hints) || 0, 99)),
+      hinted: new Set(Array.isArray(d.hinted) ? d.hinted.filter((i) => Number.isInteger(i) && i >= 0 && i < 81) : []),
+      bad: new Set(), undo: [] };
+  } catch { return null; }
+}
+
+function suBuild() {
+  suBoard.innerHTML = "";
+  for (let i = 0; i < 81; i++) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "su-cell";
+    b.setAttribute("role", "gridcell");
+    b.addEventListener("click", () => { if (su) { su.sel = i; suPaint(); } });
+    suBoard.appendChild(b);
+    suCells.push(b);
+  }
+  suPad.innerHTML = "";
+  for (let d = 1; d <= 9; d++) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "su-key";
+    b.dataset.d = String(d);
+    b.append(document.createElement("strong"), document.createElement("small"));
+    b.firstChild.textContent = String(d);
+    b.addEventListener("click", () => suInput(d));
+    suPad.appendChild(b);
+  }
+  const er = document.createElement("button");
+  er.type = "button";
+  er.className = "su-key erase";
+  er.textContent = "⌫";
+  er.setAttribute("aria-label", "Effacer la case");
+  er.addEventListener("click", suErase);
+  suPad.appendChild(er);
+}
+
+function suConflicts() {
+  const bad = new Set();
+  for (let i = 0; i < 81; i++) {
+    const v = su.val[i];
+    if (!v) continue;
+    for (const j of SU_PEERS[i]) if (su.val[j] === v) { bad.add(i); break; }
+  }
+  return bad;
+}
+function suPaint() {
+  if (!su) return;
+  const conf = suConflicts(), sv = su.sel >= 0 ? su.val[su.sel] : 0;
+  const peers = su.sel >= 0 ? new Set(SU_PEERS[su.sel]) : null;
+  const counts = new Int8Array(10);
+  for (let i = 0; i < 81; i++) if (su.val[i]) counts[su.val[i]]++;
+  for (let i = 0; i < 81; i++) {
+    const el = suCells[i], v = su.val[i];
+    let cls = "su-cell" + (SU_C[i] % 3 === 2 && SU_C[i] < 8 ? " r3" : "") + (SU_R[i] % 3 === 2 && SU_R[i] < 8 ? " b3" : "");
+    if (su.puz[i]) cls += " given"; else if (su.hinted.has(i)) cls += " hint";
+    if (i === su.sel) cls += " sel"; else if (peers && peers.has(i)) cls += " peer";
+    if (sv && v === sv && i !== su.sel) cls += " same";
+    if (conf.has(i)) cls += " err";
+    if (su.bad.has(i)) cls += " bad";
+    el.className = cls;
+    if (v) {
+      if (el.dataset.k !== "v" + v) { el.textContent = String(v); el.dataset.k = "v" + v; }
+    } else if (su.notes[i]) {
+      const key = "n" + su.notes[i];
+      if (el.dataset.k !== key) {
+        el.textContent = "";
+        const g = document.createElement("span");
+        g.className = "su-notes";
+        for (let d = 1; d <= 9; d++) { const s = document.createElement("span"); s.textContent = su.notes[i] & (1 << d) ? String(d) : ""; g.appendChild(s); }
+        el.appendChild(g);
+        el.dataset.k = key;
+      }
+    } else if (el.dataset.k) { el.textContent = ""; el.dataset.k = ""; }
+    el.setAttribute("aria-label", `Ligne ${SU_R[i] + 1}, colonne ${SU_C[i] + 1}, ${v ? v : "vide"}`);
+  }
+  suPad.querySelectorAll(".su-key[data-d]").forEach((b) => {
+    const d = +b.dataset.d, left = Math.max(0, 9 - counts[d]);
+    b.querySelector("small").textContent = left ? String(left) : "✓";
+    b.classList.toggle("done", left === 0);
+  });
+  suNotesBtn.textContent = su.notesOn ? "✏️ Notes : oui" : "✏️ Notes : non";
+  suNotesBtn.setAttribute("aria-pressed", String(su.notesOn));
+  suNotesBtn.classList.toggle("on", su.notesOn);
+  suUndoBtn.disabled = !su.undo.length || su.solved;
+  suTimeEl.textContent = suFmt(su.secs);
+  suHintsEl.textContent = String(su.hints);
+  suBestEl.textContent = suBestTimes[su.level] ? suFmt(suBestTimes[su.level]) : "–";
+}
+
+function suPush() {
+  su.undo.push({ v: Int8Array.from(su.val), n: Int16Array.from(su.notes) });
+  if (su.undo.length > 100) su.undo.shift();
+}
+function suSolvedCheck() {
+  if (su.solved) return;
+  for (let i = 0; i < 81; i++) if (su.val[i] !== su.sol[i]) return;
+  su.solved = true;
+  let msg = `Bravo ! Grille résolue en ${suFmt(su.secs)} 🎉`;
+  if (!su.hints && (!suBestTimes[su.level] || su.secs < suBestTimes[su.level])) { suBestTimes[su.level] = su.secs; msg += " Nouveau meilleur temps !"; }
+  suMsg.textContent = msg;
+  suPaint();
+}
+function suAfter() { suMsg.textContent = ""; suPaint(); suSolvedCheck(); suSave(); }
+
+function suLocked(i) { return !!su.puz[i] || su.hinted.has(i); }
+function suInput(d) {
+  if (!su || su.solved) return;
+  if (su.sel < 0) { suMsg.textContent = "Choisis d'abord une case."; return; }
+  const i = su.sel;
+  if (suLocked(i)) return;
+  if (su.notesOn && su.val[i]) return; // pas de notes sur une case déjà remplie
+  suPush();
+  su.bad.clear();
+  su.started = true;
+  if (su.notesOn) su.notes[i] ^= 1 << d;
+  else if (su.val[i] === d) su.val[i] = 0;
+  else {
+    su.val[i] = d;
+    su.notes[i] = 0;
+    for (const j of SU_PEERS[i]) su.notes[j] &= ~(1 << d); // nettoie les notes voisines
+  }
+  suAfter();
+}
+function suErase() {
+  if (!su || su.solved || su.sel < 0) return;
+  const i = su.sel;
+  if (suLocked(i) || (!su.val[i] && !su.notes[i])) return;
+  suPush(); su.bad.clear(); su.val[i] = 0; su.notes[i] = 0; suAfter();
+}
+function suUndo() {
+  if (!su || su.solved || !su.undo.length) return;
+  const s = su.undo.pop();
+  su.val = s.v; su.notes = s.n; su.bad.clear();
+  su.hinted = new Set([...su.hinted].filter((i) => su.val[i] === su.sol[i]));
+  suAfter();
+}
+function suHint() {
+  if (!su || su.solved) return;
+  let i = su.sel;
+  if (i < 0 || su.puz[i] || su.val[i] === su.sol[i]) {
+    const open = [];
+    for (let k = 0; k < 81; k++) if (!su.puz[k] && su.val[k] !== su.sol[k]) open.push(k);
+    if (!open.length) return;
+    i = open[gmRand(open.length)];
+  }
+  suPush(); su.bad.clear(); su.started = true;
+  su.val[i] = su.sol[i]; su.notes[i] = 0; su.hinted.add(i); su.hints++; su.sel = i;
+  for (const j of SU_PEERS[i]) su.notes[j] &= ~(1 << su.sol[i]);
+  suAfter();
+}
+function suCheck() {
+  if (!su || su.solved) return;
+  su.bad.clear();
+  for (let i = 0; i < 81; i++) if (!su.puz[i] && su.val[i] && su.val[i] !== su.sol[i]) su.bad.add(i);
+  suPaint();
+  const n = su.bad.size;
+  suMsg.textContent = n ? `${n} case${n > 1 ? "s" : ""} incorrecte${n > 1 ? "s" : ""} (en rouge).` : "Aucune erreur pour l'instant. Continue !";
+}
+function suToggleNotes() { if (su && !su.solved) { su.notesOn = !su.notesOn; suPaint(); } }
+
+function suConfirm() { return !su || !su.started || su.solved || confirm("Abandonner la partie en cours ?"); }
+function suNewGame() {
+  if (suBusy) return;
+  suBusy = true;
+  const level = suLevel.value;
+  suMsg.textContent = "Création de la grille…";
+  setTimeout(() => {
+    const { puz, sol } = suMake(level);
+    suInit(level, puz, sol);
+    suMsg.textContent = "";
+    suBusy = false;
+    suPaint();
+    suSave();
+  }, 30);
+}
+function suEnsure() {
+  if (su || suBusy) return;
+  const saved = suLoad();
+  if (saved) { su = saved; suLevel.value = su.level; suPaint(); } else suNewGame();
+}
+
+$("suNew").addEventListener("click", () => { if (suConfirm()) suNewGame(); });
+suLevel.addEventListener("change", () => { if (suConfirm()) suNewGame(); else suLevel.value = su ? su.level : "mid"; });
+suNotesBtn.addEventListener("click", suToggleNotes);
+suUndoBtn.addEventListener("click", suUndo);
+$("suHint").addEventListener("click", suHint);
+$("suCheck").addEventListener("click", suCheck);
+
+document.addEventListener("keydown", (e) => {
+  if (!su || !suPanel.classList.contains("active") || e.altKey) return;
+  if (e.target.closest && e.target.closest("input, textarea, select")) return;
+  const k = e.key;
+  if ((e.ctrlKey || e.metaKey) && k.toLowerCase() === "z") { e.preventDefault(); suUndo(); return; }
+  if (e.ctrlKey || e.metaKey) return;
+  if (/^[1-9]$/.test(k)) { e.preventDefault(); suInput(+k); }
+  else if (k === "0" || k === "Backspace" || k === "Delete") { e.preventDefault(); suErase(); }
+  else if (k === "n" || k === "N") suToggleNotes();
+  else if (k.startsWith("Arrow")) {
+    e.preventDefault();
+    if (su.sel < 0) su.sel = 40;
+    else {
+      const r = SU_R[su.sel], c = SU_C[su.sel];
+      if (k === "ArrowLeft" && c > 0) su.sel--;
+      else if (k === "ArrowRight" && c < 8) su.sel++;
+      else if (k === "ArrowUp" && r > 0) su.sel -= 9;
+      else if (k === "ArrowDown" && r < 8) su.sel += 9;
+    }
+    suPaint();
+  }
+});
+
+setInterval(() => {
+  if (su && su.started && !su.solved && suPanel.classList.contains("active") && !document.hidden) {
+    su.secs++;
+    suTimeEl.textContent = suFmt(su.secs);
+    if (su.secs % 10 === 0) suSave();
+  }
+}, 1000);
+
+suBuild();
+new MutationObserver(() => { if (suPanel.classList.contains("active")) suEnsure(); }).observe(suPanel, { attributes: true, attributeFilter: ["class"] });
+if (suPanel.classList.contains("active")) suEnsure();
+
 
