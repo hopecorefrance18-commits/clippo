@@ -7063,4 +7063,403 @@ suBuild();
 new MutationObserver(() => { if (suPanel.classList.contains("active")) suEnsure(); }).observe(suPanel, { attributes: true, attributeFilter: ["class"] });
 if (suPanel.classList.contains("active")) suEnsure();
 
+// ---------- Mots croisés ----------
+const CW_KEY = "clippo_crossword", CW_N = 15;
+const CW_COUNT = { easy: 8, mid: 11, hard: 14 };
+const CW_THEMES = ["mix", "animaux", "cuisine", "nature", "maison"];
+const CW_BANK = {
+  animaux: [
+    ["CHAT", "Félin domestique qui ronronne"], ["CHIEN", "Il aboie et garde la maison"], ["CHEVAL", "Il galope et se monte"],
+    ["VACHE", "Elle broute dans le pré et fait « meuh »"], ["LAPIN", "Il a de longues oreilles et saute"], ["SOURIS", "Petit rongeur gris aux longues moustaches"],
+    ["POULE", "Elle pond des œufs"], ["CANARD", "Il fait coin-coin sur l'étang"], ["OURS", "Il hiberne dans sa tanière"],
+    ["LOUP", "Il hurle à la pleine lune"], ["RENARD", "Rusé dans les fables"], ["TORTUE", "Lente, elle porte une carapace"],
+    ["GIRAFE", "Animal au très long cou"], ["ZEBRE", "Animal rayé noir et blanc d'Afrique"], ["SINGE", "Il se balance de branche en branche"],
+    ["DAUPHIN", "Mammifère marin très intelligent"], ["ABEILLE", "Insecte rayé qui butine"], ["PAPILLON", "Insecte aux ailes colorées"],
+    ["ESCARGOT", "Il porte sa coquille sur son dos"], ["HIBOU", "Oiseau de nuit qui fait hou-hou"], ["AIGLE", "Grand rapace, roi du ciel"],
+    ["MOUTON", "Sa laine sert à faire des pulls"], ["COCHON", "Il aime se rouler dans la boue"], ["LION", "Le roi de la savane"],
+    ["ELEPHANT", "Il a une trompe et de grandes oreilles"], ["TIGRE", "Grand félin rayé"], ["MANCHOT", "Oiseau de l'Antarctique qui nage mais ne vole pas"],
+  ],
+  cuisine: [
+    ["PAIN", "Il sort du four du boulanger"], ["FROMAGE", "Camembert, brie ou comté"], ["POMME", "Fruit du pommier"],
+    ["BANANE", "Fruit jaune et courbé"], ["CERISE", "Petit fruit rouge à noyau"], ["FRAISE", "Fruit rouge du printemps"],
+    ["CITRON", "Fruit jaune très acide"], ["CAROTTE", "Légume orange et croquant"], ["TOMATE", "Fruit rouge qu'on prend pour un légume"],
+    ["SOUPE", "Plat liquide servi chaud"], ["SUCRE", "Il adoucit les boissons"], ["BEURRE", "Gras onctueux fait avec de la crème"],
+    ["GATEAU", "Dessert d'anniversaire"], ["CHOCOLAT", "Fait avec du cacao"], ["PATES", "Spaghetti ou tagliatelles"],
+    ["RIZ", "Céréale des paellas et des sushis"], ["LAIT", "Boisson blanche du petit-déjeuner"], ["CREPE", "Fine galette de la Chandeleur"],
+    ["SALADE", "Feuilles vertes assaisonnées"], ["POISSON", "Il nage et on le pêche"], ["JAMBON", "Charcuterie rose"],
+    ["MIEL", "Doré et sucré, il se tartine"], ["CAFE", "Boisson noire du matin"], ["CUILLERE", "Couvert arrondi qu'on porte à la bouche"],
+    ["FOURCHETTE", "Couvert à dents"], ["POIRE", "Fruit tendre et juteux, en forme de cloche"],
+  ],
+  nature: [
+    ["FORET", "Grande étendue boisée où vivent le cerf et le sanglier"], ["RIVIERE", "Cours d'eau qui serpente dans la vallée"],
+    ["MONTAGNE", "Grand relief au sommet parfois enneigé"], ["OCEAN", "Immense étendue d'eau salée"], ["PLAGE", "On y bronze au bord de la mer"],
+    ["DESERT", "Il y fait chaud et sec"], ["VOLCAN", "Il crache de la lave"], ["ILE", "Terre entourée d'eau"],
+    ["SOLEIL", "Étoile qui éclaire le jour"], ["LUNE", "Elle éclaire la nuit"], ["NUAGE", "Il flotte dans le ciel"],
+    ["PLUIE", "Gouttes d'eau qui tombent du ciel"], ["NEIGE", "Blanche et froide en hiver"], ["FLEUVE", "La Seine ou la Loire"],
+    ["LAC", "Étendue d'eau douce entourée de terre"], ["PARIS", "Capitale de la France"], ["EUROPE", "Continent où se trouve la France"],
+    ["AFRIQUE", "Continent du Sahara"], ["ARBRE", "Il a un tronc et des branches"], ["FLEUR", "La rose en est une"],
+    ["HERBE", "Elle pousse sur la pelouse"], ["ROCHER", "Gros bloc de pierre"], ["VENT", "Il souffle et agite les feuilles"],
+    ["ORAGE", "Éclairs et tonnerre"], ["SABLE", "Grains fins des dunes"],
+  ],
+  maison: [
+    ["TABLE", "On y mange"], ["CHAISE", "On s'y assoit"], ["LIT", "On y dort la nuit"], ["PORTE", "On l'ouvre pour entrer"],
+    ["FENETRE", "Elle laisse passer la lumière"], ["CUISINE", "Pièce où l'on prépare les repas"], ["SALON", "Pièce où l'on reçoit les invités"],
+    ["CANAPE", "Siège confortable à plusieurs places"], ["LAMPE", "Elle éclaire la pièce"], ["MIROIR", "On s'y regarde"],
+    ["TAPIS", "Il recouvre le sol"], ["ARMOIRE", "Meuble pour ranger les vêtements"], ["LIVRE", "Il se lit page après page"],
+    ["STYLO", "On écrit avec"], ["CLE", "Elle ouvre la serrure"], ["HORLOGE", "Elle indique l'heure"],
+    ["TELEPHONE", "Il sonne quand on t'appelle"], ["ORDINATEUR", "Machine pour taper, naviguer et jouer"], ["VELO", "Deux roues et des pédales"],
+    ["VOITURE", "Elle roule sur la route"], ["SAC", "Il porte tes affaires"], ["CHAPEAU", "Il se met sur la tête"],
+    ["CHAUSSURE", "On la porte au pied"], ["PARAPLUIE", "Il protège quand il pleut"], ["BALAI", "Il sert à ramasser la poussière"],
+  ],
+};
+const CW_ROWS = ["AZERTYUIOP", "QSDFGHJKLM", "WXCVBN"];
+const cwPanel = $("crossword"), cwBoard = $("cwBoard"), cwKeys = $("cwKeys"), cwMsg = $("cwMsg"), cwClueEl = $("cwClue");
+const cwTheme = $("cwTheme"), cwLevel = $("cwLevel"), cwAcross = $("cwAcross"), cwDown = $("cwDown");
+let cwG = null, cwEls = [], cwLis = [], cwBusy = false;
+
+// --- Création de la grille ---
+function cwFits(g, hv, w, r, c, dir) { // -1 si impossible, sinon le nombre de croisements
+  const dr = dir ? 1 : 0, dc = dir ? 0 : 1, len = w.length;
+  if (r < 0 || c < 0 || r + dr * (len - 1) >= CW_N || c + dc * (len - 1) >= CW_N) return -1;
+  const br = r - dr, bc = c - dc, ar = r + dr * len, ac = c + dc * len;
+  if (br >= 0 && bc >= 0 && g[br][bc]) return -1;
+  if (ar < CW_N && ac < CW_N && g[ar][ac]) return -1;
+  let cross = 0;
+  for (let k = 0; k < len; k++) {
+    const rr = r + dr * k, cc = c + dc * k, ch = g[rr][cc];
+    if (ch) {
+      if (ch !== w[k] || (hv[rr][cc] & (dir ? 2 : 1))) return -1;
+      cross++;
+    } else {
+      const r1 = rr - dc, c1 = cc - dr, r2 = rr + dc, c2 = cc + dr; // cases voisines sur le côté
+      if (r1 >= 0 && c1 >= 0 && g[r1][c1]) return -1;
+      if (r2 < CW_N && c2 < CW_N && g[r2][c2]) return -1;
+    }
+  }
+  return cross;
+}
+function cwPutWord(g, hv, w, r, c, dir) {
+  for (let k = 0; k < w.length; k++) { const rr = r + (dir ? k : 0), cc = c + (dir ? 0 : k); g[rr][cc] = w[k]; hv[rr][cc] |= dir ? 2 : 1; }
+}
+function cwAttempt(pool, target) {
+  const g = Array.from({ length: CW_N }, () => Array(CW_N).fill(""));
+  const hv = Array.from({ length: CW_N }, () => Array(CW_N).fill(0));
+  const words = gmShuffle(pool).map((w) => ({ w, k: w[0].length + Math.random() * 3 })).sort((a, b) => b.k - a.k).map((x) => x.w);
+  const placed = [];
+  const first = words[0], r0 = Math.floor(CW_N / 2), c0 = Math.floor((CW_N - first[0].length) / 2);
+  cwPutWord(g, hv, first[0], r0, c0, 0);
+  placed.push({ ans: first[0], clue: first[1], r: r0, c: c0, dir: 0 });
+  for (let wi = 1; wi < words.length && placed.length < target; wi++) {
+    const [ans, clue] = words[wi];
+    let best = null, bestScore = -1;
+    for (let r = 0; r < CW_N; r++) for (let c = 0; c < CW_N; c++) {
+      const ch = g[r][c];
+      if (!ch) continue;
+      for (let i = 0; i < ans.length; i++) {
+        if (ans[i] !== ch) continue;
+        for (let dir = 0; dir < 2; dir++) {
+          const sr = dir ? r - i : r, sc = dir ? c : c - i;
+          const x = cwFits(g, hv, ans, sr, sc, dir);
+          if (x < 1) continue;
+          const s = x + Math.random() * 1.5;
+          if (s > bestScore) { bestScore = s; best = { r: sr, c: sc, dir }; }
+        }
+      }
+    }
+    if (best) { cwPutWord(g, hv, ans, best.r, best.c, best.dir); placed.push({ ans, clue, r: best.r, c: best.c, dir: best.dir }); }
+  }
+  return placed;
+}
+function cwBuild(theme, level) {
+  const pool = theme === "mix" ? [].concat(...Object.values(CW_BANK)) : CW_BANK[theme] || [];
+  const target = CW_COUNT[level] || 11, t0 = Date.now();
+  let best = [];
+  for (let a = 0; a < 40 && Date.now() - t0 < 600; a++) {
+    const p = cwAttempt(pool, target);
+    if (p.length > best.length) best = p;
+    if (best.length >= target) break;
+  }
+  return best;
+}
+function cwLayout(placed) { // recadre la grille autour des mots
+  let r0 = 99, c0 = 99, r1 = -1, c1 = -1;
+  placed.forEach((w) => {
+    r0 = Math.min(r0, w.r); c0 = Math.min(c0, w.c);
+    r1 = Math.max(r1, w.r + (w.dir ? w.ans.length - 1 : 0)); c1 = Math.max(c1, w.c + (w.dir ? 0 : w.ans.length - 1));
+  });
+  return { rows: r1 - r0 + 1, cols: c1 - c0 + 1, words: placed.map((w) => ({ ...w, r: w.r - r0, c: w.c - c0 })) };
+}
+function cwSetup(rows, cols, words, theme, level, entRows) {
+  const cell = Array.from({ length: rows }, () => Array.from({ length: cols }, () => ({ ch: "", n: 0, w: [-1, -1] })));
+  for (let idx = 0; idx < words.length; idx++) {
+    const w = words[idx];
+    for (let k = 0; k < w.ans.length; k++) {
+      const c = cell[w.r + (w.dir ? k : 0)][w.c + (w.dir ? 0 : k)];
+      if (c.ch && c.ch !== w.ans[k]) return false; // deux mots qui se contredisent
+      c.ch = w.ans[k];
+      c.w[w.dir] = idx;
+    }
+  }
+  let n = 0;
+  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+    const starts = words.filter((w) => w.r === r && w.c === c);
+    if (starts.length) { n++; cell[r][c].n = n; starts.forEach((w) => { w.n = n; }); }
+  }
+  const ent = Array.from({ length: rows }, (_, r) => Array.from({ length: cols }, (_, c) => {
+    const x = entRows && entRows[r] ? entRows[r][c] : "";
+    return cell[r][c].ch && /^[A-Z]$/.test(x || "") ? x : "";
+  }));
+  cwG = { theme, level, rows, cols, words, cell, ent, sel: null, dir: 0, bad: new Set(), solved: false };
+  return true;
+}
+
+// --- Affichage ---
+function cwCurrent() {
+  if (!cwG || !cwG.sel) return -1;
+  const c = cwG.cell[cwG.sel.r][cwG.sel.c];
+  return c.w[cwG.dir] >= 0 ? c.w[cwG.dir] : c.w[cwG.dir ? 0 : 1];
+}
+function cwDraw() {
+  const g = cwG;
+  cwBoard.style.setProperty("--cols", g.cols);
+  cwBoard.innerHTML = "";
+  cwEls = [];
+  for (let r = 0; r < g.rows; r++) {
+    cwEls[r] = [];
+    for (let c = 0; c < g.cols; c++) {
+      const cell = g.cell[r][c];
+      if (!cell.ch) { const s = document.createElement("span"); s.className = "cw-blk"; cwBoard.appendChild(s); continue; }
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "cw-cell";
+      b.setAttribute("role", "gridcell");
+      b.setAttribute("aria-label", `Ligne ${r + 1}, colonne ${c + 1}`);
+      if (cell.n) { const n = document.createElement("i"); n.className = "cw-n"; n.textContent = String(cell.n); b.appendChild(n); }
+      const l = document.createElement("b");
+      l.className = "cw-l";
+      b.appendChild(l);
+      b.addEventListener("click", () => cwSelect(r, c));
+      cwBoard.appendChild(b);
+      cwEls[r][c] = { b, l };
+    }
+  }
+  cwAcross.innerHTML = ""; cwDown.innerHTML = ""; cwLis = [];
+  g.words.map((w, i) => i).sort((a, b) => g.words[a].n - g.words[b].n || g.words[a].dir - g.words[b].dir).forEach((i) => {
+    const w = g.words[i], li = document.createElement("li"), b = document.createElement("button");
+    b.type = "button";
+    b.className = "cw-li";
+    const n = document.createElement("b");
+    n.textContent = w.n + ".";
+    b.append(n, document.createTextNode(` ${w.clue} (${w.ans.length})`));
+    b.addEventListener("click", () => cwSelectWord(i));
+    li.appendChild(b);
+    (w.dir ? cwDown : cwAcross).appendChild(li);
+    cwLis[i] = b;
+  });
+  let first = 0;
+  g.words.forEach((w, i) => { const f = g.words[first]; if (w.n < f.n || (w.n === f.n && w.dir < f.dir)) first = i; });
+  cwSelectWord(first);
+}
+function cwPaint() {
+  const g = cwG, wi = cwCurrent(), cur = new Set();
+  if (wi >= 0) { const w = g.words[wi]; for (let k = 0; k < w.ans.length; k++) cur.add((w.r + (w.dir ? k : 0)) * g.cols + w.c + (w.dir ? 0 : k)); }
+  for (let r = 0; r < g.rows; r++) for (let c = 0; c < g.cols; c++) {
+    const el = cwEls[r][c];
+    if (!el) continue;
+    el.l.textContent = g.ent[r][c];
+    el.b.className = "cw-cell" + (cur.has(r * g.cols + c) ? " word" : "") + (g.sel && g.sel.r === r && g.sel.c === c ? " sel" : "") + (g.bad.has(r * g.cols + c) ? " bad" : "");
+  }
+  g.words.forEach((w, i) => {
+    let full = true;
+    for (let k = 0; k < w.ans.length; k++) if (!g.ent[w.r + (w.dir ? k : 0)][w.c + (w.dir ? 0 : k)]) full = false;
+    cwLis[i].classList.toggle("on", i === wi);
+    cwLis[i].classList.toggle("filled", full);
+  });
+  if (wi >= 0) { const w = g.words[wi]; cwClueEl.textContent = `${w.n} · ${w.dir ? "Verticalement" : "Horizontalement"} · ${w.clue} (${w.ans.length} lettres)`; }
+}
+function cwSelectWord(i) { const w = cwG.words[i]; cwG.sel = { r: w.r, c: w.c }; cwG.dir = w.dir; cwPaint(); }
+function cwSelect(r, c) {
+  const cell = cwG.cell[r][c];
+  if (!cell.ch) return;
+  const same = cwG.sel && cwG.sel.r === r && cwG.sel.c === c;
+  if (same) { const other = cwG.dir ? 0 : 1; if (cell.w[other] >= 0) cwG.dir = other; }
+  else if (cell.w[cwG.dir] < 0) cwG.dir = cwG.dir ? 0 : 1;
+  cwG.sel = { r, c };
+  cwPaint();
+}
+function cwFlip() {
+  if (!cwG || !cwG.sel) return;
+  const cell = cwG.cell[cwG.sel.r][cwG.sel.c], other = cwG.dir ? 0 : 1;
+  if (cell.w[other] >= 0) { cwG.dir = other; cwPaint(); }
+}
+
+// --- Saisie ---
+function cwSave() {
+  if (!cwG) return;
+  try {
+    localStorage.setItem(CW_KEY, JSON.stringify({
+      theme: cwG.theme, level: cwG.level, rows: cwG.rows, cols: cwG.cols,
+      words: cwG.words.map((w) => [w.r, w.c, w.dir, w.ans, w.clue]), ent: cwG.ent.map((row) => row.map((x) => x || ".").join("")),
+    }));
+  } catch { /* stockage indisponible */ }
+}
+function cwAfter() {
+  const g = cwG;
+  cwMsg.textContent = "";
+  cwPaint();
+  let done = true;
+  for (let r = 0; r < g.rows; r++) for (let c = 0; c < g.cols; c++) if (g.cell[r][c].ch && g.ent[r][c] !== g.cell[r][c].ch) done = false;
+  if (done && !g.solved) { g.solved = true; cwMsg.textContent = "Bravo ! Tu as trouvé tous les mots 🎉"; }
+  cwSave();
+}
+function cwStep(d) {
+  const wi = cwCurrent();
+  if (wi < 0) return;
+  const w = cwG.words[wi], k = (cwG.sel.r - w.r) * (w.dir ? 1 : 0) + (cwG.sel.c - w.c) * (w.dir ? 0 : 1), nk = k + d;
+  if (nk < 0 || nk >= w.ans.length) return;
+  cwG.sel = { r: w.r + (w.dir ? nk : 0), c: w.c + (w.dir ? 0 : nk) };
+}
+function cwType(ch) {
+  if (!cwG || cwG.solved || !cwG.sel) return;
+  cwG.ent[cwG.sel.r][cwG.sel.c] = ch;
+  cwG.bad.clear();
+  cwStep(1);
+  cwAfter();
+}
+function cwBack() {
+  if (!cwG || cwG.solved || !cwG.sel) return;
+  if (cwG.ent[cwG.sel.r][cwG.sel.c]) cwG.ent[cwG.sel.r][cwG.sel.c] = "";
+  else { cwStep(-1); cwG.ent[cwG.sel.r][cwG.sel.c] = ""; }
+  cwG.bad.clear();
+  cwAfter();
+}
+function cwMove(dr, dc) {
+  const g = cwG;
+  if (!g || !g.sel) return;
+  let r = g.sel.r + dr, c = g.sel.c + dc;
+  while (r >= 0 && c >= 0 && r < g.rows && c < g.cols) {
+    if (g.cell[r][c].ch) {
+      g.dir = dr ? 1 : 0;
+      if (g.cell[r][c].w[g.dir] < 0) g.dir = g.dir ? 0 : 1;
+      g.sel = { r, c };
+      cwPaint();
+      return;
+    }
+    r += dr; c += dc;
+  }
+}
+function cwCheck() {
+  const g = cwG;
+  if (!g || g.solved) return;
+  g.bad.clear();
+  let wrong = 0;
+  for (let r = 0; r < g.rows; r++) for (let c = 0; c < g.cols; c++) if (g.ent[r][c] && g.ent[r][c] !== g.cell[r][c].ch) { g.bad.add(r * g.cols + c); wrong++; }
+  cwPaint();
+  cwMsg.textContent = wrong ? `${wrong} lettre${wrong > 1 ? "s" : ""} incorrecte${wrong > 1 ? "s" : ""} (en rouge).` : "Aucune erreur pour l'instant.";
+}
+function cwReveal(whole) {
+  const g = cwG;
+  if (!g || g.solved || !g.sel) return;
+  if (whole) {
+    const wi = cwCurrent();
+    if (wi < 0) return;
+    const w = g.words[wi];
+    for (let k = 0; k < w.ans.length; k++) g.ent[w.r + (w.dir ? k : 0)][w.c + (w.dir ? 0 : k)] = w.ans[k];
+  } else g.ent[g.sel.r][g.sel.c] = g.cell[g.sel.r][g.sel.c].ch;
+  g.bad.clear();
+  cwAfter();
+}
+function cwClear() {
+  const g = cwG;
+  if (!g || g.solved || !g.ent.some((row) => row.some(Boolean)) || !confirm("Effacer toutes tes lettres ?")) return;
+  g.ent.forEach((row) => row.fill(""));
+  g.bad.clear();
+  cwAfter();
+}
+
+// --- Nouvelle grille et reprise ---
+function cwStarted() { return !!cwG && !cwG.solved && cwG.ent.some((row) => row.some(Boolean)); }
+function cwNewGame() {
+  if (cwBusy) return;
+  cwBusy = true;
+  cwMsg.textContent = "Création de la grille…";
+  setTimeout(() => {
+    const theme = cwTheme.value, level = cwLevel.value;
+    const lay = cwLayout(cwBuild(theme, level));
+    if (cwSetup(lay.rows, lay.cols, lay.words, theme, level, null)) { cwDraw(); cwMsg.textContent = `${lay.words.length} mots à trouver.`; cwSave(); }
+    else cwMsg.textContent = "Impossible de créer la grille. Réessaie.";
+    cwBusy = false;
+  }, 30);
+}
+function cwLoad() {
+  try {
+    const d = JSON.parse(localStorage.getItem(CW_KEY) || "null");
+    if (!d || !Array.isArray(d.words) || d.words.length < 2 || d.words.length > 30 || !CW_COUNT[d.level] || !CW_THEMES.includes(d.theme)) return false;
+    const rows = Number(d.rows), cols = Number(d.cols);
+    if (!(rows >= 1 && rows <= CW_N && cols >= 1 && cols <= CW_N)) return false;
+    const words = [];
+    for (const w of d.words) {
+      if (!Array.isArray(w) || w.length < 5) return false;
+      const [r, c, dir, ans, clue] = w;
+      if (!Number.isInteger(r) || !Number.isInteger(c) || (dir !== 0 && dir !== 1) || typeof ans !== "string" || !/^[A-Z]{2,12}$/.test(ans) || typeof clue !== "string") return false;
+      if (r < 0 || c < 0 || r + (dir ? ans.length - 1 : 0) >= rows || c + (dir ? 0 : ans.length - 1) >= cols) return false;
+      words.push({ r, c, dir, ans, clue: clue.slice(0, 120) });
+    }
+    if (!cwSetup(rows, cols, words, d.theme, d.level, Array.isArray(d.ent) ? d.ent.map(String) : null)) return false;
+    cwTheme.value = d.theme; cwLevel.value = d.level;
+    cwDraw();
+    return true;
+  } catch { return false; }
+}
+function cwEnsure() { if (!cwG && !cwBusy && !cwLoad()) cwNewGame(); }
+
+// --- Boutons et clavier ---
+CW_ROWS.forEach((row, idx) => {
+  const line = document.createElement("div");
+  line.className = "cw-krow";
+  row.split("").forEach((ch) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "cw-key"; b.textContent = ch;
+    b.addEventListener("click", () => cwType(ch));
+    line.appendChild(b);
+  });
+  if (idx === 2) {
+    const flip = document.createElement("button");
+    flip.type = "button"; flip.className = "cw-key wide"; flip.textContent = "↔"; flip.setAttribute("aria-label", "Changer de sens");
+    flip.addEventListener("click", cwFlip);
+    const back = document.createElement("button");
+    back.type = "button"; back.className = "cw-key wide"; back.textContent = "⌫"; back.setAttribute("aria-label", "Effacer");
+    back.addEventListener("click", cwBack);
+    line.append(flip, back);
+  }
+  cwKeys.appendChild(line);
+});
+$("cwNew").addEventListener("click", () => { if (!cwStarted() || confirm("Abandonner la grille en cours ?")) cwNewGame(); });
+[cwTheme, cwLevel].forEach((el) => el.addEventListener("change", () => {
+  if (!cwStarted() || confirm("Abandonner la grille en cours ?")) cwNewGame();
+  else if (cwG) { cwTheme.value = cwG.theme; cwLevel.value = cwG.level; }
+}));
+$("cwCheck").addEventListener("click", cwCheck);
+$("cwLetter").addEventListener("click", () => cwReveal(false));
+$("cwWord").addEventListener("click", () => cwReveal(true));
+$("cwClear").addEventListener("click", cwClear);
+
+document.addEventListener("keydown", (e) => {
+  if (!cwG || !cwPanel.classList.contains("active") || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (e.target.closest && e.target.closest("input, textarea, select")) return;
+  const k = e.key;
+  if (k === "Backspace" || k === "Delete") { e.preventDefault(); cwBack(); }
+  else if (k === "ArrowLeft") { e.preventDefault(); cwMove(0, -1); }
+  else if (k === "ArrowRight") { e.preventDefault(); cwMove(0, 1); }
+  else if (k === "ArrowUp") { e.preventDefault(); cwMove(-1, 0); }
+  else if (k === "ArrowDown") { e.preventDefault(); cwMove(1, 0); }
+  else if (k.length === 1) {
+    const ch = k.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+    if (/^[A-Z]$/.test(ch)) { e.preventDefault(); cwType(ch); }
+  }
+});
+
+new MutationObserver(() => { if (cwPanel.classList.contains("active")) cwEnsure(); }).observe(cwPanel, { attributes: true, attributeFilter: ["class"] });
+if (cwPanel.classList.contains("active")) cwEnsure();
+
 
