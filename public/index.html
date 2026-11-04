@@ -270,8 +270,8 @@
             <button class="tool-card" data-go="memory"><i class="tc-ico">🧠</i><strong>Mémoire</strong><span>Retrouve toutes les paires.</span><em class="tc-go">→</em></button>
             <button class="tool-card" data-go="mental"><i class="tc-ico">➗</i><strong>Calcul mental</strong><span>Un maximum de calculs en 60 secondes.</span><em class="tc-go">→</em></button>
             <button class="tool-card" data-go="dice"><i class="tc-ico">🎲</i><strong>Dés et pile ou face</strong><span>Lance des dés ou tire un nombre au hasard.</span><em class="tc-go">→</em></button>
-                     <button class="tool-card" data-go="sudoku"><i class="tc-ico">🔢</i><strong>Sudoku</strong><span>Trois niveaux, notes, indices et chrono.</span><em class="tc-go">→</em></button>
-            <button class="tool-card" data-go="crossword"><i class="tc-ico">🔤</i><strong>Mots croisés</strong><span>Une grille différente à chaque partie.</span><em class="tc-go">→</em></button>
+                                <button class="tool-card" data-go="sudoku"><i class="tc-ico">🔢</i><strong>Sudoku</strong><span>Remplis la grille avec les chiffres de 1 à 9.</span><em class="tc-go">→</em></button>
+            <button class="tool-card" data-go="crossword"><i class="tc-ico">🔤</i><strong>Mots croisés</strong><span>Trouve les mots grâce aux définitions.</span><em class="tc-go">→</em></button>
           </div>
         </div>
 
@@ -2192,92 +2192,94 @@ Hugo</textarea>
         <p class="gr-note">Tes événements et tes réglages restent sur ton appareil (dans ce navigateur) et ne sont envoyés nulle part. Les jours fériés sont ceux de la France métropolitaine : les jours propres à l'Alsace-Moselle et aux territoires d'outre-mer n'y figurent pas. Vérifie les dates importantes avant d'imprimer.</p>
       </div>
     </section>
-              <!-- Jeu : Sudoku -->
+                <!-- Sudoku -->
     <section id="sudoku" class="panel">
       <h1>Le sudoku.</h1>
-      <p class="sub">Place les chiffres de 1 à 9 pour qu'il n'y en ait qu'un seul par ligne, par colonne et par carré de 3 × 3.</p>
+      <p class="sub">Remplis la grille pour que chaque ligne, chaque colonne et chaque carré de 3 × 3 contienne tous les chiffres de 1 à 9.</p>
 
       <div class="card">
         <div class="row gm-opts">
           <label class="select">
             <span>Niveau</span>
-            <select id="suLevel">
+            <select id="sdkLevel">
               <option value="easy">Facile</option>
               <option value="mid" selected>Moyen</option>
               <option value="hard">Difficile</option>
             </select>
           </label>
-          <button id="suNew" class="primary">Nouvelle grille</button>
+          <button id="sdkNew" class="primary">Nouvelle grille</button>
         </div>
 
         <div class="gm-score">
-          <div><small>Temps</small><strong id="suTime">00:00</strong></div>
-          <div><small>Meilleur temps</small><strong id="suBest">–</strong></div>
-          <div><small>Indices</small><strong id="suHints">0</strong></div>
+          <div><small>Temps</small><strong id="sdkTime">00:00</strong></div>
+          <div><small>Cases vides</small><strong id="sdkLeft">0</strong></div>
+          <div><small>Indices</small><strong id="sdkHints">0</strong></div>
         </div>
 
-        <div id="suBoard" class="su-board" role="grid" aria-label="Grille de sudoku"></div>
-        <div id="suPad" class="su-pad" role="group" aria-label="Chiffres"></div>
+        <div id="sdkBoard" class="sdk-board" role="grid" aria-label="Grille de sudoku"></div>
+        <div id="sdkPad" class="sdk-pad" role="group" aria-label="Chiffres"></div>
 
-        <div class="row su-tools">
-          <button id="suNotes" class="ghost-btn" type="button" aria-pressed="false">✏️ Notes : non</button>
-          <button id="suUndo" class="ghost-btn" type="button">↩ Annuler</button>
-          <button id="suHint" class="ghost-btn" type="button">💡 Indice</button>
-          <button id="suCheck" class="ghost-btn" type="button">✅ Vérifier</button>
+        <div class="row sdk-tools">
+          <button id="sdkNotes" class="ghost-btn" type="button" aria-pressed="false">✏️ Notes : non</button>
+          <button id="sdkUndo" class="ghost-btn" type="button">↩ Annuler</button>
+          <button id="sdkErase" class="ghost-btn" type="button">⌫ Effacer</button>
+          <button id="sdkHint" class="ghost-btn" type="button">💡 Indice</button>
+          <button id="sdkCheck" class="ghost-btn" type="button">✔ Vérifier</button>
         </div>
-        <p id="suMsg" class="gm-info" role="status"></p>
-        <p class="gr-note">Chaque grille a une seule solution. Le niveau dépend du nombre de chiffres déjà placés : moins il y en a, plus c'est difficile. Sur ordinateur : chiffres du clavier, flèches, Retour arrière pour effacer, N pour les notes, Ctrl + Z pour annuler. Ta partie en cours est gardée dans ton navigateur. Le meilleur temps ne compte que sans indice.</p>
+        <p id="sdkMsg" class="gm-info" role="status"></p>
+        <p class="gr-note">Ta partie est enregistrée dans ton navigateur et n'est envoyée nulle part. Au clavier : les chiffres 1 à 9 pour jouer, les flèches pour te déplacer, Retour arrière pour effacer et N pour les notes. Les grilles sont créées sur ton appareil : le niveau dépend du nombre de chiffres de départ.</p>
       </div>
     </section>
 
-    <!-- Jeu : Mots croisés -->
+    <!-- Mots croisés -->
     <section id="crossword" class="panel">
       <h1>Les mots croisés.</h1>
-      <p class="sub">Devine les mots grâce aux définitions : ils se croisent et partagent leurs lettres.</p>
+      <p class="sub">Trouve les mots grâce aux définitions. Clique sur une case, tape tes lettres, et clique une seconde fois pour changer de sens.</p>
 
       <div class="card">
         <div class="row gm-opts">
           <label class="select">
             <span>Thème</span>
             <select id="cwTheme">
-              <option value="mix" selected>Mélange</option>
+              <option value="mix">Mélange</option>
               <option value="animaux">Animaux</option>
+              <option value="nature">Nature</option>
               <option value="cuisine">Cuisine</option>
-              <option value="nature">Nature et géographie</option>
-              <option value="maison">Maison et objets</option>
+              <option value="geo">Géographie</option>
+              <option value="sciences">Sciences</option>
             </select>
           </label>
           <label class="select">
-            <span>Niveau</span>
-            <select id="cwLevel">
-              <option value="easy">Facile (8 mots)</option>
-              <option value="mid" selected>Moyen (11 mots)</option>
-              <option value="hard">Difficile (14 mots)</option>
+            <span>Taille</span>
+            <select id="cwSize">
+              <option value="small">Petite (8 mots)</option>
+              <option value="mid" selected>Moyenne (12 mots)</option>
+              <option value="large">Grande (16 mots)</option>
             </select>
           </label>
           <button id="cwNew" class="primary">Nouvelle grille</button>
         </div>
 
-        <div id="cwClue" class="cw-clue" role="status"></div>
-        <div id="cwBoard" class="cw-board" role="grid" aria-label="Grille de mots croisés"></div>
-        <div id="cwKeys" class="cw-keys" role="group" aria-label="Clavier"></div>
+        <p id="cwActive" class="cw-active" aria-live="polite"></p>
+        <div id="cwWrap" class="cw-wrap"><div id="cwGrid" class="cw-grid"></div></div>
 
         <div class="row cw-tools">
-          <button id="cwCheck" class="ghost-btn" type="button">✅ Vérifier</button>
-          <button id="cwLetter" class="ghost-btn" type="button">💡 Révéler la lettre</button>
-          <button id="cwWord" class="ghost-btn" type="button">🔎 Révéler le mot</button>
-          <button id="cwClear" class="ghost-btn" type="button">🧹 Tout effacer</button>
+          <button id="cwCheck" class="ghost-btn" type="button">✔ Vérifier</button>
+          <button id="cwLetter" class="ghost-btn" type="button">💡 Une lettre</button>
+          <button id="cwWord" class="ghost-btn" type="button">💡 Un mot</button>
+          <button id="cwReveal" class="ghost-btn" type="button">👁 Solution</button>
+          <button id="cwClear" class="ghost-btn" type="button">🧽 Tout effacer</button>
         </div>
         <p id="cwMsg" class="gm-info" role="status"></p>
 
-        <div class="cw-lists">
-          <div><h2 class="fc-title">Horizontalement</h2><ol id="cwAcross" class="cw-list"></ol></div>
-          <div><h2 class="fc-title">Verticalement</h2><ol id="cwDown" class="cw-list"></ol></div>
+        <div class="cw-clues">
+          <div><h3 class="fc-title">Horizontalement</h3><ol id="cwAcross" class="cw-list"></ol></div>
+          <div><h3 class="fc-title">Verticalement</h3><ol id="cwDown" class="cw-list"></ol></div>
         </div>
-        <p class="gr-note">Écris les lettres sans accents. Touche une case déjà sélectionnée pour passer du sens horizontal au sens vertical. Les grilles sont créées à partir d'une liste de mots et de définitions : chaque grille est différente. Ta partie en cours est gardée dans ton navigateur.</p>
+        <p class="gr-note">Ta partie est enregistrée dans ton navigateur et n'est envoyée nulle part. Les mots s'écrivent sans accent. Les grilles sont créées sur ton appareil à partir d'une banque de mots, donc leur forme change à chaque fois.</p>
       </div>
     </section>
-  </main>
+        </main>
 
     <footer class="foot">
    
