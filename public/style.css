@@ -1808,3 +1808,165 @@ button.pod-tool { cursor: pointer; }
 @media (max-width: 700px) {
   .cfg-btn.cfg-top { top: 12px; right: 66px; width: 46px; height: 46px; font-size: 1.25rem; }
 }
+
+/* --- Sudoku et mots croisés --- */
+#sudoku h1, #sudoku .sub, #crossword h1, #crossword .sub { text-align: center; }
+#sudoku .card, #crossword .card { min-width: 0; }
+.ghost-btn.on { background: rgba(41, 182, 255, .25); border-color: var(--aqua); }
+
+.sdk-board {
+  position: relative; display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); gap: 1px;
+  width: min(100%, 470px); margin: 0 auto; padding: 3px; border-radius: 16px; overflow: hidden;
+  background: rgba(255, 255, 255, .35); box-shadow: 0 14px 40px rgba(0, 0, 0, .4);
+}
+/* Les traits épais qui séparent les carrés de 3 × 3 */
+.sdk-board::after {
+  content: ""; position: absolute; inset: 3px; pointer-events: none;
+  background:
+    linear-gradient(rgba(255, 255, 255, .85), rgba(255, 255, 255, .85)) 33.333% 0 / 3px 100% no-repeat,
+    linear-gradient(rgba(255, 255, 255, .85), rgba(255, 255, 255, .85)) 66.666% 0 / 3px 100% no-repeat,
+    linear-gradient(rgba(255, 255, 255, .85), rgba(255, 255, 255, .85)) 0 33.333% / 100% 3px no-repeat,
+    linear-gradient(rgba(255, 255, 255, .85), rgba(255, 255, 255, .85)) 0 66.666% / 100% 3px no-repeat;
+}
+.sdk-cell {
+  position: relative; aspect-ratio: 1; min-width: 0; padding: 0; border: 0; border-radius: 0; cursor: pointer;
+  display: grid; place-items: center; background: #0f1c3d; color: var(--aqua);
+  font: 700 clamp(1.15rem, 5.4vw, 1.8rem) "Bricolage Grotesque", sans-serif; transition: background .12s;
+}
+.sdk-cell .v { position: relative; z-index: 1; }
+.sdk-cell.given { color: #fff; background: #162650; }
+.sdk-cell.peer { background: #17305f; }
+.sdk-cell.given.peer { background: #1d3a73; }
+.sdk-cell.same { background: rgba(255, 216, 77, .3); }
+.sdk-cell.sel { background: rgba(41, 182, 255, .5); box-shadow: inset 0 0 0 2px var(--aqua); z-index: 2; }
+.sdk-cell.bad .v { color: #ff5d7a; }
+.sdk-cell.wrong { background: rgba(255, 93, 122, .35); }
+.sdk-cell .n {
+  position: absolute; inset: 2px; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr);
+  font: 600 clamp(.5rem, 2vw, .7rem) "DM Sans", sans-serif; color: #9db4d9; pointer-events: none;
+}
+.sdk-cell .n i { font-style: normal; display: grid; place-items: center; line-height: 1; }
+.sdk-pad { display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); gap: 6px; width: min(100%, 470px); margin: 0 auto; }
+.sdk-pad button {
+  min-height: 48px; border: 0; border-radius: 12px; cursor: pointer; background: var(--ink-2); color: var(--paper);
+  font: 800 1.2rem "Bricolage Grotesque", sans-serif; transition: background .12s, transform .12s;
+}
+.sdk-pad button:hover { background: rgba(41, 182, 255, .3); }
+.sdk-pad button:active { transform: scale(.94); }
+.sdk-pad button.full { opacity: .3; }
+.sdk-tools { justify-content: center; align-items: center; }
+
+.cw-active { text-align: center; min-height: 3em; font-weight: 700; color: var(--aqua); }
+.cw-wrap { overflow-x: auto; display: grid; justify-items: center; padding: 4px 0; }
+.cw-grid {
+  display: grid; grid-template-columns: repeat(var(--cw, 10), var(--cell, 36px)); gap: 2px; padding: 8px; width: max-content;
+  border-radius: 16px; background: rgba(255, 255, 255, .08); box-shadow: 0 14px 40px rgba(0, 0, 0, .35);
+}
+.cw-block { width: var(--cell, 36px); height: var(--cell, 36px); }
+.cw-cell { position: relative; width: var(--cell, 36px); height: var(--cell, 36px); border-radius: 5px; background: #fff; }
+.cw-cell.act { background: #cfe6ff; }
+.cw-cell.sel { background: #ffe27a; box-shadow: 0 0 0 2px #f2a516; z-index: 1; }
+.cw-cell.bad { background: #ffc2cd; }
+.cw-cell input.cw-in {
+  width: 100%; height: 100%; min-width: 0; padding: 0; border: 0; border-radius: 5px; background: transparent; outline: none; box-shadow: none;
+  text-align: center; text-transform: uppercase; color: #15112e; caret-color: transparent;
+  font-family: "Bricolage Grotesque", sans-serif; font-weight: 800; font-size: max(16px, calc(var(--cell, 36px) * .55)) !important;
+}
+.cw-num { position: absolute; top: 1px; left: 3px; z-index: 1; pointer-events: none; color: #4b5563; font: 700 calc(var(--cell, 36px) * .27) "DM Sans", sans-serif; }
+.cw-tools { justify-content: center; align-items: center; }
+.cw-clues { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.cw-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.cw-clue {
+  width: 100%; text-align: left; border: 0; border-radius: 10px; padding: 8px 10px; cursor: pointer;
+  background: rgba(255, 255, 255, .05); color: var(--paper); font: 400 .92rem "DM Sans", sans-serif; line-height: 1.35;
+}
+.cw-clue strong { color: var(--aqua); }
+.cw-clue:hover { background: rgba(255, 255, 255, .1); }
+.cw-clue.filled { opacity: .55; }
+.cw-clue.on { background: rgba(41, 182, 255, .28); opacity: 1; }
+#sudoku .gm-info, #crossword .gm-info { min-height: 1.5em; }
+@media (max-width: 700px) {
+  .sdk-pad { gap: 4px; }
+  .sdk-pad button { min-height: 44px; font-size: 1.1rem; border-radius: 10px; }
+  .cw-clues { grid-template-columns: 1fr; }
+  .sdk-tools .ghost-btn, .cw-tools .ghost-btn { flex: 1 1 calc(50% - 8px); }
+}
+@media (prefers-reduced-motion: reduce) { .sdk-cell, .sdk-pad button { transition: none; } }
+
+/* --- Nouveau style de tous les onglets --- */
+::selection { background: rgba(41, 182, 255, .35); }
+html { scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, .25) transparent; }
+
+/* Apparition douce de chaque onglet */
+.panel.active:not(#home) { animation: panelIn .35s cubic-bezier(.2, .8, .2, 1); }
+@keyframes panelIn { from { opacity: 0; transform: translateY(10px); } }
+
+/* Titres */
+.panel:not(#home) h1 {
+  text-align: center; text-wrap: balance; font-size: clamp(1.8rem, 6vw, 2.7rem);
+  background: linear-gradient(90deg, #ffffff 35%, var(--aqua)); -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.panel:not(#home) .sub { max-width: 640px; margin-left: auto; margin-right: auto; text-align: center; color: #b9c6e6; }
+.fc-title::before {
+  content: ""; display: inline-block; width: 5px; height: 1em; margin-right: 10px; border-radius: 3px;
+  vertical-align: -.12em; background: linear-gradient(180deg, var(--aqua), var(--pink));
+}
+
+/* Cartes en verre */
+.panel:not(#home) .card {
+  border-radius: 22px; padding: 24px; gap: 18px; border: 1px solid rgba(255, 255, 255, .1);
+  background: linear-gradient(180deg, rgba(20, 30, 62, .78), rgba(10, 18, 40, .84));
+  box-shadow: 0 18px 50px rgba(0, 0, 0, .35), inset 0 1px 0 rgba(255, 255, 255, .08);
+}
+
+/* Champs de saisie */
+.text-in, .fancy-in, select {
+  border: 1.5px solid rgba(255, 255, 255, .1); background-color: rgba(255, 255, 255, .05);
+  transition: border-color .15s, box-shadow .15s, background-color .15s;
+}
+.text-in:hover, .fancy-in:hover, select:hover { border-color: rgba(255, 255, 255, .25); }
+.text-in:focus, .fancy-in:focus, select:focus { outline: none; border-color: var(--aqua); box-shadow: 0 0 0 4px rgba(41, 182, 255, .18); }
+select {
+  -webkit-appearance: none; appearance: none; padding-right: 40px; background-repeat: no-repeat; background-position: right 14px center; background-size: 14px 9px;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='9' viewBox='0 0 14 9'><path d='M1 1l6 6 6-6' fill='none' stroke='%23b9c6e6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+}
+select option { background: #0c1730; color: #f6f3ff; }
+.select > span { color: #9db4d9; font-weight: 600; font-size: .82rem; }
+
+/* Curseurs */
+input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: 8px; border-radius: 999px; background: rgba(255, 255, 255, .16); outline: none; }
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 24px; height: 24px; border-radius: 50%; background: var(--aqua); border: 3px solid #fff; box-shadow: 0 2px 8px rgba(0, 0, 0, .45); cursor: pointer;
+}
+input[type="range"]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: var(--aqua); border: 3px solid #fff; box-shadow: 0 2px 8px rgba(0, 0, 0, .45); cursor: pointer; }
+input[type="range"]::-moz-range-track { height: 8px; border-radius: 999px; background: rgba(255, 255, 255, .16); }
+
+/* Boutons et puces */
+.primary { transition: transform .15s, box-shadow .15s, filter .15s; }
+.primary:hover { filter: brightness(1.1); }
+.ghost-btn { background: rgba(255, 255, 255, .04); border-width: 1.5px; transition: background .15s, border-color .15s, transform .15s; }
+.ghost-btn:hover { background: rgba(41, 182, 255, .12); border-color: var(--aqua); }
+.ghost-btn:active { transform: scale(.97); }
+.chip { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .1); transition: background .15s, color .15s, box-shadow .15s; }
+.chip.active { box-shadow: 0 4px 14px rgba(41, 182, 255, .35); }
+.subs .tab.active { box-shadow: 0 4px 14px rgba(41, 182, 255, .35); }
+.copy-btn { transition: background .15s, transform .15s; }
+.copy-btn:active { transform: scale(.95); }
+
+/* Zones de dépôt */
+.drop { border: 2px dashed rgba(255, 255, 255, .28); border-radius: 18px; background: rgba(255, 255, 255, .03); transition: border-color .15s, background .15s; }
+.drop:hover, .drop.over { border-color: var(--aqua); background: rgba(41, 182, 255, .1); }
+
+/* Notes et messages */
+.gr-note { background: rgba(255, 255, 255, .04); border-left: 3px solid rgba(41, 182, 255, .6); border-radius: 0 10px 10px 0; padding: 10px 14px; }
+.status:not(:empty) { padding: 10px 14px; border-radius: 12px; background: rgba(41, 182, 255, .1); }
+.status.error:not(:empty) { background: rgba(255, 93, 122, .12); }
+
+@media (max-width: 700px) {
+  .panel:not(#home) .card { padding: 16px; gap: 14px; border-radius: 18px; }
+  .panel:not(#home) h1 { font-size: clamp(1.7rem, 7.5vw, 2.3rem); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .panel.active:not(#home) { animation: none; }
+  .primary, .ghost-btn, .chip, .copy-btn, .drop, .text-in, .fancy-in, select { transition: none; }
+}
