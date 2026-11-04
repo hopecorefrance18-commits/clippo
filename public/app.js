@@ -6487,981 +6487,614 @@ if (cfgBtn && cfgPanel && cfgOverlay && cfgLangs) {
   if (lgSaved !== "fr") lgSet(lgSaved, false);
 }
 
-// Outil pour compléter les traductions : à lancer en français, depuis la Console (F12)
-window.clippoMissing = () => {
-  if (lgCode !== "fr") { console.log("Repasse d'abord en français (⚙️ → Français), puis relance clippoMissing()."); return 0; }
-  const found = new Set();
-  const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
-  let n;
-  while ((n = w.nextNode())) {
-    const p = n.parentNode;
-    if (!p || /^(SCRIPT|STYLE|TEXTAREA|NOSCRIPT)$/.test(p.nodeName)) continue;
-    const k = lgKey(n.nodeValue);
-    if (k.length > 1 && /\p{L}/u.test(k) && !lgMap.has(k)) found.add(k);
-  }
-  console.log(found.size + " textes sans traduction :\n" + [...found].map((s) => JSON.stringify(s)).join(",\n"));
-  return found.size;
+// ---------- Jeux de grille : outils communs ----------
+const puzShuffle = (a) => {
+  const r = a.slice();
+  for (let i = r.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [r[i], r[j]] = [r[j], r[i]]; }
+  return r;
 };
-
-// ---------- Traduction automatique du contenu (sur l'appareil) ----------
-const MT_CODE = { en: "en", es: "es", zh: "zh", hi: "hi", ar: "ar", pt: "pt", ru: "ru" };
-const MT_KEY = "clippo_mt_";
-// Zones créées par le site (et pas par l'utilisateur) dont on traduit aussi les textes
-const MT_DYN = ".hs-box, #podium, #podRec, .jr-body, .status, .gr-info, .copy-btn, .primary, .ghost-btn, .chip, .sv-plan, .rd-line";
-// Ordre des langues : fr, en, es, zh, hi, ar, pt, ru
-const MT_MSG = {
-  on: [
-    "Traduction automatique du contenu activée (sur ton appareil).",
-    "Automatic content translation is on (on your device).",
-    "Traducción automática del contenido activada (en tu dispositivo).",
-    "已启用内容自动翻译（在你的设备上完成）。",
-    "सामग्री का स्वचालित अनुवाद चालू है (आपके डिवाइस पर)।",
-    "الترجمة التلقائية للمحتوى مفعّلة (على جهازك).",
-    "Tradução automática do conteúdo ativada (no seu dispositivo).",
-    "Автоматический перевод содержимого включён (на твоём устройстве).",
-  ],
-  load: [
-    "Préparation de la traduction…",
-    "Preparing the translation…",
-    "Preparando la traducción…",
-    "正在准备翻译……",
-    "अनुवाद तैयार किया जा रहा है…",
-    "جارٍ تجهيز الترجمة…",
-    "Preparando a tradução…",
-    "Подготовка перевода…",
-  ],
-  no: [
-    "La traduction automatique du contenu n'est pas disponible ici : seuls le menu, l'accueil et le pied de page sont traduits. Elle fonctionne sur Chrome ou Edge, sur ordinateur.",
-    "Automatic content translation isn't available here: only the menu, home page and footer are translated. It works in Chrome or Edge on a computer.",
-    "La traducción automática del contenido no está disponible aquí: solo se traducen el menú, el inicio y el pie de página. Funciona en Chrome o Edge en un ordenador.",
-    "此处无法使用内容自动翻译：只有菜单、首页和页脚会被翻译。它可在电脑版 Chrome 或 Edge 中使用。",
-    "यहाँ सामग्री का स्वचालित अनुवाद उपलब्ध नहीं है: केवल मेनू, होम पेज और फ़ुटर का अनुवाद होता है। यह कंप्यूटर पर Chrome या Edge में काम करता है।",
-    "الترجمة التلقائية للمحتوى غير متاحة هنا: تُترجم القائمة والصفحة الرئيسية والتذييل فقط. تعمل في Chrome أو Edge على الكمبيوتر.",
-    "A tradução automática do conteúdo não está disponível aqui: só o menu, o início e o rodapé são traduzidos. Ela funciona no Chrome ou no Edge, em computador.",
-    "Автоматический перевод содержимого здесь недоступен: переводятся только меню, главная страница и нижняя часть. Он работает в Chrome или Edge на компьютере.",
-  ],
-  tap: [
-    "Appuie sur la langue pour installer la traduction automatique (téléchargement unique).",
-    "Tap the language to install automatic translation (one-time download).",
-    "Pulsa el idioma para instalar la traducción automática (descarga única).",
-    "点按该语言即可安装自动翻译（仅需下载一次）。",
-    "स्वचालित अनुवाद इंस्टॉल करने के लिए भाषा पर टैप करें (एक बार का डाउनलोड)।",
-    "اضغط على اللغة لتثبيت الترجمة التلقائية (تنزيل لمرة واحدة).",
-    "Toque no idioma para instalar a tradução automática (download único).",
-    "Нажми на язык, чтобы установить автоматический перевод (разовая загрузка).",
-  ],
-};
-const mt = { active: false, gen: 0, tr: null, code: "", cache: new Map(), jobs: new Map(), timer: 0, busy: false, saveTimer: 0 };
-
-function mtStatus(kind, pct) {
-  const el = $("cfgStatus");
-  if (!el) return;
-  el.textContent = kind ? MT_MSG[kind][lgCol] + (kind === "load" && pct ? " " + pct + " %" : "") : "";
-}
-function mtReset() {
-  mt.gen++;
-  mt.active = false;
-  mt.code = "";
-  mt.jobs.clear();
-  mt.cache = new Map();
-  clearTimeout(mt.timer);
-  mt.timer = 0;
-  if (mt.tr && mt.tr.destroy) { try { mt.tr.destroy(); } catch { /* ignoré */ } }
-  mt.tr = null;
-}
-function mtLoadCache(code) {
-  mt.cache = new Map();
-  try {
-    const o = JSON.parse(localStorage.getItem(MT_KEY + code) || "{}");
-    if (o && typeof o === "object") Object.keys(o).slice(0, 3000).forEach((k) => { if (typeof o[k] === "string") mt.cache.set(k, o[k]); });
-  } catch { /* cache illisible */ }
-}
-function mtPersist() {
-  clearTimeout(mt.saveTimer);
-  mt.saveTimer = setTimeout(() => {
-    if (!mt.code) return;
-    const o = {};
-    let size = 0;
-    for (const [k, v] of mt.cache) { size += k.length + v.length; if (size > 250000) break; o[k] = v; }
-    try { localStorage.setItem(MT_KEY + mt.code, JSON.stringify(o)); } catch { /* stockage plein */ }
-  }, 1500);
-}
-
-// --- Quels textes traduire ? ---
-function mtWorth(key) {
-  return key.length >= 2 && key.length <= 1200 && /\p{L}/u.test(key) && !/^[A-Z0-9 .,:;!?%€$&+\-\/()]+$/.test(key) && !lgMap.has(key);
-}
-function mtOkNode(n) {
-  const p = n.parentNode;
-  if (!p || p.nodeType !== 1 || /^(SCRIPT|STYLE|TEXTAREA|NOSCRIPT)$/.test(p.nodeName) || p.closest('[translate="no"]')) return false;
-  const pan = p.closest(".panel");
-  if (pan && !pan.classList.contains("active")) return false; // les outils fermés sont traduits à l'ouverture
-  const st = window.__clippoStatic;
-  return !!((st && st.has(n)) || p.closest(MT_DYN));
-}
-function mtApplyText(n, key, out) {
-  const val = n.nodeValue;
-  if (lgKey(val) !== key || lgNodeLast.get(n) === val) return;
-  const res = val.match(/^\s*/)[0] + out + val.match(/\s*$/)[0];
-  lgNodeOrig.set(n, val);
-  lgNodeLast.set(n, res);
-  n.nodeValue = res;
-}
-function mtApplyAttr(el, a, key, out) {
-  const v = el.getAttribute(a);
-  if (v === null || lgKey(v) !== key) return;
-  const rec = lgAttrRec.get(el) || {};
-  if (rec[a] && rec[a][1] === v) return;
-  rec[a] = [v, out];
-  lgAttrRec.set(el, rec);
-  el.setAttribute(a, out);
-}
-function mtAdd(key, target) {
-  let list = mt.jobs.get(key);
-  if (!list) mt.jobs.set(key, (list = []));
-  list.push(target);
-  mtSchedule();
-}
-function mtEnqueueText(n) {
-  if (!mtOkNode(n)) return;
-  const val = n.nodeValue;
-  if (lgNodeLast.get(n) === val) return; // déjà traduit
-  const key = lgKey(val);
-  if (!mtWorth(key)) return;
-  const hit = mt.cache.get(key);
-  if (hit !== undefined) mtApplyText(n, key, hit); else mtAdd(key, { n });
-}
-function mtEnqueueAttrs(el) {
-  const st = window.__clippoStatic;
-  if (el.nodeType !== 1 || !st || !st.has(el) || /^(SCRIPT|STYLE)$/.test(el.nodeName) || el.closest('[translate="no"]')) return; // les attributs créés par les outils contiennent souvent le texte de l'utilisateur
-  const pan = el.closest(".panel");
-  if (pan && !pan.classList.contains("active")) return;
-  for (const a of LG_ATTRS) {
-    const v = el.getAttribute(a);
-    if (v === null) continue;
-    const rec = lgAttrRec.get(el);
-    if (rec && rec[a] && rec[a][1] === v) continue;
-    const key = lgKey(v);
-    if (!mtWorth(key)) continue;
-    const hit = mt.cache.get(key);
-    if (hit !== undefined) mtApplyAttr(el, a, key, hit); else mtAdd(key, { el, a });
-  }
-}
-
-// --- Traduction, un texte après l'autre (c'est ainsi que le navigateur la traite) ---
-function mtSchedule() {
-  if (mt.timer || !mt.tr) return;
-  mt.timer = setTimeout(mtRun, 40);
-}
-async function mtRun() {
-  mt.timer = 0;
-  if (mt.busy || !mt.tr) return;
-  mt.busy = true;
-  const gen = mt.gen, tr = mt.tr;
-  try {
-    while (mt.jobs.size && gen === mt.gen) {
-      const [key, list] = mt.jobs.entries().next().value;
-      mt.jobs.delete(key);
-      let out = mt.cache.get(key);
-      if (out === undefined) {
-        try { out = (await tr.translate(key)) || ""; } catch { out = ""; }
-        if (gen !== mt.gen) break;
-        if (out) { mt.cache.set(key, out); mtPersist(); }
-      }
-      if (out) list.forEach((t) => (t.n ? mtApplyText(t.n, key, out) : mtApplyAttr(t.el, t.a, key, out)));
-    }
-  } finally {
-    mt.busy = false;
-    if (mt.jobs.size) mtSchedule();
-  }
-}
-
-async function mtStart(code, click) {
-  const gen = mt.gen;
-  mtStatus("");
-  if (code === "fr" || !MT_CODE[code]) return;
-  if (!("Translator" in self)) return mtStatus("no");
-  mt.code = code;
-  mtLoadCache(code);
-  mt.active = true;
-  lgTree(document.body); // applique les traductions déjà gardées et met le reste en attente
-  const opts = { sourceLanguage: "fr", targetLanguage: MT_CODE[code] };
-  let av = "unavailable";
-  try { av = await Translator.availability(opts); } catch { /* ignoré */ }
-  if (gen !== mt.gen) return;
-  if (av === "unavailable") { mt.active = false; mt.jobs.clear(); return mtStatus("no"); }
-  if (av !== "available" && !click) return mtStatus("tap"); // le téléchargement demande un clic de l'utilisateur
-  mtStatus("load", 0);
-  try {
-    const tr = await Translator.create({
-      ...opts,
-      monitor(m) { m.addEventListener("downloadprogress", (e) => { if (gen === mt.gen) mtStatus("load", Math.round((e.loaded || 0) * 100)); }); },
-    });
-    if (gen !== mt.gen) { try { if (tr.destroy) tr.destroy(); } catch { /* ignoré */ } return; }
-    mt.tr = tr;
-    mtStatus("on");
-    mtSchedule();
-  } catch {
-    if (gen !== mt.gen) return;
-    mt.active = false;
-    mt.jobs.clear();
-    mtStatus(click ? "no" : "tap");
-  }
-}
-
-// On se branche sur le moteur de langues existant
-const mtBaseText = lgTextNode, mtBaseAttrs = lgAttrsOf, mtBaseSet = lgSet, mtBaseOpen = openTab;
-lgTextNode = function (n) { mtBaseText(n); if (mt.active) mtEnqueueText(n); };
-lgAttrsOf = function (el) { mtBaseAttrs(el); if (mt.active) mtEnqueueAttrs(el); };
-lgSet = function (code, save) { mtReset(); mtBaseSet(code, save); mtStart(lgCode, !!save); };
-openTab = function (id) { // un outil qu'on ouvre est traduit à ce moment-là
-  mtBaseOpen(id);
-  if (lgCode === "fr") return;
+const puzFmt = (s) => String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0");
+const puzPop = (m) => { let n = 0; while (m) { m &= m - 1; n++; } return n; };
+function puzLoad(key) { try { return JSON.parse(localStorage.getItem(key) || "null"); } catch { return null; } }
+function puzSave(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* stockage indisponible */ } }
+function puzOnOpen(id, fn) { // lance fn chaque fois que l'onglet s'ouvre (la grille n'est créée qu'à ce moment-là)
   const p = document.getElementById(id);
-  if (p && p.classList.contains("panel")) lgTree(p);
-};
-if (lgCode !== "fr") mtStart(lgCode, false); // langue déjà choisie lors d'une visite précédente
+  if (!p) return;
+  let was = false;
+  const check = () => { const on = p.classList.contains("active"); if (on && !was) fn(); was = on; };
+  new MutationObserver(check).observe(p, { attributes: true, attributeFilter: ["class"] });
+  check();
+}
 
 // ---------- Sudoku ----------
-const SU_KEY = "clippo_sudoku";
-const SU_CLUES = { easy: 40, mid: 32, hard: 26 };
-const suPanel = $("sudoku"), suBoard = $("suBoard"), suPad = $("suPad"), suMsg = $("suMsg"), suLevel = $("suLevel");
-const suTimeEl = $("suTime"), suBestEl = $("suBest"), suHintsEl = $("suHints"), suNotesBtn = $("suNotes"), suUndoBtn = $("suUndo");
-const suBestTimes = { easy: 0, mid: 0, hard: 0 };
-const SU_R = [], SU_C = [], SU_B = [], SU_PEERS = [], suCells = [];
-for (let i = 0; i < 81; i++) {
-  SU_R[i] = Math.floor(i / 9);
-  SU_C[i] = i % 9;
-  SU_B[i] = Math.floor(SU_R[i] / 3) * 3 + Math.floor(SU_C[i] / 3);
-}
-for (let i = 0; i < 81; i++) {
-  SU_PEERS[i] = [];
-  for (let j = 0; j < 81; j++) if (j !== i && (SU_R[j] === SU_R[i] || SU_C[j] === SU_C[i] || SU_B[j] === SU_B[i])) SU_PEERS[i].push(j);
-}
-let su = null, suBusy = false, suPi = -1, suPn = 10, suPm = 0;
+const SDK_KEY = "clippo_sudoku", SDK_CLUES = { easy: 40, mid: 32, hard: 26 };
+const sdkBoard = $("sdkBoard"), sdkPad = $("sdkPad"), sdkMsg = $("sdkMsg"), sdkLevel = $("sdkLevel"), sdkNew = $("sdkNew"), sdkNotesBtn = $("sdkNotes");
+const sdkPeers = Array.from({ length: 81 }, (_, i) => {
+  const r = Math.floor(i / 9), c = i % 9, br = r - (r % 3), bc = c - (c % 3), s = new Set();
+  for (let k = 0; k < 9; k++) { s.add(r * 9 + k); s.add(k * 9 + c); }
+  for (let a = 0; a < 3; a++) for (let b = 0; b < 3; b++) s.add((br + a) * 9 + bc + b);
+  s.delete(i);
+  return [...s];
+});
+const sdkCells = [];
+let sdk = null, sdkSel = -1, sdkNotesOn = false, sdkWrong = new Set(), sdkUndoStack = [], sdkBusy = false;
 
-function suPop(m) { let n = 0; while (m) { m &= m - 1; n++; } return n; }
-function suFmt(s) { return String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0"); }
+function sdkSay(msg) { sdkMsg.textContent = msg; }
+function sdkStarted() { return !!sdk && sdk.vals.some((v, i) => v !== sdk.puzzle[i]); }
 
-// Choisit la case vide qui a le moins de possibilités
-function suPick(g, rows, cols, boxes) {
-  suPi = -1; suPn = 10; suPm = 0;
-  for (let i = 0; i < 81; i++) {
-    if (g[i]) continue;
-    const cand = ~(rows[SU_R[i]] | cols[SU_C[i]] | boxes[SU_B[i]]) & 0x3fe;
-    const n = suPop(cand);
-    if (n < suPn) { suPn = n; suPi = i; suPm = cand; if (n <= 1) return; }
+// Résolution par essais : compte les solutions (jusqu'à `limit`), avec la case la plus contrainte d'abord
+function sdkSolve(g, limit, rand) {
+  const rows = new Array(9).fill(0), cols = new Array(9).fill(0), boxes = new Array(9).fill(0), out = g.slice();
+  for (let i = 0; i < 81; i++) if (out[i]) {
+    const b = 1 << (out[i] - 1), r = (i / 9) | 0, c = i % 9;
+    rows[r] |= b; cols[c] |= b; boxes[((r / 3) | 0) * 3 + ((c / 3) | 0)] |= b;
   }
-}
-function suCount(src, limit, out) { // nombre de solutions (jusqu'à « limit »)
-  const g = Int8Array.from(src);
-  const rows = new Int16Array(9), cols = new Int16Array(9), boxes = new Int16Array(9);
-  for (let i = 0; i < 81; i++) if (g[i]) { const m = 1 << g[i]; rows[SU_R[i]] |= m; cols[SU_C[i]] |= m; boxes[SU_B[i]] |= m; }
-  let count = 0;
-  const rec = () => {
-    suPick(g, rows, cols, boxes);
-    const bi = suPi, bn = suPn, bm = suPm;
-    if (bi < 0) { count++; if (out && count === 1) out.set(g); return count >= limit; }
-    if (bn === 0) return false;
-    const r = SU_R[bi], c = SU_C[bi], b = SU_B[bi];
-    for (let v = 1; v <= 9; v++) {
-      const m = 1 << v;
-      if (!(bm & m)) continue;
-      g[bi] = v; rows[r] |= m; cols[c] |= m; boxes[b] |= m;
-      const stop = rec();
-      g[bi] = 0; rows[r] &= ~m; cols[c] &= ~m; boxes[b] &= ~m;
-      if (stop) return true;
+  let count = 0, first = null, nodes = 0;
+  (function rec() {
+    if (count >= limit) return;
+    if (++nodes > 150000) { count = limit; return; } // garde-fou : on considère la grille non unique
+    let best = -1, bestMask = 0, bestN = 10;
+    for (let i = 0; i < 81; i++) {
+      if (out[i]) continue;
+      const r = (i / 9) | 0, c = i % 9, m = ~(rows[r] | cols[c] | boxes[((r / 3) | 0) * 3 + ((c / 3) | 0)]) & 511, n = puzPop(m);
+      if (n === 0) return;
+      if (n < bestN) { bestN = n; best = i; bestMask = m; if (n === 1) break; }
     }
-    return false;
-  };
-  rec();
-  return count;
-}
-function suFull() { // grille complète au hasard
-  const g = new Int8Array(81);
-  const rows = new Int16Array(9), cols = new Int16Array(9), boxes = new Int16Array(9);
-  const rec = () => {
-    suPick(g, rows, cols, boxes);
-    const bi = suPi, bn = suPn, bm = suPm;
-    if (bi < 0) return true;
-    if (bn === 0) return false;
-    const r = SU_R[bi], c = SU_C[bi], b = SU_B[bi];
-    for (const v of gmShuffle([1, 2, 3, 4, 5, 6, 7, 8, 9])) {
-      const m = 1 << v;
-      if (!(bm & m)) continue;
-      g[bi] = v; rows[r] |= m; cols[c] |= m; boxes[b] |= m;
-      if (rec()) return true;
-      g[bi] = 0; rows[r] &= ~m; cols[c] &= ~m; boxes[b] &= ~m;
+    if (best < 0) { count++; if (!first) first = out.slice(); return; }
+    const r = (best / 9) | 0, c = best % 9, bi = ((r / 3) | 0) * 3 + ((c / 3) | 0);
+    let ds = [];
+    for (let d = 0; d < 9; d++) if (bestMask & (1 << d)) ds.push(d);
+    if (rand) ds = puzShuffle(ds);
+    for (const d of ds) {
+      const b = 1 << d;
+      out[best] = d + 1; rows[r] |= b; cols[c] |= b; boxes[bi] |= b;
+      rec();
+      rows[r] &= ~b; cols[c] &= ~b; boxes[bi] &= ~b; out[best] = 0;
+      if (count >= limit) return;
     }
-    return false;
-  };
-  rec();
-  return g;
+  })();
+  return { count, solution: first };
 }
-function suMake(level) { // retire des chiffres tant que la solution reste unique
-  const sol = suFull(), puz = Int8Array.from(sol);
-  const target = SU_CLUES[level] || 32, t0 = Date.now();
-  let clues = 81;
-  for (const i of gmShuffle(Array.from({ length: 81 }, (_, k) => k))) {
-    if (clues <= target || Date.now() - t0 > 1600) break;
-    const keep = puz[i];
-    puz[i] = 0;
-    if (suCount(puz, 2) !== 1) puz[i] = keep; else clues--;
+
+function sdkMake(level) {
+  let full = null;
+  while (!full) full = sdkSolve(new Array(81).fill(0), 1, true).solution;
+  const puzzle = full.slice(), target = SDK_CLUES[level] || 32, t0 = performance.now();
+  let left = 81;
+  for (const i of puzShuffle([...Array(81).keys()])) {
+    if (left <= target || performance.now() - t0 > 1500) break;
+    const keep = puzzle[i];
+    puzzle[i] = 0;
+    if (sdkSolve(puzzle, 2, false).count === 1) left--; else puzzle[i] = keep; // on ne retire que si la solution reste unique
   }
-  return { puz, sol };
+  return { puzzle, solution: full, vals: puzzle.slice(), notes: new Array(81).fill(0), secs: 0, hints: 0, level, done: false };
 }
 
-function suInit(level, puz, sol) {
-  su = { level, puz, sol, val: Int8Array.from(puz), notes: new Int16Array(81), sel: -1, notesOn: false,
-    secs: 0, started: false, solved: false, hints: 0, hinted: new Set(), bad: new Set(), undo: [] };
-}
-function suSave() {
-  if (!su) return;
-  try {
-    localStorage.setItem(SU_KEY, JSON.stringify({
-      level: su.level, puz: Array.from(su.puz).join(""), sol: Array.from(su.sol).join(""), val: Array.from(su.val).join(""),
-      notes: Array.from(su.notes), secs: su.secs, started: su.started, solved: su.solved, hints: su.hints, hinted: [...su.hinted], best: suBestTimes,
-    }));
-  } catch { /* stockage indisponible */ }
-}
-function suLoad() {
-  try {
-    const d = JSON.parse(localStorage.getItem(SU_KEY) || "null");
-    if (!d || typeof d !== "object") return null;
-    ["easy", "mid", "hard"].forEach((k) => { const v = d.best && Number(d.best[k]); if (v > 0 && v < 1e6) suBestTimes[k] = Math.floor(v); });
-    const ok = (s) => typeof s === "string" && /^[0-9]{81}$/.test(s);
-    if (!SU_CLUES[d.level] || !ok(d.puz) || !ok(d.sol) || !ok(d.val)) return null;
-    const arr = (s) => Int8Array.from(s, (ch) => +ch);
-    const puz = arr(d.puz), sol = arr(d.sol), val = arr(d.val);
-    for (let i = 0; i < 81; i++) if (!sol[i] || (puz[i] && val[i] !== puz[i])) return null;
-    const chk = new Int8Array(81);
-    if (suCount(puz, 2, chk) !== 1) return null; // la solution enregistrée doit être la bonne
-    for (let i = 0; i < 81; i++) if (chk[i] !== sol[i]) return null;
-    const notes = new Int16Array(81);
-    if (Array.isArray(d.notes) && d.notes.length === 81) d.notes.forEach((n, i) => { notes[i] = (Number(n) & 0x3fe) || 0; });
-    return { level: d.level, puz, sol, val, notes, sel: -1, notesOn: false,
-      secs: Math.max(0, Math.min(Number(d.secs) || 0, 359999)), started: !!d.started, solved: !!d.solved,
-      hints: Math.max(0, Math.min(Number(d.hints) || 0, 99)),
-      hinted: new Set(Array.isArray(d.hinted) ? d.hinted.filter((i) => Number.isInteger(i) && i >= 0 && i < 81) : []),
-      bad: new Set(), undo: [] };
-  } catch { return null; }
-}
-
-function suBuild() {
-  suBoard.innerHTML = "";
+function sdkPaint() {
+  if (!sdk) return;
+  const selVal = sdkSel >= 0 ? sdk.vals[sdkSel] : 0, peers = sdkSel >= 0 ? sdkPeers[sdkSel] : [], counts = new Array(10).fill(0);
+  let empty = 0;
   for (let i = 0; i < 81; i++) {
-    const b = document.createElement("button");
-    b.type = "button";
-    b.className = "su-cell";
-    b.setAttribute("role", "gridcell");
-    b.addEventListener("click", () => { if (su) { su.sel = i; suPaint(); } });
-    suBoard.appendChild(b);
-    suCells.push(b);
+    const v = sdk.vals[i], el = sdkCells[i];
+    if (v) counts[v]++; else empty++;
+    let bad = false;
+    if (v) for (const p of sdkPeers[i]) if (sdk.vals[p] === v) { bad = true; break; }
+    let cls = "sdk-cell";
+    if (sdk.puzzle[i]) cls += " given";
+    if (i === sdkSel) cls += " sel"; else if (peers.includes(i)) cls += " peer";
+    if (selVal && v === selVal && i !== sdkSel) cls += " same";
+    if (bad) cls += " bad";
+    if (sdkWrong.has(i)) cls += " wrong";
+    el.cell.className = cls;
+    el.v.textContent = v ? String(v) : "";
+    el.n.style.display = v ? "none" : "";
+    for (let d = 0; d < 9; d++) el.ds[d].textContent = sdk.notes[i] & (1 << d) ? String(d + 1) : "";
   }
-  suPad.innerHTML = "";
-  for (let d = 1; d <= 9; d++) {
-    const b = document.createElement("button");
-    b.type = "button";
-    b.className = "su-key";
-    b.dataset.d = String(d);
-    b.append(document.createElement("strong"), document.createElement("small"));
-    b.firstChild.textContent = String(d);
-    b.addEventListener("click", () => suInput(d));
-    suPad.appendChild(b);
-  }
-  const er = document.createElement("button");
-  er.type = "button";
-  er.className = "su-key erase";
-  er.textContent = "⌫";
-  er.setAttribute("aria-label", "Effacer la case");
-  er.addEventListener("click", suErase);
-  suPad.appendChild(er);
+  for (let d = 1; d <= 9; d++) sdkPad.children[d - 1].classList.toggle("full", counts[d] >= 9);
+  $("sdkLeft").textContent = String(empty);
+  $("sdkHints").textContent = String(sdk.hints);
+  $("sdkTime").textContent = puzFmt(sdk.secs);
 }
+function sdkSelect(i, focus) {
+  sdkSel = i;
+  sdkCells.forEach((c, k) => { c.cell.tabIndex = k === (i < 0 ? 0 : i) ? 0 : -1; });
+  sdkPaint();
+  if (focus && i >= 0) sdkCells[i].cell.focus();
+}
+function sdkSnap() {
+  sdkUndoStack.push({ v: sdk.vals.slice(), n: sdk.notes.slice() });
+  if (sdkUndoStack.length > 100) sdkUndoStack.shift();
+}
+function sdkAfter() {
+  if (!sdk.done && sdk.vals.every((v, i) => v === sdk.solution[i])) {
+    sdk.done = true;
+    sdkSay(`Bravo ! Grille terminée en ${puzFmt(sdk.secs)}` + (sdk.hints ? ` avec ${sdk.hints} indice${sdk.hints > 1 ? "s" : ""}` : "") + ". 🎉");
+  }
+  puzSave(SDK_KEY, sdk);
+  sdkPaint();
+}
+function sdkDropNotes(i, d) { sdkPeers[i].forEach((p) => { sdk.notes[p] &= ~(1 << (d - 1)); }); }
 
-function suConflicts() {
-  const bad = new Set();
-  for (let i = 0; i < 81; i++) {
-    const v = su.val[i];
-    if (!v) continue;
-    for (const j of SU_PEERS[i]) if (su.val[j] === v) { bad.add(i); break; }
+function sdkEnter(d) {
+  if (!sdk || sdk.done) return;
+  if (sdkSel < 0) return sdkSay("Choisis d'abord une case.");
+  const i = sdkSel;
+  if (sdk.puzzle[i]) return sdkSay("Cette case fait partie de la grille de départ.");
+  sdkWrong.clear();
+  if (sdkNotesOn) {
+    if (sdk.vals[i]) return sdkSay("Efface d'abord le chiffre pour ajouter des notes.");
+    sdkSnap();
+    sdk.notes[i] ^= 1 << (d - 1);
+  } else {
+    sdkSnap();
+    if (sdk.vals[i] === d) sdk.vals[i] = 0;
+    else { sdk.vals[i] = d; sdk.notes[i] = 0; sdkDropNotes(i, d); }
   }
-  return bad;
+  sdkSay("");
+  sdkAfter();
 }
-function suPaint() {
-  if (!su) return;
-  const conf = suConflicts(), sv = su.sel >= 0 ? su.val[su.sel] : 0;
-  const peers = su.sel >= 0 ? new Set(SU_PEERS[su.sel]) : null;
-  const counts = new Int8Array(10);
-  for (let i = 0; i < 81; i++) if (su.val[i]) counts[su.val[i]]++;
-  for (let i = 0; i < 81; i++) {
-    const el = suCells[i], v = su.val[i];
-    let cls = "su-cell" + (SU_C[i] % 3 === 2 && SU_C[i] < 8 ? " r3" : "") + (SU_R[i] % 3 === 2 && SU_R[i] < 8 ? " b3" : "");
-    if (su.puz[i]) cls += " given"; else if (su.hinted.has(i)) cls += " hint";
-    if (i === su.sel) cls += " sel"; else if (peers && peers.has(i)) cls += " peer";
-    if (sv && v === sv && i !== su.sel) cls += " same";
-    if (conf.has(i)) cls += " err";
-    if (su.bad.has(i)) cls += " bad";
-    el.className = cls;
-    if (v) {
-      if (el.dataset.k !== "v" + v) { el.textContent = String(v); el.dataset.k = "v" + v; }
-    } else if (su.notes[i]) {
-      const key = "n" + su.notes[i];
-      if (el.dataset.k !== key) {
-        el.textContent = "";
-        const g = document.createElement("span");
-        g.className = "su-notes";
-        for (let d = 1; d <= 9; d++) { const s = document.createElement("span"); s.textContent = su.notes[i] & (1 << d) ? String(d) : ""; g.appendChild(s); }
-        el.appendChild(g);
-        el.dataset.k = key;
-      }
-    } else if (el.dataset.k) { el.textContent = ""; el.dataset.k = ""; }
-    el.setAttribute("aria-label", `Ligne ${SU_R[i] + 1}, colonne ${SU_C[i] + 1}, ${v ? v : "vide"}`);
-  }
-  suPad.querySelectorAll(".su-key[data-d]").forEach((b) => {
-    const d = +b.dataset.d, left = Math.max(0, 9 - counts[d]);
-    b.querySelector("small").textContent = left ? String(left) : "✓";
-    b.classList.toggle("done", left === 0);
-  });
-  suNotesBtn.textContent = su.notesOn ? "✏️ Notes : oui" : "✏️ Notes : non";
-  suNotesBtn.setAttribute("aria-pressed", String(su.notesOn));
-  suNotesBtn.classList.toggle("on", su.notesOn);
-  suUndoBtn.disabled = !su.undo.length || su.solved;
-  suTimeEl.textContent = suFmt(su.secs);
-  suHintsEl.textContent = String(su.hints);
-  suBestEl.textContent = suBestTimes[su.level] ? suFmt(suBestTimes[su.level]) : "–";
+function sdkClear() {
+  if (!sdk || sdk.done || sdkSel < 0) return;
+  const i = sdkSel;
+  if (sdk.puzzle[i] || (!sdk.vals[i] && !sdk.notes[i])) return;
+  sdkWrong.clear();
+  sdkSnap();
+  sdk.vals[i] = 0; sdk.notes[i] = 0;
+  sdkSay("");
+  sdkAfter();
 }
-
-function suPush() {
-  su.undo.push({ v: Int8Array.from(su.val), n: Int16Array.from(su.notes) });
-  if (su.undo.length > 100) su.undo.shift();
+function sdkUndoMove() {
+  if (!sdk || !sdkUndoStack.length) return;
+  const s = sdkUndoStack.pop();
+  sdk.vals = s.v; sdk.notes = s.n; sdk.done = false;
+  sdkWrong.clear();
+  sdkSay("");
+  sdkAfter();
 }
-function suSolvedCheck() {
-  if (su.solved) return;
-  for (let i = 0; i < 81; i++) if (su.val[i] !== su.sol[i]) return;
-  su.solved = true;
-  let msg = `Bravo ! Grille résolue en ${suFmt(su.secs)} 🎉`;
-  if (!su.hints && (!suBestTimes[su.level] || su.secs < suBestTimes[su.level])) { suBestTimes[su.level] = su.secs; msg += " Nouveau meilleur temps !"; }
-  suMsg.textContent = msg;
-  suPaint();
-}
-function suAfter() { suMsg.textContent = ""; suPaint(); suSolvedCheck(); suSave(); }
-
-function suLocked(i) { return !!su.puz[i] || su.hinted.has(i); }
-function suInput(d) {
-  if (!su || su.solved) return;
-  if (su.sel < 0) { suMsg.textContent = "Choisis d'abord une case."; return; }
-  const i = su.sel;
-  if (suLocked(i)) return;
-  if (su.notesOn && su.val[i]) return; // pas de notes sur une case déjà remplie
-  suPush();
-  su.bad.clear();
-  su.started = true;
-  if (su.notesOn) su.notes[i] ^= 1 << d;
-  else if (su.val[i] === d) su.val[i] = 0;
-  else {
-    su.val[i] = d;
-    su.notes[i] = 0;
-    for (const j of SU_PEERS[i]) su.notes[j] &= ~(1 << d); // nettoie les notes voisines
-  }
-  suAfter();
-}
-function suErase() {
-  if (!su || su.solved || su.sel < 0) return;
-  const i = su.sel;
-  if (suLocked(i) || (!su.val[i] && !su.notes[i])) return;
-  suPush(); su.bad.clear(); su.val[i] = 0; su.notes[i] = 0; suAfter();
-}
-function suUndo() {
-  if (!su || su.solved || !su.undo.length) return;
-  const s = su.undo.pop();
-  su.val = s.v; su.notes = s.n; su.bad.clear();
-  su.hinted = new Set([...su.hinted].filter((i) => su.val[i] === su.sol[i]));
-  suAfter();
-}
-function suHint() {
-  if (!su || su.solved) return;
-  let i = su.sel;
-  if (i < 0 || su.puz[i] || su.val[i] === su.sol[i]) {
+function sdkHintMove() {
+  if (!sdk || sdk.done) return;
+  let i = sdkSel;
+  if (i < 0 || sdk.vals[i] === sdk.solution[i]) {
     const open = [];
-    for (let k = 0; k < 81; k++) if (!su.puz[k] && su.val[k] !== su.sol[k]) open.push(k);
+    for (let k = 0; k < 81; k++) if (sdk.vals[k] !== sdk.solution[k]) open.push(k);
     if (!open.length) return;
-    i = open[gmRand(open.length)];
+    i = open[Math.floor(Math.random() * open.length)];
   }
-  suPush(); su.bad.clear(); su.started = true;
-  su.val[i] = su.sol[i]; su.notes[i] = 0; su.hinted.add(i); su.hints++; su.sel = i;
-  for (const j of SU_PEERS[i]) su.notes[j] &= ~(1 << su.sol[i]);
-  suAfter();
+  sdkSnap();
+  sdkWrong.clear();
+  sdk.vals[i] = sdk.solution[i]; sdk.notes[i] = 0; sdk.hints++;
+  sdkDropNotes(i, sdk.solution[i]);
+  sdkSel = i;
+  sdkSay("Indice : une case a été remplie pour toi.");
+  sdkAfter();
 }
-function suCheck() {
-  if (!su || su.solved) return;
-  su.bad.clear();
-  for (let i = 0; i < 81; i++) if (!su.puz[i] && su.val[i] && su.val[i] !== su.sol[i]) su.bad.add(i);
-  suPaint();
-  const n = su.bad.size;
-  suMsg.textContent = n ? `${n} case${n > 1 ? "s" : ""} incorrecte${n > 1 ? "s" : ""} (en rouge).` : "Aucune erreur pour l'instant. Continue !";
+function sdkCheck() {
+  if (!sdk || sdk.done) return;
+  sdkWrong = new Set();
+  for (let i = 0; i < 81; i++) if (!sdk.puzzle[i] && sdk.vals[i] && sdk.vals[i] !== sdk.solution[i]) sdkWrong.add(i);
+  const n = sdkWrong.size;
+  sdkSay(n ? `${n} case${n > 1 ? "s" : ""} à corriger (en rouge).` : "Aucune erreur pour l'instant, continue !");
+  sdkPaint();
 }
-function suToggleNotes() { if (su && !su.solved) { su.notesOn = !su.notesOn; suPaint(); } }
-
-function suConfirm() { return !su || !su.started || su.solved || confirm("Abandonner la partie en cours ?"); }
-function suNewGame() {
-  if (suBusy) return;
-  suBusy = true;
-  const level = suLevel.value;
-  suMsg.textContent = "Création de la grille…";
+function sdkToggleNotes() {
+  sdkNotesOn = !sdkNotesOn;
+  sdkNotesBtn.setAttribute("aria-pressed", String(sdkNotesOn));
+  sdkNotesBtn.textContent = "✏️ Notes : " + (sdkNotesOn ? "oui" : "non");
+  sdkNotesBtn.classList.toggle("on", sdkNotesOn);
+}
+function sdkNewGame() {
+  if (sdkBusy) return;
+  sdkBusy = true;
+  sdkNew.disabled = true;
+  sdkSay("Création de la grille…");
   setTimeout(() => {
-    const { puz, sol } = suMake(level);
-    suInit(level, puz, sol);
-    suMsg.textContent = "";
-    suBusy = false;
-    suPaint();
-    suSave();
+    sdk = sdkMake(sdkLevel.value);
+    sdkUndoStack = []; sdkWrong = new Set();
+    if (sdkNotesOn) sdkToggleNotes();
+    sdkSelect(-1, false);
+    puzSave(SDK_KEY, sdk);
+    sdkSay("");
+    sdkNew.disabled = false;
+    sdkBusy = false;
   }, 30);
 }
-function suEnsure() {
-  if (su || suBusy) return;
-  const saved = suLoad();
-  if (saved) { su = saved; suLevel.value = su.level; suPaint(); } else suNewGame();
+function sdkValid(s) {
+  const ok = (a, lo, hi) => Array.isArray(a) && a.length === 81 && a.every((v) => Number.isInteger(v) && v >= lo && v <= hi);
+  return !!s && ok(s.puzzle, 0, 9) && ok(s.solution, 1, 9) && ok(s.vals, 0, 9) && ok(s.notes, 0, 511) && !!SDK_CLUES[s.level] && Number.isFinite(s.secs) && Number.isFinite(s.hints);
 }
 
-$("suNew").addEventListener("click", () => { if (suConfirm()) suNewGame(); });
-suLevel.addEventListener("change", () => { if (suConfirm()) suNewGame(); else suLevel.value = su ? su.level : "mid"; });
-suNotesBtn.addEventListener("click", suToggleNotes);
-suUndoBtn.addEventListener("click", suUndo);
-$("suHint").addEventListener("click", suHint);
-$("suCheck").addEventListener("click", suCheck);
-
-document.addEventListener("keydown", (e) => {
-  if (!su || !suPanel.classList.contains("active") || e.altKey) return;
-  if (e.target.closest && e.target.closest("input, textarea, select")) return;
-  const k = e.key;
-  if ((e.ctrlKey || e.metaKey) && k.toLowerCase() === "z") { e.preventDefault(); suUndo(); return; }
-  if (e.ctrlKey || e.metaKey) return;
-  if (/^[1-9]$/.test(k)) { e.preventDefault(); suInput(+k); }
-  else if (k === "0" || k === "Backspace" || k === "Delete") { e.preventDefault(); suErase(); }
-  else if (k === "n" || k === "N") suToggleNotes();
-  else if (k.startsWith("Arrow")) {
+// Construction de la grille et des boutons
+for (let i = 0; i < 81; i++) {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.tabIndex = i === 0 ? 0 : -1;
+  b.setAttribute("role", "gridcell");
+  b.setAttribute("aria-label", `Ligne ${Math.floor(i / 9) + 1}, colonne ${(i % 9) + 1}`);
+  const n = document.createElement("span"), v = document.createElement("span"), ds = [];
+  n.className = "n"; v.className = "v";
+  for (let d = 0; d < 9; d++) { const t = document.createElement("i"); n.appendChild(t); ds.push(t); }
+  b.append(n, v);
+  b.addEventListener("click", () => sdkSelect(i, false));
+  sdkBoard.appendChild(b);
+  sdkCells.push({ cell: b, v, n, ds });
+}
+for (let d = 1; d <= 9; d++) {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.textContent = String(d);
+  b.setAttribute("aria-label", "Chiffre " + d);
+  b.addEventListener("click", () => sdkEnter(d));
+  sdkPad.appendChild(b);
+}
+sdkBoard.addEventListener("keydown", (e) => {
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  if (/^[1-9]$/.test(e.key)) { e.preventDefault(); return sdkEnter(+e.key); }
+  if (e.key === "Backspace" || e.key === "Delete" || e.key === "0") { e.preventDefault(); return sdkClear(); }
+  if (e.key === "n" || e.key === "N") { e.preventDefault(); return sdkToggleNotes(); }
+  const mv = { ArrowLeft: [0, -1], ArrowRight: [0, 1], ArrowUp: [-1, 0], ArrowDown: [1, 0] }[e.key];
+  if (mv && sdkSel >= 0) {
     e.preventDefault();
-    if (su.sel < 0) su.sel = 40;
-    else {
-      const r = SU_R[su.sel], c = SU_C[su.sel];
-      if (k === "ArrowLeft" && c > 0) su.sel--;
-      else if (k === "ArrowRight" && c < 8) su.sel++;
-      else if (k === "ArrowUp" && r > 0) su.sel -= 9;
-      else if (k === "ArrowDown" && r < 8) su.sel += 9;
-    }
-    suPaint();
+    const r = Math.floor(sdkSel / 9) + mv[0], c = (sdkSel % 9) + mv[1];
+    if (r >= 0 && r < 9 && c >= 0 && c < 9) sdkSelect(r * 9 + c, true);
   }
 });
-
-setInterval(() => {
-  if (su && su.started && !su.solved && suPanel.classList.contains("active") && !document.hidden) {
-    su.secs++;
-    suTimeEl.textContent = suFmt(su.secs);
-    if (su.secs % 10 === 0) suSave();
-  }
+sdkNotesBtn.addEventListener("click", sdkToggleNotes);
+$("sdkUndo").addEventListener("click", sdkUndoMove);
+$("sdkErase").addEventListener("click", sdkClear);
+$("sdkHint").addEventListener("click", sdkHintMove);
+$("sdkCheck").addEventListener("click", sdkCheck);
+sdkNew.addEventListener("click", () => { if (sdkStarted() && !sdk.done && !confirm("Abandonner la grille en cours ?")) return; sdkNewGame(); });
+sdkLevel.addEventListener("change", () => {
+  if (sdkStarted() && !sdk.done && !confirm("Abandonner la grille en cours ?")) { sdkLevel.value = sdk.level; return; }
+  sdkNewGame();
+});
+setInterval(() => { // chronomètre : il ne tourne que si l'onglet est ouvert
+  const p = $("sudoku");
+  if (!sdk || sdk.done || document.hidden || !p || !p.classList.contains("active")) return;
+  sdk.secs++;
+  $("sdkTime").textContent = puzFmt(sdk.secs);
+  if (sdk.secs % 10 === 0) puzSave(SDK_KEY, sdk);
 }, 1000);
-
-suBuild();
-new MutationObserver(() => { if (suPanel.classList.contains("active")) suEnsure(); }).observe(suPanel, { attributes: true, attributeFilter: ["class"] });
-if (suPanel.classList.contains("active")) suEnsure();
+puzOnOpen("sudoku", () => {
+  if (sdk) return;
+  const s = puzLoad(SDK_KEY);
+  if (sdkValid(s)) { sdk = s; sdkLevel.value = s.level; sdkSelect(-1, false); } else sdkNewGame();
+});
 
 // ---------- Mots croisés ----------
-const CW_KEY = "clippo_crossword", CW_N = 15;
-const CW_COUNT = { easy: 8, mid: 11, hard: 14 };
-const CW_THEMES = ["mix", "animaux", "cuisine", "nature", "maison"];
+const CW_KEY = "clippo_crossword", CW_SIZES = { small: 8, mid: 12, large: 16 };
 const CW_BANK = {
   animaux: [
-    ["CHAT", "Félin domestique qui ronronne"], ["CHIEN", "Il aboie et garde la maison"], ["CHEVAL", "Il galope et se monte"],
-    ["VACHE", "Elle broute dans le pré et fait « meuh »"], ["LAPIN", "Il a de longues oreilles et saute"], ["SOURIS", "Petit rongeur gris aux longues moustaches"],
-    ["POULE", "Elle pond des œufs"], ["CANARD", "Il fait coin-coin sur l'étang"], ["OURS", "Il hiberne dans sa tanière"],
-    ["LOUP", "Il hurle à la pleine lune"], ["RENARD", "Rusé dans les fables"], ["TORTUE", "Lente, elle porte une carapace"],
-    ["GIRAFE", "Animal au très long cou"], ["ZEBRE", "Animal rayé noir et blanc d'Afrique"], ["SINGE", "Il se balance de branche en branche"],
-    ["DAUPHIN", "Mammifère marin très intelligent"], ["ABEILLE", "Insecte rayé qui butine"], ["PAPILLON", "Insecte aux ailes colorées"],
-    ["ESCARGOT", "Il porte sa coquille sur son dos"], ["HIBOU", "Oiseau de nuit qui fait hou-hou"], ["AIGLE", "Grand rapace, roi du ciel"],
-    ["MOUTON", "Sa laine sert à faire des pulls"], ["COCHON", "Il aime se rouler dans la boue"], ["LION", "Le roi de la savane"],
-    ["ELEPHANT", "Il a une trompe et de grandes oreilles"], ["TIGRE", "Grand félin rayé"], ["MANCHOT", "Oiseau de l'Antarctique qui nage mais ne vole pas"],
-  ],
-  cuisine: [
-    ["PAIN", "Il sort du four du boulanger"], ["FROMAGE", "Camembert, brie ou comté"], ["POMME", "Fruit du pommier"],
-    ["BANANE", "Fruit jaune et courbé"], ["CERISE", "Petit fruit rouge à noyau"], ["FRAISE", "Fruit rouge du printemps"],
-    ["CITRON", "Fruit jaune très acide"], ["CAROTTE", "Légume orange et croquant"], ["TOMATE", "Fruit rouge qu'on prend pour un légume"],
-    ["SOUPE", "Plat liquide servi chaud"], ["SUCRE", "Il adoucit les boissons"], ["BEURRE", "Gras onctueux fait avec de la crème"],
-    ["GATEAU", "Dessert d'anniversaire"], ["CHOCOLAT", "Fait avec du cacao"], ["PATES", "Spaghetti ou tagliatelles"],
-    ["RIZ", "Céréale des paellas et des sushis"], ["LAIT", "Boisson blanche du petit-déjeuner"], ["CREPE", "Fine galette de la Chandeleur"],
-    ["SALADE", "Feuilles vertes assaisonnées"], ["POISSON", "Il nage et on le pêche"], ["JAMBON", "Charcuterie rose"],
-    ["MIEL", "Doré et sucré, il se tartine"], ["CAFE", "Boisson noire du matin"], ["CUILLERE", "Couvert arrondi qu'on porte à la bouche"],
-    ["FOURCHETTE", "Couvert à dents"], ["POIRE", "Fruit tendre et juteux, en forme de cloche"],
+    ["CHAT", "Il ronronne sur le canapé"], ["CHIEN", "Il aboie et garde la maison"], ["CHEVAL", "Il galope dans les prés"], ["LAPIN", "Il adore les carottes"],
+    ["DAUPHIN", "Mammifère marin qui saute hors de l'eau"], ["ELEPHANT", "Le plus grand animal terrestre"], ["GIRAFE", "Elle a un très long cou"], ["ZEBRE", "Équidé rayé de la savane"],
+    ["LION", "Il est surnommé le roi de la savane"], ["TORTUE", "Elle porte sa maison sur le dos"], ["ABEILLE", "Elle fabrique le miel"], ["PAPILLON", "Il était chenille avant d'avoir des ailes"],
+    ["RENARD", "Roux, rusé et discret"], ["HIBOU", "Oiseau qui chasse la nuit"], ["BALEINE", "Mammifère marin géant"], ["MANCHOT", "Oiseau marin qui ne vole pas, surtout dans l'hémisphère Sud"],
   ],
   nature: [
-    ["FORET", "Grande étendue boisée où vivent le cerf et le sanglier"], ["RIVIERE", "Cours d'eau qui serpente dans la vallée"],
-    ["MONTAGNE", "Grand relief au sommet parfois enneigé"], ["OCEAN", "Immense étendue d'eau salée"], ["PLAGE", "On y bronze au bord de la mer"],
-    ["DESERT", "Il y fait chaud et sec"], ["VOLCAN", "Il crache de la lave"], ["ILE", "Terre entourée d'eau"],
-    ["SOLEIL", "Étoile qui éclaire le jour"], ["LUNE", "Elle éclaire la nuit"], ["NUAGE", "Il flotte dans le ciel"],
-    ["PLUIE", "Gouttes d'eau qui tombent du ciel"], ["NEIGE", "Blanche et froide en hiver"], ["FLEUVE", "La Seine ou la Loire"],
-    ["LAC", "Étendue d'eau douce entourée de terre"], ["PARIS", "Capitale de la France"], ["EUROPE", "Continent où se trouve la France"],
-    ["AFRIQUE", "Continent du Sahara"], ["ARBRE", "Il a un tronc et des branches"], ["FLEUR", "La rose en est une"],
-    ["HERBE", "Elle pousse sur la pelouse"], ["ROCHER", "Gros bloc de pierre"], ["VENT", "Il souffle et agite les feuilles"],
-    ["ORAGE", "Éclairs et tonnerre"], ["SABLE", "Grains fins des dunes"],
+    ["ARBRE", "Il a un tronc, des branches et des feuilles"], ["FORET", "Elle est pleine d'arbres"], ["FLEUVE", "Grand cours d'eau qui rejoint la mer"], ["MONTAGNE", "Elle a un sommet"],
+    ["VOLCAN", "Il crache de la lave"], ["OCEAN", "Immense étendue d'eau salée"], ["NUAGE", "Il flotte dans le ciel"], ["ORAGE", "Éclairs et tonnerre"],
+    ["NEIGE", "Elle tombe en hiver"], ["SOLEIL", "Étoile au centre du système solaire"], ["LUNE", "Elle tourne autour de la Terre"], ["ETOILE", "Elle scintille dans le ciel nocturne"],
+    ["ROSE", "Fleur qui a des épines"], ["PLAGE", "Sable et vagues"], ["DESERT", "Très sec, avec des dunes"], ["RIVIERE", "Cours d'eau plus petit qu'un fleuve"],
   ],
-  maison: [
-    ["TABLE", "On y mange"], ["CHAISE", "On s'y assoit"], ["LIT", "On y dort la nuit"], ["PORTE", "On l'ouvre pour entrer"],
-    ["FENETRE", "Elle laisse passer la lumière"], ["CUISINE", "Pièce où l'on prépare les repas"], ["SALON", "Pièce où l'on reçoit les invités"],
-    ["CANAPE", "Siège confortable à plusieurs places"], ["LAMPE", "Elle éclaire la pièce"], ["MIROIR", "On s'y regarde"],
-    ["TAPIS", "Il recouvre le sol"], ["ARMOIRE", "Meuble pour ranger les vêtements"], ["LIVRE", "Il se lit page après page"],
-    ["STYLO", "On écrit avec"], ["CLE", "Elle ouvre la serrure"], ["HORLOGE", "Elle indique l'heure"],
-    ["TELEPHONE", "Il sonne quand on t'appelle"], ["ORDINATEUR", "Machine pour taper, naviguer et jouer"], ["VELO", "Deux roues et des pédales"],
-    ["VOITURE", "Elle roule sur la route"], ["SAC", "Il porte tes affaires"], ["CHAPEAU", "Il se met sur la tête"],
-    ["CHAUSSURE", "On la porte au pied"], ["PARAPLUIE", "Il protège quand il pleut"], ["BALAI", "Il sert à ramasser la poussière"],
+  cuisine: [
+    ["PAIN", "Il sort du four du boulanger"], ["FROMAGE", "Camembert, brie ou comté"], ["CHOCOLAT", "Il est fait à partir du cacao"], ["POMME", "Fruit du pommier"],
+    ["BANANE", "Fruit jaune qui pousse en régime"], ["FRAISE", "Petit fruit rouge de l'été"], ["CITRON", "Agrume très acide"], ["CAROTTE", "Légume orange que le lapin adore"],
+    ["TOMATE", "Fruit rouge utilisé comme un légume"], ["PATES", "Spaghettis, penne ou tagliatelles"], ["CREPE", "On la fait sauter à la Chandeleur"], ["GATEAU", "Dessert d'anniversaire"],
+    ["SOUPE", "Plat chaud que l'on mange à la cuillère"], ["OEUF", "Il est pondu par la poule"], ["RIZ", "Céréale des sushis"], ["MIEL", "Produit par les abeilles"],
+  ],
+  geo: [
+    ["PARIS", "Capitale de la France"], ["ROME", "Capitale de l'Italie"], ["LONDRES", "Capitale du Royaume-Uni"], ["MADRID", "Capitale de l'Espagne"],
+    ["BERLIN", "Capitale de l'Allemagne"], ["EUROPE", "Continent où se trouve la France"], ["AFRIQUE", "Continent du Sahara"], ["ASIE", "Le plus grand continent"],
+    ["LOIRE", "Plus long fleuve de France"], ["SEINE", "Fleuve qui traverse Paris"], ["ALPES", "Chaîne de montagnes du mont Blanc"], ["CORSE", "Île française de la Méditerranée"],
+    ["SAHARA", "Plus grand désert chaud du monde"], ["JAPON", "Pays du Soleil-Levant"], ["BRESIL", "Pays du carnaval de Rio"], ["ITALIE", "Pays en forme de botte"],
+  ],
+  sciences: [
+    ["ATOME", "Brique de base de la matière"], ["PLANETE", "Elle tourne autour d'une étoile"], ["GRAVITE", "Elle fait tomber les objets"], ["CELLULE", "Brique de base des êtres vivants"],
+    ["ENERGIE", "Elle se mesure en joules"], ["LUMIERE", "Elle voyage à environ 300 000 km par seconde"], ["OXYGENE", "Gaz indispensable à la respiration"], ["NEURONE", "Cellule du cerveau"],
+    ["MOLECULE", "Assemblage d'atomes"], ["FOSSILE", "Reste d'un être vivant très ancien"], ["GALAXIE", "Des milliards d'étoiles réunies"], ["MARS", "La planète rouge"],
+    ["VENUS", "Planète la plus chaude du système solaire"], ["ELECTRON", "Particule de charge négative"], ["ADN", "Molécule qui porte les gènes"], ["TERRE", "Notre planète"],
   ],
 };
-const CW_ROWS = ["AZERTYUIOP", "QSDFGHJKLM", "WXCVBN"];
-const cwPanel = $("crossword"), cwBoard = $("cwBoard"), cwKeys = $("cwKeys"), cwMsg = $("cwMsg"), cwClueEl = $("cwClue");
-const cwTheme = $("cwTheme"), cwLevel = $("cwLevel"), cwAcross = $("cwAcross"), cwDown = $("cwDown");
-let cwG = null, cwEls = [], cwLis = [], cwBusy = false;
+const cwGrid = $("cwGrid"), cwWrap = $("cwWrap"), cwMsg = $("cwMsg"), cwActive = $("cwActive"), cwNew = $("cwNew"), cwTheme = $("cwTheme"), cwSize = $("cwSize");
+let cw = null, cwSol = [], cwAt = new Map(), cwEls = [], cwSel = null, cwDir = "A", cwWrong = new Set(), cwWas = false, cwClueEls = new Map();
 
-// --- Création de la grille ---
-function cwFits(g, hv, w, r, c, dir) { // -1 si impossible, sinon le nombre de croisements
-  const dr = dir ? 1 : 0, dc = dir ? 0 : 1, len = w.length;
-  if (r < 0 || c < 0 || r + dr * (len - 1) >= CW_N || c + dc * (len - 1) >= CW_N) return -1;
-  const br = r - dr, bc = c - dc, ar = r + dr * len, ac = c + dc * len;
-  if (br >= 0 && bc >= 0 && g[br][bc]) return -1;
-  if (ar < CW_N && ac < CW_N && g[ar][ac]) return -1;
-  let cross = 0;
-  for (let k = 0; k < len; k++) {
-    const rr = r + dr * k, cc = c + dc * k, ch = g[rr][cc];
-    if (ch) {
-      if (ch !== w[k] || (hv[rr][cc] & (dir ? 2 : 1))) return -1;
-      cross++;
-    } else {
-      const r1 = rr - dc, c1 = cc - dr, r2 = rr + dc, c2 = cc + dr; // cases voisines sur le côté
-      if (r1 >= 0 && c1 >= 0 && g[r1][c1]) return -1;
-      if (r2 < CW_N && c2 < CW_N && g[r2][c2]) return -1;
+// Un essai de placement : on croise les mots les uns avec les autres
+function cwTry(entries) {
+  const order = puzShuffle(entries).sort((a, b) => b[0].length - a[0].length);
+  const grid = new Map(), dirs = new Map(), placed = [], key = (x, y) => x + "," + y;
+  const fits = (t, x, y, d) => {
+    const dx = d === "A" ? 1 : 0, dy = d === "A" ? 0 : 1, n = t.length;
+    if (grid.has(key(x - dx, y - dy)) || grid.has(key(x + dx * n, y + dy * n))) return -1;
+    let cross = 0;
+    for (let i = 0; i < n; i++) {
+      const cx = x + dx * i, cy = y + dy * i, k = key(cx, cy), ex = grid.get(k);
+      if (ex !== undefined) {
+        if (ex !== t[i] || (dirs.get(k) || "").includes(d)) return -1;
+        cross++;
+      } else if (grid.has(key(cx + dy, cy + dx)) || grid.has(key(cx - dy, cy - dx))) return -1;
     }
-  }
-  return cross;
-}
-function cwPutWord(g, hv, w, r, c, dir) {
-  for (let k = 0; k < w.length; k++) { const rr = r + (dir ? k : 0), cc = c + (dir ? 0 : k); g[rr][cc] = w[k]; hv[rr][cc] |= dir ? 2 : 1; }
-}
-function cwAttempt(pool, target) {
-  const g = Array.from({ length: CW_N }, () => Array(CW_N).fill(""));
-  const hv = Array.from({ length: CW_N }, () => Array(CW_N).fill(0));
-  const words = gmShuffle(pool).map((w) => ({ w, k: w[0].length + Math.random() * 3 })).sort((a, b) => b.k - a.k).map((x) => x.w);
-  const placed = [];
-  const first = words[0], r0 = Math.floor(CW_N / 2), c0 = Math.floor((CW_N - first[0].length) / 2);
-  cwPutWord(g, hv, first[0], r0, c0, 0);
-  placed.push({ ans: first[0], clue: first[1], r: r0, c: c0, dir: 0 });
-  for (let wi = 1; wi < words.length && placed.length < target; wi++) {
-    const [ans, clue] = words[wi];
-    let best = null, bestScore = -1;
-    for (let r = 0; r < CW_N; r++) for (let c = 0; c < CW_N; c++) {
-      const ch = g[r][c];
-      if (!ch) continue;
-      for (let i = 0; i < ans.length; i++) {
-        if (ans[i] !== ch) continue;
-        for (let dir = 0; dir < 2; dir++) {
-          const sr = dir ? r - i : r, sc = dir ? c : c - i;
-          const x = cwFits(g, hv, ans, sr, sc, dir);
-          if (x < 1) continue;
-          const s = x + Math.random() * 1.5;
-          if (s > bestScore) { bestScore = s; best = { r: sr, c: sc, dir }; }
-        }
+    return cross;
+  };
+  const put = (e, x, y, d) => {
+    const dx = d === "A" ? 1 : 0, dy = d === "A" ? 0 : 1;
+    for (let i = 0; i < e[0].length; i++) { const k = key(x + dx * i, y + dy * i); grid.set(k, e[0][i]); dirs.set(k, (dirs.get(k) || "") + d); }
+    placed.push({ t: e[0], c: e[1], x, y, d });
+  };
+  put(order[0], 0, 0, "A");
+  let pending = order.slice(1);
+  for (let pass = 0; pass < 4 && pending.length; pass++) {
+    const left = [];
+    for (const e of pending) {
+      const t = e[0], opts = [];
+      for (const pl of placed) for (let j = 0; j < pl.t.length; j++) for (let i = 0; i < t.length; i++) {
+        if (t[i] !== pl.t[j]) continue;
+        const d = pl.d === "A" ? "D" : "A";
+        const cx = pl.d === "A" ? pl.x + j : pl.x, cy = pl.d === "A" ? pl.y : pl.y + j;
+        const x = d === "A" ? cx - i : cx, y = d === "D" ? cy - i : cy, c = fits(t, x, y, d);
+        if (c > 0) opts.push({ x, y, d, c });
       }
+      if (opts.length) {
+        const m = Math.max(...opts.map((o) => o.c)), top = opts.filter((o) => o.c === m), o = top[Math.floor(Math.random() * top.length)];
+        put(e, o.x, o.y, o.d);
+      } else left.push(e);
     }
-    if (best) { cwPutWord(g, hv, ans, best.r, best.c, best.dir); placed.push({ ans, clue, r: best.r, c: best.c, dir: best.dir }); }
+    pending = left;
   }
-  return placed;
+  let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+  placed.forEach((p) => {
+    const ex = p.x + (p.d === "A" ? p.t.length - 1 : 0), ey = p.y + (p.d === "D" ? p.t.length - 1 : 0);
+    x0 = Math.min(x0, p.x); y0 = Math.min(y0, p.y); x1 = Math.max(x1, ex); y1 = Math.max(y1, ey);
+  });
+  return { words: placed, w: x1 - x0 + 1, h: y1 - y0 + 1 };
 }
-function cwBuild(theme, level) {
-  const pool = theme === "mix" ? [].concat(...Object.values(CW_BANK)) : CW_BANK[theme] || [];
-  const target = CW_COUNT[level] || 11, t0 = Date.now();
-  let best = [];
-  for (let a = 0; a < 40 && Date.now() - t0 < 600; a++) {
-    const p = cwAttempt(pool, target);
-    if (p.length > best.length) best = p;
-    if (best.length >= target) break;
+function cwLayout(entries) { // plusieurs essais, on garde la grille qui place le plus de mots et reste compacte
+  let best = null;
+  const t0 = performance.now();
+  for (let a = 0; a < 400 && performance.now() - t0 < 700; a++) {
+    const l = cwTry(entries);
+    if (l.w > 17 || l.h > 17) continue;
+    l.score = l.words.length * 1000 - l.w * l.h;
+    if (!best || l.score > best.score) best = l;
+    if (best.words.length === entries.length && a > 60) break;
   }
   return best;
 }
-function cwLayout(placed) { // recadre la grille autour des mots
-  let r0 = 99, c0 = 99, r1 = -1, c1 = -1;
-  placed.forEach((w) => {
-    r0 = Math.min(r0, w.r); c0 = Math.min(c0, w.c);
-    r1 = Math.max(r1, w.r + (w.dir ? w.ans.length - 1 : 0)); c1 = Math.max(c1, w.c + (w.dir ? 0 : w.ans.length - 1));
-  });
-  return { rows: r1 - r0 + 1, cols: c1 - c0 + 1, words: placed.map((w) => ({ ...w, r: w.r - r0, c: w.c - c0 })) };
-}
-function cwSetup(rows, cols, words, theme, level, entRows) {
-  const cell = Array.from({ length: rows }, () => Array.from({ length: cols }, () => ({ ch: "", n: 0, w: [-1, -1] })));
-  for (let idx = 0; idx < words.length; idx++) {
-    const w = words[idx];
-    for (let k = 0; k < w.ans.length; k++) {
-      const c = cell[w.r + (w.dir ? k : 0)][w.c + (w.dir ? 0 : k)];
-      if (c.ch && c.ch !== w.ans[k]) return false; // deux mots qui se contredisent
-      c.ch = w.ans[k];
-      c.w[w.dir] = idx;
-    }
-  }
+function cwFinish(l) { // coordonnées à partir de 0, puis numéros des mots
+  const minX = Math.min(...l.words.map((wd) => wd.x)), minY = Math.min(...l.words.map((wd) => wd.y));
+  const words = l.words.map((wd) => ({ ...wd, x: wd.x - minX, y: wd.y - minY, n: 0 }));
   let n = 0;
-  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
-    const starts = words.filter((w) => w.r === r && w.c === c);
-    if (starts.length) { n++; cell[r][c].n = n; starts.forEach((w) => { w.n = n; }); }
-  }
-  const ent = Array.from({ length: rows }, (_, r) => Array.from({ length: cols }, (_, c) => {
-    const x = entRows && entRows[r] ? entRows[r][c] : "";
-    return cell[r][c].ch && /^[A-Z]$/.test(x || "") ? x : "";
-  }));
-  cwG = { theme, level, rows, cols, words, cell, ent, sel: null, dir: 0, bad: new Set(), solved: false };
-  return true;
+  const nums = new Map();
+  for (let y = 0; y < l.h; y++) for (let x = 0; x < l.w; x++) if (words.some((wd) => wd.x === x && wd.y === y)) nums.set(x + "," + y, ++n);
+  words.forEach((wd) => { wd.n = nums.get(wd.x + "," + wd.y); });
+  return { w: l.w, h: l.h, words };
 }
+const cwIdx = (wd, i) => (wd.y + (wd.d === "D" ? i : 0)) * cw.w + wd.x + (wd.d === "A" ? i : 0);
 
-// --- Affichage ---
-function cwCurrent() {
-  if (!cwG || !cwG.sel) return -1;
-  const c = cwG.cell[cwG.sel.r][cwG.sel.c];
-  return c.w[cwG.dir] >= 0 ? c.w[cwG.dir] : c.w[cwG.dir ? 0 : 1];
-}
-function cwDraw() {
-  const g = cwG;
-  cwBoard.style.setProperty("--cols", g.cols);
-  cwBoard.innerHTML = "";
-  cwEls = [];
-  for (let r = 0; r < g.rows; r++) {
-    cwEls[r] = [];
-    for (let c = 0; c < g.cols; c++) {
-      const cell = g.cell[r][c];
-      if (!cell.ch) { const s = document.createElement("span"); s.className = "cw-blk"; cwBoard.appendChild(s); continue; }
-      const b = document.createElement("button");
-      b.type = "button";
-      b.className = "cw-cell";
-      b.setAttribute("role", "gridcell");
-      b.setAttribute("aria-label", `Ligne ${r + 1}, colonne ${c + 1}`);
-      if (cell.n) { const n = document.createElement("i"); n.className = "cw-n"; n.textContent = String(cell.n); b.appendChild(n); }
-      const l = document.createElement("b");
-      l.className = "cw-l";
-      b.appendChild(l);
-      b.addEventListener("click", () => cwSelect(r, c));
-      cwBoard.appendChild(b);
-      cwEls[r][c] = { b, l };
+function cwPrepare() {
+  cwSol = new Array(cw.w * cw.h).fill("");
+  cwAt = new Map();
+  cw.words.forEach((wd) => {
+    for (let i = 0; i < wd.t.length; i++) {
+      const x = wd.x + (wd.d === "A" ? i : 0), y = wd.y + (wd.d === "D" ? i : 0), k = x + "," + y, o = cwAt.get(k) || {};
+      cwSol[y * cw.w + x] = wd.t[i];
+      o[wd.d] = wd;
+      cwAt.set(k, o);
     }
-  }
-  cwAcross.innerHTML = ""; cwDown.innerHTML = ""; cwLis = [];
-  g.words.map((w, i) => i).sort((a, b) => g.words[a].n - g.words[b].n || g.words[a].dir - g.words[b].dir).forEach((i) => {
-    const w = g.words[i], li = document.createElement("li"), b = document.createElement("button");
-    b.type = "button";
-    b.className = "cw-li";
-    const n = document.createElement("b");
-    n.textContent = w.n + ".";
-    b.append(n, document.createTextNode(` ${w.clue} (${w.ans.length})`));
-    b.addEventListener("click", () => cwSelectWord(i));
-    li.appendChild(b);
-    (w.dir ? cwDown : cwAcross).appendChild(li);
-    cwLis[i] = b;
   });
-  let first = 0;
-  g.words.forEach((w, i) => { const f = g.words[first]; if (w.n < f.n || (w.n === f.n && w.dir < f.dir)) first = i; });
-  cwSelectWord(first);
+}
+function cwSizeCells() {
+  if (!cw) return;
+  const avail = Math.max(240, cwWrap.clientWidth - 24);
+  const s = Math.max(26, Math.min(46, Math.floor((avail - (cw.w - 1) * 2) / cw.w)));
+  cwGrid.style.setProperty("--cell", s + "px");
+}
+function cwBuild() {
+  cwGrid.innerHTML = "";
+  cwGrid.style.setProperty("--cw", String(cw.w));
+  cwEls = new Array(cw.w * cw.h).fill(null);
+  const nums = new Map();
+  cw.words.forEach((wd) => nums.set(wd.x + "," + wd.y, wd.n));
+  for (let y = 0; y < cw.h; y++) for (let x = 0; x < cw.w; x++) {
+    const div = document.createElement("div");
+    if (!cwSol[y * cw.w + x]) { div.className = "cw-block"; cwGrid.appendChild(div); continue; }
+    const inp = document.createElement("input");
+    inp.type = "text"; inp.className = "cw-in"; inp.autocomplete = "off"; inp.spellcheck = false;
+    inp.setAttribute("autocapitalize", "characters");
+    inp.setAttribute("aria-label", `Ligne ${y + 1}, colonne ${x + 1}`);
+    inp.dataset.x = String(x); inp.dataset.y = String(y);
+    const num = nums.get(x + "," + y);
+    if (num) { const s = document.createElement("span"); s.className = "cw-num"; s.textContent = String(num); div.appendChild(s); }
+    div.className = "cw-cell";
+    div.appendChild(inp);
+    cwGrid.appendChild(div);
+    cwEls[y * cw.w + x] = { cell: div, inp };
+  }
+  cwSizeCells();
+  const A = $("cwAcross"), D = $("cwDown");
+  A.innerHTML = ""; D.innerHTML = ""; cwClueEls = new Map();
+  cw.words.slice().sort((a, b) => a.n - b.n).forEach((wd) => {
+    const li = document.createElement("li"), b = document.createElement("button"), n = document.createElement("strong"), t = document.createElement("span");
+    b.type = "button"; b.className = "cw-clue";
+    n.textContent = wd.n + ".";
+    t.textContent = ` ${wd.c} (${wd.t.length})`;
+    b.append(n, t);
+    b.addEventListener("click", () => cwSelect(wd.x, wd.y, wd.d));
+    li.appendChild(b);
+    (wd.d === "A" ? A : D).appendChild(li);
+    cwClueEls.set(wd, b);
+  });
 }
 function cwPaint() {
-  const g = cwG, wi = cwCurrent(), cur = new Set();
-  if (wi >= 0) { const w = g.words[wi]; for (let k = 0; k < w.ans.length; k++) cur.add((w.r + (w.dir ? k : 0)) * g.cols + w.c + (w.dir ? 0 : k)); }
-  for (let r = 0; r < g.rows; r++) for (let c = 0; c < g.cols; c++) {
-    const el = cwEls[r][c];
-    if (!el) continue;
-    el.l.textContent = g.ent[r][c];
-    el.b.className = "cw-cell" + (cur.has(r * g.cols + c) ? " word" : "") + (g.sel && g.sel.r === r && g.sel.c === c ? " sel" : "") + (g.bad.has(r * g.cols + c) ? " bad" : "");
-  }
-  g.words.forEach((w, i) => {
-    let full = true;
-    for (let k = 0; k < w.ans.length; k++) if (!g.ent[w.r + (w.dir ? k : 0)][w.c + (w.dir ? 0 : k)]) full = false;
-    cwLis[i].classList.toggle("on", i === wi);
-    cwLis[i].classList.toggle("filled", full);
+  const act = new Set();
+  let wd = null;
+  if (cwSel) { const o = cwAt.get(cwSel.x + "," + cwSel.y); wd = o && o[cwDir]; }
+  if (wd) for (let i = 0; i < wd.t.length; i++) act.add(cwIdx(wd, i));
+  const selIdx = cwSel ? cwSel.y * cw.w + cwSel.x : -1;
+  cwEls.forEach((e, i) => {
+    if (!e) return;
+    e.cell.className = "cw-cell" + (i === selIdx ? " sel" : act.has(i) ? " act" : "") + (cwWrong.has(i) ? " bad" : "");
+    if (e.inp.value !== cw.fill[i]) e.inp.value = cw.fill[i];
   });
-  if (wi >= 0) { const w = g.words[wi]; cwClueEl.textContent = `${w.n} · ${w.dir ? "Verticalement" : "Horizontalement"} · ${w.clue} (${w.ans.length} lettres)`; }
+  cwActive.textContent = wd ? `${wd.n} ${wd.d === "A" ? "Horizontalement" : "Verticalement"} : ${wd.c} (${wd.t.length} lettres)` : "";
+  cwClueEls.forEach((btn, word) => {
+    btn.classList.toggle("on", word === wd);
+    btn.classList.toggle("filled", word.t.split("").every((_, i) => cw.fill[cwIdx(word, i)]));
+  });
 }
-function cwSelectWord(i) { const w = cwG.words[i]; cwG.sel = { r: w.r, c: w.c }; cwG.dir = w.dir; cwPaint(); }
-function cwSelect(r, c) {
-  const cell = cwG.cell[r][c];
-  if (!cell.ch) return;
-  const same = cwG.sel && cwG.sel.r === r && cwG.sel.c === c;
-  if (same) { const other = cwG.dir ? 0 : 1; if (cell.w[other] >= 0) cwG.dir = other; }
-  else if (cell.w[cwG.dir] < 0) cwG.dir = cwG.dir ? 0 : 1;
-  cwG.sel = { r, c };
+function cwSelect(x, y, dir) {
+  const o = cwAt.get(x + "," + y);
+  if (!o) return;
+  cwSel = { x, y };
+  if (dir && o[dir]) cwDir = dir; else if (!o[cwDir]) cwDir = o.A ? "A" : "D";
   cwPaint();
+  const e = cwEls[y * cw.w + x];
+  if (e && document.activeElement !== e.inp) { e.inp.focus({ preventScroll: true }); e.inp.select(); }
 }
-function cwFlip() {
-  if (!cwG || !cwG.sel) return;
-  const cell = cwG.cell[cwG.sel.r][cwG.sel.c], other = cwG.dir ? 0 : 1;
-  if (cell.w[other] >= 0) { cwG.dir = other; cwPaint(); }
-}
-
-// --- Saisie ---
-function cwSave() {
-  if (!cwG) return;
-  try {
-    localStorage.setItem(CW_KEY, JSON.stringify({
-      theme: cwG.theme, level: cwG.level, rows: cwG.rows, cols: cwG.cols,
-      words: cwG.words.map((w) => [w.r, w.c, w.dir, w.ans, w.clue]), ent: cwG.ent.map((row) => row.map((x) => x || ".").join("")),
-    }));
-  } catch { /* stockage indisponible */ }
+function cwStep(delta) {
+  const o = cwSel && cwAt.get(cwSel.x + "," + cwSel.y), wd = o && o[cwDir];
+  if (!wd) return;
+  const nx = cwSel.x + (cwDir === "A" ? delta : 0), ny = cwSel.y + (cwDir === "D" ? delta : 0), n = cwAt.get(nx + "," + ny);
+  if (n && n[cwDir] === wd) cwSelect(nx, ny, cwDir);
 }
 function cwAfter() {
-  const g = cwG;
-  cwMsg.textContent = "";
+  puzSave(CW_KEY, { w: cw.w, h: cw.h, words: cw.words, fill: cw.fill, theme: cw.theme, size: cw.size });
   cwPaint();
-  let done = true;
-  for (let r = 0; r < g.rows; r++) for (let c = 0; c < g.cols; c++) if (g.cell[r][c].ch && g.ent[r][c] !== g.cell[r][c].ch) done = false;
-  if (done && !g.solved) { g.solved = true; cwMsg.textContent = "Bravo ! Tu as trouvé tous les mots 🎉"; }
-  cwSave();
+  if (cwSol.every((s, i) => !s || cw.fill[i] === s)) cwMsg.textContent = "Bravo, la grille est terminée ! 🎉";
 }
-function cwStep(d) {
-  const wi = cwCurrent();
-  if (wi < 0) return;
-  const w = cwG.words[wi], k = (cwG.sel.r - w.r) * (w.dir ? 1 : 0) + (cwG.sel.c - w.c) * (w.dir ? 0 : 1), nk = k + d;
-  if (nk < 0 || nk >= w.ans.length) return;
-  cwG.sel = { r: w.r + (w.dir ? nk : 0), c: w.c + (w.dir ? 0 : nk) };
-}
-function cwType(ch) {
-  if (!cwG || cwG.solved || !cwG.sel) return;
-  cwG.ent[cwG.sel.r][cwG.sel.c] = ch;
-  cwG.bad.clear();
-  cwStep(1);
-  cwAfter();
-}
-function cwBack() {
-  if (!cwG || cwG.solved || !cwG.sel) return;
-  if (cwG.ent[cwG.sel.r][cwG.sel.c]) cwG.ent[cwG.sel.r][cwG.sel.c] = "";
-  else { cwStep(-1); cwG.ent[cwG.sel.r][cwG.sel.c] = ""; }
-  cwG.bad.clear();
-  cwAfter();
-}
-function cwMove(dr, dc) {
-  const g = cwG;
-  if (!g || !g.sel) return;
-  let r = g.sel.r + dr, c = g.sel.c + dc;
-  while (r >= 0 && c >= 0 && r < g.rows && c < g.cols) {
-    if (g.cell[r][c].ch) {
-      g.dir = dr ? 1 : 0;
-      if (g.cell[r][c].w[g.dir] < 0) g.dir = g.dir ? 0 : 1;
-      g.sel = { r, c };
-      cwPaint();
-      return;
-    }
-    r += dr; c += dc;
-  }
-}
-function cwCheck() {
-  const g = cwG;
-  if (!g || g.solved) return;
-  g.bad.clear();
-  let wrong = 0;
-  for (let r = 0; r < g.rows; r++) for (let c = 0; c < g.cols; c++) if (g.ent[r][c] && g.ent[r][c] !== g.cell[r][c].ch) { g.bad.add(r * g.cols + c); wrong++; }
+function cwOpen() { // affiche la grille de `cw`, sans ouvrir le clavier du téléphone
+  cwPrepare();
+  cwWrong = new Set();
+  cwBuild();
+  const first = cw.words.slice().sort((a, b) => a.n - b.n)[0];
+  cwSel = { x: first.x, y: first.y };
+  cwDir = first.d;
   cwPaint();
-  cwMsg.textContent = wrong ? `${wrong} lettre${wrong > 1 ? "s" : ""} incorrecte${wrong > 1 ? "s" : ""} (en rouge).` : "Aucune erreur pour l'instant.";
 }
-function cwReveal(whole) {
-  const g = cwG;
-  if (!g || g.solved || !g.sel) return;
-  if (whole) {
-    const wi = cwCurrent();
-    if (wi < 0) return;
-    const w = g.words[wi];
-    for (let k = 0; k < w.ans.length; k++) g.ent[w.r + (w.dir ? k : 0)][w.c + (w.dir ? 0 : k)] = w.ans[k];
-  } else g.ent[g.sel.r][g.sel.c] = g.cell[g.sel.r][g.sel.c].ch;
-  g.bad.clear();
-  cwAfter();
-}
-function cwClear() {
-  const g = cwG;
-  if (!g || g.solved || !g.ent.some((row) => row.some(Boolean)) || !confirm("Effacer toutes tes lettres ?")) return;
-  g.ent.forEach((row) => row.fill(""));
-  g.bad.clear();
-  cwAfter();
-}
-
-// --- Nouvelle grille et reprise ---
-function cwStarted() { return !!cwG && !cwG.solved && cwG.ent.some((row) => row.some(Boolean)); }
 function cwNewGame() {
-  if (cwBusy) return;
-  cwBusy = true;
   cwMsg.textContent = "Création de la grille…";
+  cwNew.disabled = true;
   setTimeout(() => {
-    const theme = cwTheme.value, level = cwLevel.value;
-    const lay = cwLayout(cwBuild(theme, level));
-    if (cwSetup(lay.rows, lay.cols, lay.words, theme, level, null)) { cwDraw(); cwMsg.textContent = `${lay.words.length} mots à trouver.`; cwSave(); }
-    else cwMsg.textContent = "Impossible de créer la grille. Réessaie.";
-    cwBusy = false;
+    const theme = cwTheme.value, size = cwSize.value;
+    const pool = theme === "mix" ? Object.values(CW_BANK).flat() : CW_BANK[theme] || [];
+    let layout = null;
+    for (let tries = 0; tries < 4 && (!layout || layout.words.length < 5); tries++) layout = cwLayout(puzShuffle(pool).slice(0, CW_SIZES[size] || 12));
+    cwNew.disabled = false;
+    if (!layout) { cwMsg.textContent = "Impossible de créer une grille. Réessaie."; return; }
+    const f = cwFinish(layout);
+    cw = { w: f.w, h: f.h, words: f.words, fill: new Array(f.w * f.h).fill(""), theme, size };
+    cwOpen();
+    puzSave(CW_KEY, cw);
+    cwMsg.textContent = `${cw.words.length} mots à trouver.`;
   }, 30);
 }
-function cwLoad() {
-  try {
-    const d = JSON.parse(localStorage.getItem(CW_KEY) || "null");
-    if (!d || !Array.isArray(d.words) || d.words.length < 2 || d.words.length > 30 || !CW_COUNT[d.level] || !CW_THEMES.includes(d.theme)) return false;
-    const rows = Number(d.rows), cols = Number(d.cols);
-    if (!(rows >= 1 && rows <= CW_N && cols >= 1 && cols <= CW_N)) return false;
-    const words = [];
-    for (const w of d.words) {
-      if (!Array.isArray(w) || w.length < 5) return false;
-      const [r, c, dir, ans, clue] = w;
-      if (!Number.isInteger(r) || !Number.isInteger(c) || (dir !== 0 && dir !== 1) || typeof ans !== "string" || !/^[A-Z]{2,12}$/.test(ans) || typeof clue !== "string") return false;
-      if (r < 0 || c < 0 || r + (dir ? ans.length - 1 : 0) >= rows || c + (dir ? 0 : ans.length - 1) >= cols) return false;
-      words.push({ r, c, dir, ans, clue: clue.slice(0, 120) });
-    }
-    if (!cwSetup(rows, cols, words, d.theme, d.level, Array.isArray(d.ent) ? d.ent.map(String) : null)) return false;
-    cwTheme.value = d.theme; cwLevel.value = d.level;
-    cwDraw();
-    return true;
-  } catch { return false; }
+function cwValid(s) {
+  return !!s && Number.isInteger(s.w) && Number.isInteger(s.h) && s.w > 0 && s.h > 0 && s.w <= 17 && s.h <= 17 && Array.isArray(s.words) && s.words.length >= 2 &&
+    s.words.every((wd) => wd && typeof wd.t === "string" && /^[A-Z]{2,12}$/.test(wd.t) && typeof wd.c === "string" && (wd.d === "A" || wd.d === "D") &&
+      Number.isInteger(wd.x) && Number.isInteger(wd.y) && Number.isInteger(wd.n) && wd.x >= 0 && wd.y >= 0 &&
+      wd.x + (wd.d === "A" ? wd.t.length : 1) <= s.w && wd.y + (wd.d === "D" ? wd.t.length : 1) <= s.h) &&
+    Array.isArray(s.fill) && s.fill.length === s.w * s.h && s.fill.every((v) => typeof v === "string" && /^[A-Z]?$/.test(v));
 }
-function cwEnsure() { if (!cwG && !cwBusy && !cwLoad()) cwNewGame(); }
 
-// --- Boutons et clavier ---
-CW_ROWS.forEach((row, idx) => {
-  const line = document.createElement("div");
-  line.className = "cw-krow";
-  row.split("").forEach((ch) => {
-    const b = document.createElement("button");
-    b.type = "button"; b.className = "cw-key"; b.textContent = ch;
-    b.addEventListener("click", () => cwType(ch));
-    line.appendChild(b);
-  });
-  if (idx === 2) {
-    const flip = document.createElement("button");
-    flip.type = "button"; flip.className = "cw-key wide"; flip.textContent = "↔"; flip.setAttribute("aria-label", "Changer de sens");
-    flip.addEventListener("click", cwFlip);
-    const back = document.createElement("button");
-    back.type = "button"; back.className = "cw-key wide"; back.textContent = "⌫"; back.setAttribute("aria-label", "Effacer");
-    back.addEventListener("click", cwBack);
-    line.append(flip, back);
-  }
-  cwKeys.appendChild(line);
+// Saisie, clavier et clics
+cwGrid.addEventListener("pointerdown", (e) => {
+  const t = e.target.closest("input.cw-in");
+  cwWas = !!(t && cwSel && +t.dataset.x === cwSel.x && +t.dataset.y === cwSel.y);
 });
-$("cwNew").addEventListener("click", () => { if (!cwStarted() || confirm("Abandonner la grille en cours ?")) cwNewGame(); });
-[cwTheme, cwLevel].forEach((el) => el.addEventListener("change", () => {
-  if (!cwStarted() || confirm("Abandonner la grille en cours ?")) cwNewGame();
-  else if (cwG) { cwTheme.value = cwG.theme; cwLevel.value = cwG.level; }
-}));
-$("cwCheck").addEventListener("click", cwCheck);
-$("cwLetter").addEventListener("click", () => cwReveal(false));
-$("cwWord").addEventListener("click", () => cwReveal(true));
-$("cwClear").addEventListener("click", cwClear);
-
-document.addEventListener("keydown", (e) => {
-  if (!cwG || !cwPanel.classList.contains("active") || e.ctrlKey || e.metaKey || e.altKey) return;
-  if (e.target.closest && e.target.closest("input, textarea, select")) return;
+cwGrid.addEventListener("focusin", (e) => {
+  const t = e.target;
+  if (t.classList && t.classList.contains("cw-in") && !(cwSel && +t.dataset.x === cwSel.x && +t.dataset.y === cwSel.y)) cwSelect(+t.dataset.x, +t.dataset.y);
+});
+cwGrid.addEventListener("click", (e) => {
+  const t = e.target.closest("input.cw-in");
+  if (!t) return;
+  const x = +t.dataset.x, y = +t.dataset.y;
+  if (cwWas) { const o = cwAt.get(x + "," + y), other = cwDir === "A" ? "D" : "A"; if (o && o[other]) cwDir = other; cwPaint(); } else cwSelect(x, y);
+  cwWas = false;
+  t.select();
+});
+cwGrid.addEventListener("input", (e) => {
+  const t = e.target;
+  if (!t.classList || !t.classList.contains("cw-in")) return;
+  const i = +t.dataset.y * cw.w + +t.dataset.x;
+  const ch = t.value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().replace(/[^A-Z]/g, "").slice(-1);
+  cw.fill[i] = ch;
+  t.value = ch;
+  cwWrong.delete(i);
+  cwMsg.textContent = "";
+  if (ch) cwStep(1);
+  cwAfter();
+});
+cwGrid.addEventListener("keydown", (e) => {
+  const t = e.target;
+  if (!t.classList || !t.classList.contains("cw-in") || !cwSel) return;
   const k = e.key;
-  if (k === "Backspace" || k === "Delete") { e.preventDefault(); cwBack(); }
-  else if (k === "ArrowLeft") { e.preventDefault(); cwMove(0, -1); }
-  else if (k === "ArrowRight") { e.preventDefault(); cwMove(0, 1); }
-  else if (k === "ArrowUp") { e.preventDefault(); cwMove(-1, 0); }
-  else if (k === "ArrowDown") { e.preventDefault(); cwMove(1, 0); }
-  else if (k.length === 1) {
-    const ch = k.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
-    if (/^[A-Z]$/.test(ch)) { e.preventDefault(); cwType(ch); }
+  if (k === "Backspace" && !t.value) {
+    e.preventDefault();
+    cwStep(-1);
+    cw.fill[cwSel.y * cw.w + cwSel.x] = "";
+    cwAfter();
+    return;
+  }
+  if (k === "Delete") { e.preventDefault(); cw.fill[cwSel.y * cw.w + cwSel.x] = ""; cwAfter(); return; }
+  if (k === " " || k === "Enter") {
+    e.preventDefault();
+    const o = cwAt.get(cwSel.x + "," + cwSel.y), other = cwDir === "A" ? "D" : "A";
+    if (o && o[other]) cwDir = other;
+    cwPaint();
+    return;
+  }
+  const mv = { ArrowLeft: [-1, 0, "A"], ArrowRight: [1, 0, "A"], ArrowUp: [0, -1, "D"], ArrowDown: [0, 1, "D"] }[k];
+  if (mv) {
+    e.preventDefault();
+    let x = cwSel.x + mv[0], y = cwSel.y + mv[1];
+    while (x >= 0 && y >= 0 && x < cw.w && y < cw.h && !cwSol[y * cw.w + x]) { x += mv[0]; y += mv[1]; }
+    if (x >= 0 && y >= 0 && x < cw.w && y < cw.h) cwSelect(x, y, mv[2]);
   }
 });
-
-new MutationObserver(() => { if (cwPanel.classList.contains("active")) cwEnsure(); }).observe(cwPanel, { attributes: true, attributeFilter: ["class"] });
-if (cwPanel.classList.contains("active")) cwEnsure();
-
+$("cwCheck").addEventListener("click", () => {
+  if (!cw) return;
+  cwWrong = new Set();
+  cwSol.forEach((s, i) => { if (s && cw.fill[i] && cw.fill[i] !== s) cwWrong.add(i); });
+  const n = cwWrong.size;
+  cwMsg.textContent = n ? `${n} lettre${n > 1 ? "s" : ""} à corriger (en rouge).` : "Aucune erreur pour l'instant, continue !";
+  cwPaint();
+});
+$("cwLetter").addEventListener("click", () => {
+  if (!cw || !cwSel) return;
+  const i = cwSel.y * cw.w + cwSel.x;
+  cw.fill[i] = cwSol[i];
+  cwWrong.delete(i);
+  cwAfter();
+});
+$("cwWord").addEventListener("click", () => {
+  const o = cw && cwSel && cwAt.get(cwSel.x + "," + cwSel.y), wd = o && o[cwDir];
+  if (!wd) return;
+  for (let i = 0; i < wd.t.length; i++) { cw.fill[cwIdx(wd, i)] = wd.t[i]; cwWrong.delete(cwIdx(wd, i)); }
+  cwAfter();
+});
+$("cwReveal").addEventListener("click", () => {
+  if (!cw || !confirm("Afficher toute la solution ?")) return;
+  cw.fill = cwSol.slice();
+  cwWrong = new Set();
+  cwAfter();
+});
+$("cwClear").addEventListener("click", () => {
+  if (!cw || !confirm("Effacer toutes tes lettres ?")) return;
+  cw.fill = new Array(cw.w * cw.h).fill("");
+  cwWrong = new Set();
+  cwMsg.textContent = "";
+  cwAfter();
+});
+cwNew.addEventListener("click", cwNewGame);
+window.addEventListener("resize", cwSizeCells);
+puzOnOpen("crossword", () => {
+  if (cw) return cwSizeCells();
+  const s = puzLoad(CW_KEY);
+  if (cwValid(s)) {
+    cw = { w: s.w, h: s.h, words: s.words.map((wd) => ({ t: wd.t, c: wd.c.slice(0, 120), x: wd.x, y: wd.y, d: wd.d, n: wd.n })), fill: s.fill.slice(), theme: s.theme, size: s.size };
+    if ([...cwTheme.options].some((o) => o.value === s.theme)) cwTheme.value = s.theme;
+    if ([...cwSize.options].some((o) => o.value === s.size)) cwSize.value = s.size;
+    cwOpen();
+  } else cwNewGame();
+});
 
