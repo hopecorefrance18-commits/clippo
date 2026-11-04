@@ -1970,3 +1970,74 @@ input[type="range"]::-moz-range-track { height: 8px; border-radius: 999px; backg
   .panel.active:not(#home) { animation: none; }
   .primary, .ghost-btn, .chip, .copy-btn, .drop, .text-in, .fancy-in, select { transition: none; }
 }
+
+/* --- Accueil : « Tous les outils » au style des outils populaires --- */
+.home-cat { --glow: 31, 123, 255; }
+.home-cat .tool-cat {
+  display: block; margin: 26px 0 18px; text-align: center; color: #fff;
+  font: 800 clamp(1.15rem, 3.6vw, 1.4rem) "Bricolage Grotesque", sans-serif; letter-spacing: -.01em;
+}
+.home-cat .tool-cat::after {
+  content: ""; display: block; width: 52px; height: 4px; margin: 10px auto 0; border-radius: 4px;
+  background: linear-gradient(90deg, rgb(var(--glow)), rgba(var(--glow), .35));
+  box-shadow: 0 0 14px rgba(var(--glow), .7);
+}
+
+.home-tools .tool-card {
+  position: relative; overflow: hidden; isolation: isolate; min-height: 172px; padding: 18px;
+  display: grid; grid-template-rows: auto auto 1fr; align-content: normal; justify-items: stretch; gap: 8px; text-align: left;
+  border-radius: 20px; border: 1px solid rgba(var(--glow), .4);
+  background:
+    radial-gradient(120% 90% at 0% 0%, rgba(var(--glow), .3), transparent 62%),
+    linear-gradient(180deg, rgba(14, 26, 54, .82), rgba(8, 15, 34, .94));
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .26);
+  transition: transform .2s, border-color .2s, box-shadow .2s;
+}
+/* Grand émoji en filigrane */
+.home-tools .tool-card::after {
+  content: attr(data-emoji); content: attr(data-emoji) / "";
+  position: absolute; right: -8px; top: -12px; z-index: -1; font-size: 5.6rem; line-height: 1;
+  opacity: .09; transform: rotate(14deg); pointer-events: none;
+}
+.home-tools .tc-ico {
+  width: 52px; height: 52px; margin: 0; justify-self: start; border-radius: 16px; font-size: 1.7rem;
+  background: linear-gradient(135deg, rgb(var(--glow)), rgba(var(--glow), .55));
+  box-shadow: 0 8px 22px rgba(var(--glow), .4), inset 0 1px 0 rgba(255, 255, 255, .35);
+}
+.home-tools .tool-card strong { font: 800 1.08rem "Bricolage Grotesque", sans-serif; line-height: 1.2; align-self: start; margin: 0; }
+.home-tools .tool-card span {
+  color: #b9c6e6; font-size: .9rem; line-height: 1.4; padding-right: 38px;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
+.home-tools .tc-go {
+  z-index: 1; right: 14px; bottom: 14px; border-color: rgba(var(--glow), .9); color: #fff; background: rgba(var(--glow), .25);
+}
+.home-tools .tool-card:active { transform: scale(.985); }
+@media (hover: hover) {
+  .home-tools .tool-card:hover {
+    transform: translateY(-5px); border-color: rgba(var(--glow), .95); box-shadow: 0 18px 40px rgba(var(--glow), .28);
+  }
+  .home-tools .tool-card:hover .tc-go { background: rgb(var(--glow)); }
+}
+
+/* Apparition des cartes pendant le défilement */
+.hc-pre { opacity: 0; }
+.hc-in { animation: hcIn .5s cubic-bezier(.2, .8, .2, 1) backwards; animation-delay: var(--d, 0s); }
+@keyframes hcIn { from { opacity: 0; transform: translateY(16px); } }
+@media (prefers-reduced-motion: reduce) { .hc-pre { opacity: 1; } .hc-in { animation: none; } }
+
+/* Téléphone */
+@media (max-width: 700px) {
+  .home-tools .tool-card { min-height: 150px; padding: 14px; gap: 6px; border-radius: 18px; }
+  .home-tools .tc-ico { width: 44px; height: 44px; border-radius: 13px; font-size: 1.45rem; }
+  .home-tools .tool-card strong { font-size: .98rem; }
+  .home-tools .tool-card span { font-size: .8rem; padding-right: 0; }
+  .home-tools .tool-card::after { font-size: 4.2rem; right: -6px; top: -8px; }
+  .home-tools .tc-go { display: none; }
+  .home-cat .tool-cat { margin: 20px 0 14px; }
+}
+
+/* Arabe : écriture de droite à gauche */
+[dir="rtl"] .home-tools .tool-card { text-align: right; }
+[dir="rtl"] .home-tools .tool-card span { padding-right: 0; padding-left: 38px; }
+[dir="rtl"] .home-tools .tool-card::after { right: auto; left: -8px; }
