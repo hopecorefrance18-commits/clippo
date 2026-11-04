@@ -7098,3 +7098,36 @@ puzOnOpen("crossword", () => {
   } else cwNewGame();
 });
 
+// ---------- Accueil : couleurs et apparition des cartes ----------
+(() => {
+  const HC_RAINBOW = false; // true : chaque carte a sa propre couleur, au lieu d'une couleur par catégorie
+  const HC_COLORS = ["31, 123, 255", "139, 92, 246", "236, 72, 153", "6, 182, 212", "34, 197, 94", "249, 115, 22"];
+  const HC_BY = { educatif: 0, medias: 1, createurs: 2, pratique: 3, argent: 4, jeux: 5 };
+  const hcNorm = (s) => String(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z]/g, "");
+
+  document.querySelectorAll("#home .home-cat").forEach((cat, ci) => {
+    const head = cat.querySelector(".tool-cat");
+    const k = hcNorm(head ? head.textContent : "");
+    const idx = k in HC_BY ? HC_BY[k] : ci % HC_COLORS.length;
+    cat.style.setProperty("--glow", HC_COLORS[idx]);
+    cat.querySelectorAll(".tool-card").forEach((card, i) => {
+      const ico = card.querySelector(".tc-ico");
+      if (ico) card.dataset.emoji = ico.textContent.trim();
+      if (HC_RAINBOW) card.style.setProperty("--glow", HC_COLORS[(idx + i) % HC_COLORS.length]);
+      card.style.setProperty("--d", (i % 4) * 70 + "ms");
+    });
+  });
+
+  const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (reduce || !("IntersectionObserver" in window)) return;
+  const io = new IntersectionObserver((list) => {
+    list.forEach((e) => {
+      if (!e.isIntersecting) return;
+      e.target.classList.remove("hc-pre");
+      e.target.classList.add("hc-in");
+      io.unobserve(e.target);
+    });
+  }, { rootMargin: "0px 0px -40px 0px", threshold: 0.05 });
+  document.querySelectorAll("#home .home-cat .tool-card").forEach((c) => { c.classList.add("hc-pre"); io.observe(c); });
+})();
+
