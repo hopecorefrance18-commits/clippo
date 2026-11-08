@@ -2363,3 +2363,25 @@ button.pod-tool:focus-visible { outline: 3px solid var(--sun); outline-offset: 3
   .sb-bar i { grid-column: 1 / -1; order: 3; }
   .sb-list li { flex-direction: column; align-items: stretch; text-align: center; }
 }
+/* ---------- Mobile : cartes d'outils en liste (téléphone uniquement) ---------- */
+@media (max-width: 700px) {
+  .home-tools .tool-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
+  .home-tools .tool-card {
+    flex: none; width: 100%; min-height: 0; padding: 12px 14px; border-radius: 16px; gap: 0 14px;
+    grid-template-columns: 48px minmax(0, 1fr) 28px; grid-template-rows: auto auto; align-items: center;
+  }
+  .home-tools .tool-card::after { display: none; }
+  .home-tools .tc-ico { grid-column: 1; grid-row: 1 / span 2; width: 48px; height: 48px; border-radius: 14px; font-size: 1.5rem; justify-self: center; }
+  .home-tools .tool-card strong { grid-column: 2; grid-row: 1; font-size: 1rem; align-self: end; }
+  .home-tools .tool-card span {
+    grid-column: 2; grid-row: 2; font-size: .83rem; line-height: 1.35; padding-right: 0; align-self: start;
+    -webkit-line-clamp: 2;
+  }
+  .home-tools .tc-go {
+    display: grid; position: static; grid-column: 3; grid-row: 1 / span 2; width: 28px; height: 28px; font-size: .9rem;
+    justify-self: end; align-self: center;
+  }
+  .home-tools .tool-card:active { transform: scale(.98); }
+  .home-cat .tool-cat { text-align: left; margin: 26px 0 12px; }
+  .home-cat .tool-cat::after { margin: 8px 0 0; }
+}
