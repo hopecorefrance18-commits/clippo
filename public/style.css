@@ -2572,3 +2572,56 @@ button.pod-tool:focus-visible { outline: 3px solid var(--sun); outline-offset: 3
   .hm-badge::before, .hm-btns .primary::after { animation: none; }
   .hm-btns .primary::after { display: none; }
 }
+/* ---------- Encadré Discord (tous appareils) ---------- */
+.hm-discord {
+  position: relative; overflow: hidden; isolation: isolate; max-width: 1040px; margin: 46px auto 0; padding: 22px 26px;
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: 18px 24px;
+  border-radius: 24px; border: 1px solid rgba(110, 125, 255, .5);
+  background:
+    radial-gradient(70% 160% at 0% 0%, rgba(88, 101, 242, .38), transparent 62%),
+    radial-gradient(50% 120% at 100% 100%, rgba(41, 182, 255, .16), transparent 65%),
+    linear-gradient(135deg, rgba(14, 22, 58, .9), rgba(8, 14, 34, .94));
+  box-shadow: 0 16px 44px rgba(0, 0, 0, .35), 0 0 46px rgba(88, 101, 242, .2), inset 0 1px 0 rgba(255, 255, 255, .1);
+  backdrop-filter: blur(14px);
+}
+.hm-discord::after {
+  content: "💬"; position: absolute; z-index: -1; left: 38px; bottom: -34px; font-size: 8rem; line-height: 1;
+  opacity: .06; transform: rotate(10deg); pointer-events: none;
+}
+.hm-dico {
+  width: 64px; height: 64px; border-radius: 20px; font-size: 1.9rem;
+  background: linear-gradient(135deg, #6d7bff, #4752e0);
+  box-shadow: 0 10px 26px rgba(88, 101, 242, .55), inset 0 1px 0 rgba(255, 255, 255, .35);
+}
+.hm-dtext { gap: 6px; min-width: 0; text-align: left; }
+.hm-dtext strong { font-size: clamp(1.2rem, 2.4vw, 1.45rem); letter-spacing: -.01em; }
+.hm-dtext span { color: #b4c2e4; font-size: .98rem; line-height: 1.5; }
+.hm-dfeat { gap: 10px; flex-wrap: nowrap; }
+.hm-dfeat span {
+  display: grid; align-content: center; gap: 2px; min-width: 92px; padding: 10px 12px; border-radius: 14px;
+  background: rgba(255, 255, 255, .06); border: 1px solid rgba(255, 255, 255, .12); color: #c9d6f2; font-size: .78rem; line-height: 1.25;
+}
+.hm-discord a.primary {
+  padding: 14px 28px; font-size: 1.02rem; border-radius: 999px; white-space: nowrap;
+  box-shadow: 0 5px 0 #0840a0, 0 12px 28px rgba(31, 123, 255, .45);
+  transition: transform .15s, box-shadow .15s, filter .15s;
+}
+.hm-discord a.primary:hover { transform: translateY(-2px); filter: brightness(1.1); }
+.hm-discord a.primary:active { transform: translateY(3px); box-shadow: 0 2px 0 #0840a0; }
+
+@media (max-width: 1000px) {
+  .hm-discord { grid-template-columns: auto minmax(0, 1fr); }
+  .hm-dfeat { grid-column: 1 / -1; grid-row: 3; justify-content: stretch; }
+  .hm-dfeat span { flex: 1 1 0; }
+  .hm-discord a.primary { grid-column: 1 / -1; grid-row: 2; justify-self: stretch; text-align: center; }
+}
+@media (max-width: 700px) {
+  .hm-discord { margin-top: 34px; padding: 20px 16px; grid-template-columns: 1fr; justify-items: center; text-align: center; }
+  .hm-discord::after { left: auto; right: -10px; }
+  .hm-dtext { text-align: center; }
+  .hm-dfeat, .hm-discord a.primary { grid-column: 1; }
+  .hm-dfeat { grid-row: auto; width: 100%; gap: 8px; }
+  .hm-dfeat span { min-width: 0; padding: 9px 6px; font-size: .74rem; }
+  .hm-discord a.primary { grid-row: auto; width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) { .hm-discord a.primary { transition: none; } }
