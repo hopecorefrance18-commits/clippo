@@ -2518,3 +2518,57 @@ button.pod-tool:focus-visible { outline: 3px solid var(--sun); outline-offset: 3
   #updates .upd-item li { grid-template-columns: 1fr; gap: 6px; text-align: left; }
   #updates .tag { width: auto; justify-self: start; padding: 3px 12px; }
 }
+/* ---------- Accueil : en-tête, 2e passe (look plus abouti) ---------- */
+.hm-hero { position: relative; }
+/* Fine grille de points qui s'estompe */
+.hm-hero::before {
+  content: ""; position: absolute; z-index: -1; inset: -30px -4vw -10px; pointer-events: none;
+  background-image: radial-gradient(rgba(150, 205, 255, .26) 1px, transparent 1.6px); background-size: 26px 26px;
+  -webkit-mask-image: radial-gradient(ellipse 75% 80% at 35% 45%, #000 15%, transparent 72%);
+  mask-image: radial-gradient(ellipse 75% 80% at 35% 45%, #000 15%, transparent 72%);
+}
+/* Badge avec voyant « en ligne » */
+.hm-badge::before {
+  content: ""; width: 8px; height: 8px; border-radius: 50%; background: #4ade80; flex: none;
+  box-shadow: 0 0 0 0 rgba(74, 222, 128, .6); animation: hmPulse 2s ease-out infinite;
+}
+@keyframes hmPulse { 70%, 100% { box-shadow: 0 0 0 9px rgba(74, 222, 128, 0); } }
+/* Titre : plus de caractère */
+.hm-hero h1 { font-size: clamp(2.3rem, 4.9vw, 4rem); letter-spacing: -.035em; }
+/* Bouton principal : reflet qui passe de temps en temps */
+.hm-btns .primary { position: relative; overflow: hidden; isolation: isolate; }
+.hm-btns .primary::after {
+  content: ""; position: absolute; top: 0; bottom: 0; left: -60%; width: 40%; z-index: -1; pointer-events: none;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, .45), transparent); transform: skewX(-20deg);
+  animation: hmGlint 4.5s 1.2s ease-in-out infinite;
+}
+@keyframes hmGlint { 0% { left: -60%; } 28%, 100% { left: 140%; } }
+/* Petits arguments sous les boutons */
+.hm-btns::after {
+  content: "✓ Gratuit  ·  ✓ Sans compte  ·  ✓ Tout reste sur ton appareil"; flex-basis: 100%; margin-top: 6px;
+  color: #9fb6df; font-size: .86rem; letter-spacing: .01em; line-height: 1.6; white-space: pre-wrap;
+}
+/* Carte de droite : halo et reflet */
+.hm-visual::before {
+  content: ""; position: absolute; z-index: -1; inset: 6% 2% 4%; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(closest-side, rgba(41, 182, 255, .28), rgba(31, 123, 255, .12) 55%, transparent 75%); filter: blur(26px);
+}
+.hm-card::before {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  background: linear-gradient(125deg, rgba(255, 255, 255, .1), transparent 38%);
+}
+.hm-card { border-color: rgba(130, 195, 255, .45); }
+.hc-chip { background: rgba(255, 255, 255, .07); border-color: rgba(255, 255, 255, .2); }
+.hc-chip:hover { background: rgba(41, 182, 255, .18); }
+
+@media (max-width: 800px) {
+  .hm-hero::before { inset: -20px -14px -10px; -webkit-mask-image: radial-gradient(ellipse 90% 60% at 50% 25%, #000 10%, transparent 75%); mask-image: radial-gradient(ellipse 90% 60% at 50% 25%, #000 10%, transparent 75%); }
+  .hm-badge { margin-left: auto; margin-right: auto; }
+  .hm-hero h1 { font-size: clamp(2.1rem, 9.6vw, 3rem); }
+  .hm-btns::after { text-align: center; font-size: .82rem; margin-top: 2px; }
+}
+@media (max-width: 420px) { .hm-btns::after { font-size: .78rem; } }
+@media (prefers-reduced-motion: reduce) {
+  .hm-badge::before, .hm-btns .primary::after { animation: none; }
+  .hm-btns .primary::after { display: none; }
+}
