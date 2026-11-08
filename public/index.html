@@ -91,6 +91,7 @@
           <button class="tab" data-tab="savings">Épargne</button>
           <button class="tab" data-tab="currency">Devises</button>
                     <button class="tab" data-tab="discount">Réductions</button>
+                  <button class="tab" data-tab="subs">Abonnements</button>
         </div>
                       <div class="subgroup" data-cat="games" hidden>
         <button class="tab" data-tab="tictactoe">Morpion</button>
@@ -262,6 +263,7 @@
             <button class="tool-card" data-go="savings"><i class="tc-ico">🐷</i><strong>Objectif d'épargne</strong><span>Combien mettre de côté chaque mois.</span><em class="tc-go">→</em></button>
             <button class="tool-card" data-go="currency"><i class="tc-ico">💱</i><strong>Convertisseur de devises</strong><span>Combien ça fait en euros ? Dollar, livre, yen…</span><em class="tc-go">→</em></button>
                      <button class="tool-card" data-go="discount"><i class="tc-ico">🛍️</i><strong>Calculateur de réductions</strong><span>Prix soldé, pourcentage de remise, prix d'origine.</span><em class="tc-go">→</em></button>
+        <button class="tool-card" data-go="subs"><i class="tc-ico">🔁</i><strong>Suivi des abonnements</strong><span>Vois combien tes abonnements te coûtent chaque mois.</span><em class="tc-go">→</em></button>
           </div>
         </div>
 
@@ -2387,6 +2389,66 @@ Hugo</textarea>
         </div>
         <p id="taStatus" class="status" role="status"></p>
         <p class="gr-note">Ton texte reste sur ton appareil : rien n'est envoyé. La vidéo dure quelques secondes et se répète en boucle ; elle est enregistrée en MP4 ou en WEBM selon ton navigateur (Chrome, Edge, Firefox et Safari récents). Si ton réseau refuse le WEBM, convertis-la ou utilise l'image PNG. Le fond transparent n'existe que pour l'image PNG.</p>
+      </div>
+    </section>
+              <!-- Suivi des abonnements -->
+    <section id="subs" class="panel">
+      <h1>Tes abonnements, sous contrôle.</h1>
+      <p class="sub">Note tes abonnements payants (streaming, musique, téléphone, salle de sport…) et vois tout de suite combien ils te coûtent par mois et par an. Tout reste sur ton appareil.</p>
+
+      <div class="card">
+        <form id="subForm" class="sb-form" autocomplete="off">
+          <label class="select">
+            <span>Nom</span>
+            <input id="subName" class="text-in" type="text" maxlength="40" placeholder="Netflix, Spotify…" required>
+          </label>
+          <label class="select">
+            <span>Prix (€)</span>
+            <input id="subPrice" class="text-in" type="number" min="0" step="0.01" inputmode="decimal" placeholder="9,99" required>
+          </label>
+          <label class="select">
+            <span>Paiement</span>
+            <select id="subCycle">
+              <option value="month" selected>Chaque mois</option>
+              <option value="year">Chaque année</option>
+              <option value="week">Chaque semaine</option>
+              <option value="quarter">Chaque trimestre</option>
+            </select>
+          </label>
+          <label class="select">
+            <span>Catégorie</span>
+            <select id="subCat">
+              <option value="Vidéo">🎬 Vidéo</option>
+              <option value="Musique">🎵 Musique</option>
+              <option value="Jeux">🎮 Jeux</option>
+              <option value="Téléphone">📱 Téléphone / Internet</option>
+              <option value="Sport">🏋️ Sport</option>
+              <option value="Logiciels">💻 Logiciels / Cloud</option>
+              <option value="Autre" selected>📦 Autre</option>
+            </select>
+          </label>
+          <label class="select">
+            <span>Prochain paiement (facultatif)</span>
+            <input id="subNext" class="text-in" type="date">
+          </label>
+          <button class="primary" type="submit">Ajouter</button>
+        </form>
+        <p id="subStatus" class="status" role="status"></p>
+
+        <div class="sb-total">
+          <div><small>Par mois</small><strong id="subMonth">0,00 €</strong></div>
+          <div><small>Par an</small><strong id="subYear">0,00 €</strong></div>
+          <div><small>Abonnements</small><strong id="subCount">0</strong></div>
+        </div>
+
+        <div id="subBreak" class="sb-break"></div>
+        <ul id="subList" class="sb-list"></ul>
+        <p id="subEmpty" class="gr-note">Aucun abonnement pour l'instant. Ajoute le premier ci-dessus.</p>
+
+        <div class="row sb-actions">
+          <button id="subClear" class="ghost-btn" type="button">Tout effacer</button>
+        </div>
+        <p class="gr-note">Tes abonnements restent sur ton appareil (dans ce navigateur) et ne sont envoyés nulle part. Si tu vides les données du site, ils disparaissent. Le coût mensuel d'un paiement annuel est le prix divisé par 12 ; celui d'un paiement hebdomadaire est calculé sur 52 semaines par an.</p>
       </div>
     </section>
         </main>
