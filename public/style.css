@@ -2337,3 +2337,29 @@ button.pod-tool:focus-visible { outline: 3px solid var(--sun); outline-offset: 3
 @media (max-width: 700px) {
   .ta-actions button { width: 100%; }
 }
+/* ---------- Suivi des abonnements ---------- */
+#subs .card { min-width: 0; }
+.sb-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; align-items: end; }
+#subs .text-in, #subs select { min-width: 0; width: 100%; }
+.sb-total { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin: 22px 0 16px; }
+.sb-total div { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1); border-radius: 16px; padding: 14px; text-align: center; }
+.sb-total small { display: block; color: var(--muted); margin-bottom: 4px; }
+.sb-total strong { font: 800 1.5rem "Bricolage Grotesque", sans-serif; color: var(--aqua); }
+.sb-break { display: grid; gap: 8px; margin-bottom: 18px; }
+.sb-bar { display: grid; grid-template-columns: minmax(110px, 160px) 1fr auto; gap: 10px; align-items: center; font-size: .92rem; }
+.sb-bar i { display: block; height: 10px; border-radius: 99px; background: rgba(255,255,255,.1); overflow: hidden; }
+.sb-bar b { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--pink), var(--sun)); }
+.sb-bar em { font-style: normal; color: var(--muted); white-space: nowrap; }
+.sb-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+.sb-list li { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 14px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.08); }
+.sb-list li.soon { border-color: var(--sun); }
+.sb-list li div { min-width: 0; display: grid; gap: 2px; }
+.sb-list li strong { overflow-wrap: anywhere; }
+.sb-list li small { color: var(--muted); }
+.sb-actions { justify-content: center; margin-top: 16px; }
+#subs .status { text-align: center; }
+@media (max-width: 700px) {
+  .sb-bar { grid-template-columns: 1fr auto; }
+  .sb-bar i { grid-column: 1 / -1; order: 3; }
+  .sb-list li { flex-direction: column; align-items: stretch; text-align: center; }
+}
