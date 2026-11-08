@@ -2490,6 +2490,8 @@ buRender();
 const homeSearch = $("homeSearch"), homeEmpty = $("homeEmpty");
 const HS_STOP = new Set("le la les un une des du de au aux en et ou a pour sur mon ma mes ton ta tes comment faire fait je veux voudrais besoin outil outils avec sans cherche trouver".split(" "));
 const HS_KW = {
+    textanim: "texte anime animation animer effet neon glitch machine ecrire video tiktok instagram reseaux sociaux story titre sous-titre",
+    subs: "abonnement abonnements netflix spotify disney prime youtube premium forfait mensuel depenses recurrentes facture resilier argent",
    sudoku: "sudoku grille chiffres jeu logique casse tete numeros",
   crossword: "mots croises mot croise grille definitions jeu lettres cruciverbiste",
   grades: "moyenne note notes calcul coefficient bulletin controle ecole college lycee bac scolaire",
@@ -7352,4 +7354,124 @@ puzOnOpen("crossword", () => {
 
   resize(); loadFont();
   requestAnimationFrame(loop);
+})();
+// ---------- Suivi des abonnements ----------
+(() => {
+  const form = $("subForm");
+  if (!form) return;
+  const KEY = "clippo_subs";
+  const PER_MONTH = { month: 1, year: 1 / 12, week: 52 / 12, quarter: 1 / 3 };
+  const CYCLE_LABEL = { month: "/ mois", year: "/ an", week: "/ semaine", quarter: "/ trimestre" };
+  const ICON = { Vidéo: "🎬", Musique: "🎵", Jeux: "🎮", Téléphone: "📱", Sport: "🏋️", Logiciels: "💻", Autre: "📦" };
+  let subs = [];
+
+  try {
+    const data = JSON.parse(localStorage.getItem(KEY) || "[]");
+    if (Array.isArray(data)) {
+      subs = data.filter((s) => s && typeof s.name === "string" && Number.isFinite(s.price) && PER_MONTH[s.cycle])
+                 .map((s) => ({ id: String(s.id), name: s.name.slice(0, 40), price: s.price, cycle: s.cycle, cat: ICON[s.cat] ? s.cat : "Autre", next: /^\d{4}-\d{2}-\d{2}$/.test(s.next || "") ? s.next : "" }));
+    }
+  } catch { /* stockage indisponible ou données illisibles */ }
+
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(subs)); } catch { /* stockage indisponible */ } };
+  const eur = (n) => new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(Math.round(n * 100) / 100);
+  const monthly = (s) => s.price * PER_MONTH[s.cycle];
+  function subMessage(msg, isError = false) {
+    $("subStatus").textContent = msg;
+    $("subStatus").classList.toggle("error", isError);
+  }
+  const dateFr = (iso) => {
+    const [y, m, d] = iso.split("-").map(Number);
+    return new Date(y, m - 1, d).toLocaleDateString("fr-FR", { day: "numeric", month: "long" });
+  };
+  const daysLeft = (iso) => {
+    const [y, m, d] = iso.split("-").map(Number);
+    const t = new Date(); t.setHours(0, 0, 0, 0);
+    return Math.round((new Date(y, m - 1, d) - t) / 86400000);
+  };
+
+  function render() {
+    const total = subs.reduce((a, s) => a + monthly(s), 0);
+    $("subMonth").textContent = eur(total);
+    $("subYear").textContent = eur(total * 12);
+    $("subCount").textContent = String(subs.length);
+    $("subEmpty").hidden = subs.length > 0;
+    $("subClear").hidden = subs.length === 0;
+
+    // Répartition par catégorie
+    const byCat = {};
+    subs.forEach((s) => { byCat[s.cat] = (byCat[s.cat] || 0) + monthly(s); });
+    const brk = $("subBreak");
+    brk.textContent = "";
+    Object.entries(byCat).sort((a, b) => b[1] - a[1]).forEach(([cat, v]) => {
+      const row = document.createElement("div");
+      row.className = "sb-bar";
+      const label = document.createElement("span");
+      label.textContent = `${ICON[cat]} ${cat}`;
+      const track = document.createElement("i");
+      const fill = document.createElement("b");
+      fill.style.width = (total ? Math.max(4, (v / total) * 100) : 0) + "%";
+      track.appendChild(fill);
+      const val = document.createElement("em");
+      val.textContent = eur(v) + " / mois";
+      row.append(label, track, val);
+      brk.appendChild(row);
+    });
+
+    // Liste triée du plus cher au moins cher
+    const list = $("subList");
+    list.textContent = "";
+    [...subs].sort((a, b) => monthly(b) - monthly(a)).forEach((s) => {
+      const li = document.createElement("li");
+      const info = document.createElement("div");
+      const name = document.createElement("strong");
+      name.textContent = `${ICON[s.cat]} ${s.name}`;
+      const meta = document.createElement("small");
+      let txt = `${eur(s.price)} ${CYCLE_LABEL[s.cycle]}`;
+      if (s.cycle !== "month") txt += ` · soit ${eur(monthly(s))} / mois`;
+      if (s.next) {
+        const d = daysLeft(s.next);
+        txt += d < 0 ? ` · date passée (${dateFr(s.next)})`
+          : d === 0 ? " · prélèvement aujourd'hui"
+          : d <= 7 ? ` · dans ${d} jour${d > 1 ? "s" : ""}`
+          : ` · le ${dateFr(s.next)}`;
+        if (d >= 0 && d <= 7) li.classList.add("soon");
+      }
+      meta.textContent = txt;
+      info.append(name, meta);
+      const del = document.createElement("button");
+      del.type = "button"; del.className = "ghost-btn"; del.textContent = "Supprimer";
+      del.setAttribute("aria-label", "Supprimer " + s.name);
+      del.addEventListener("click", () => {
+        subs = subs.filter((x) => x.id !== s.id);
+        save(); render(); subMessage(`« ${s.name} » supprimé.`);
+      });
+      li.append(info, del);
+      list.appendChild(li);
+    });
+  }
+
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const name = $("subName").value.trim();
+    const price = parseFloat(String($("subPrice").value).replace(",", "."));
+    if (!name) { subMessage("Donne un nom à l'abonnement.", true); return; }
+    if (!Number.isFinite(price) || price < 0) { subMessage("Entre un prix valide.", true); return; }
+    if (subs.length >= 100) { subMessage("Tu as atteint la limite de 100 abonnements.", true); return; }
+    subs.push({
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      name: name.slice(0, 40), price, cycle: $("subCycle").value, cat: $("subCat").value, next: $("subNext").value || ""
+    });
+    save(); render();
+    subMessage(`« ${name} » ajouté.`);
+    $("subName").value = ""; $("subPrice").value = ""; $("subNext").value = "";
+    $("subName").focus();
+  });
+
+  $("subClear").addEventListener("click", () => {
+    if (!subs.length || !confirm("Effacer tous tes abonnements ?")) return;
+    subs = []; save(); render(); subMessage("Liste effacée.");
+  });
+
+  render();
 })();
