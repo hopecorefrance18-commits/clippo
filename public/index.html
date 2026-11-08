@@ -2291,6 +2291,104 @@ Hugo</textarea>
         <p class="gr-note">Ta partie est enregistrée dans ton navigateur et n'est envoyée nulle part. Les mots s'écrivent sans accent. Les grilles sont créées sur ton appareil à partir d'une banque de mots, donc leur forme change à chaque fois.</p>
       </div>
     </section>
+              <!-- Générateur de texte animé -->
+    <section id="textanim" class="panel">
+      <h1>Un texte qui bouge.</h1>
+      <p class="sub">Écris ton texte, choisis une animation, des couleurs et un fond : Clippo crée un texte animé pour tes vidéos et tes réseaux sociaux. Tout se fait sur ton appareil.</p>
+
+      <div class="card">
+        <label class="select">
+          <span>Ton texte</span>
+          <textarea id="taText" class="fancy-in ta-in" rows="2" maxlength="120" placeholder="Écris ton texte ici…" aria-label="Texte à animer">Clippo</textarea>
+        </label>
+
+        <div class="ta-stage" id="taStage"><canvas id="taCanvas" width="720" height="720" aria-label="Aperçu du texte animé"></canvas></div>
+
+        <div class="row ta-play">
+          <button id="taPlay" class="ghost-btn" type="button">⏸ Pause</button>
+          <button id="taRestart" class="ghost-btn" type="button">↺ Rejouer</button>
+        </div>
+
+        <div class="ta-opts">
+          <label class="select">
+            <span>Animation</span>
+            <select id="taAnim">
+              <option value="wave" selected>Vague</option>
+              <option value="bounce">Rebond</option>
+              <option value="typewriter">Machine à écrire</option>
+              <option value="fade">Apparition douce</option>
+              <option value="neon">Néon qui pulse</option>
+              <option value="rainbow">Arc-en-ciel</option>
+              <option value="shake">Tremblement</option>
+              <option value="glitch">Glitch</option>
+              <option value="zoom">Pulsation</option>
+              <option value="flip">Retournement</option>
+            </select>
+          </label>
+          <label class="select">
+            <span>Police</span>
+            <select id="taFont">
+              <option value="titre" selected>Titre</option>
+              <option value="sans">Moderne</option>
+              <option value="impact">Impact</option>
+              <option value="serif">Classique (serif)</option>
+              <option value="mono">Machine à écrire</option>
+              <option value="cursive">Manuscrite</option>
+            </select>
+          </label>
+          <label class="select">
+            <span>Format</span>
+            <select id="taFormat">
+              <option value="square" selected>Carré (1:1)</option>
+              <option value="vertical">Vertical (9:16, TikTok)</option>
+              <option value="wide">Horizontal (16:9, YouTube)</option>
+            </select>
+          </label>
+          <label class="select">
+            <span>Couleur du texte</span>
+            <input id="taColor1" class="color-in" type="color" value="#ffffff">
+          </label>
+          <label class="select">
+            <span>Deuxième couleur (dégradé)</span>
+            <input id="taColor2" class="color-in" type="color" value="#29b6ff">
+          </label>
+          <label class="select">
+            <span>Fond</span>
+            <select id="taBg">
+              <option value="dark" selected>Bleu nuit</option>
+              <option value="black">Noir</option>
+              <option value="white">Blanc</option>
+              <option value="grad">Dégradé violet</option>
+              <option value="custom">Couleur au choix</option>
+              <option value="transparent">Transparent (PNG)</option>
+            </select>
+          </label>
+          <label id="taBgBox" class="select" hidden>
+            <span>Couleur du fond</span>
+            <input id="taBgColor" class="color-in" type="color" value="#1f7bff">
+          </label>
+          <label class="select">
+            <span>Taille : <strong id="taSizeVal">16</strong> %</span>
+            <input id="taSize" type="range" min="5" max="30" value="16">
+          </label>
+          <label class="select">
+            <span>Vitesse : <strong id="taSpeedVal">1</strong> ×</span>
+            <input id="taSpeed" type="range" min="0.5" max="2" step="0.1" value="1">
+          </label>
+        </div>
+        <div class="row ta-checks">
+          <label class="check"><input id="taOutline" type="checkbox" checked> Contour pour mieux voir</label>
+          <label class="check"><input id="taShadow" type="checkbox" checked> Ombre</label>
+        </div>
+
+        <div class="row ta-actions">
+          <button id="taVideo" class="primary">Télécharger la vidéo</button>
+          <button id="taPng" class="ghost-btn" type="button">Télécharger une image (PNG)</button>
+        </div>
+        <p id="taStatus" class="status" role="status"></p>
+        <p class="gr-note">Ton texte reste sur ton appareil : rien n'est envoyé. La vidéo dure quelques secondes et se répète en boucle ; elle est enregistrée en MP4 ou en WEBM selon ton navigateur (Chrome, Edge, Firefox et Safari récents). Si ton réseau refuse le WEBM, convertis-la ou utilise l'image PNG. Le fond transparent n'existe que pour l'image PNG.</p>
+      </div>
+    </section>
         </main>
 
     <footer class="foot">
