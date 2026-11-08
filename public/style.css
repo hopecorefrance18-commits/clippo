@@ -2320,3 +2320,20 @@ button.pod-tool:focus-visible { outline: 3px solid var(--sun); outline-offset: 3
   .hm-card, .hc-search, .hc-chip, .hs-box, .hs-item, .pod-tool, .pod-block, .pod-chip { animation: none; transition: none; }
   .pod-col.r1 .pod-tool::before { animation: none; transform: translateX(-50%) rotate(-8deg); }
 }
+/* ---------- Générateur de texte animé ---------- */
+#textanim .card { min-width: 0; }
+.ta-in { width: 100%; min-width: 0; resize: vertical; }
+.ta-stage {
+  display: flex; justify-content: center; align-items: center;
+  margin: 16px 0 10px; padding: 10px; border-radius: 16px; overflow: hidden;
+  background: conic-gradient(#3a3366 25%, #2a2450 0 50%, #3a3366 0 75%, #2a2450 0) 0 0 / 20px 20px;
+}
+.ta-stage canvas { max-width: 100%; max-height: 70vh; width: auto; height: auto; border-radius: 8px; }
+.ta-opts { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; margin: 14px 0; }
+.ta-play, .ta-actions, .ta-checks { justify-content: center; flex-wrap: wrap; gap: 10px; }
+#textanim .text-in, #textanim select { min-width: 0; }
+#textanim .status { text-align: center; }
+#textanim input[type=range] { width: 100%; accent-color: var(--pink); }
+@media (max-width: 700px) {
+  .ta-actions button { width: 100%; }
+}
