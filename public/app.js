@@ -7130,4 +7130,226 @@ puzOnOpen("crossword", () => {
   }, { rootMargin: "0px 0px -40px 0px", threshold: 0.05 });
   document.querySelectorAll("#home .home-cat .tool-card").forEach((c) => { c.classList.add("hc-pre"); io.observe(c); });
 })();
+// ---------- Générateur de texte animé ----------
+(() => {
+  const panel = $("textanim");
+  if (!panel) return;
+  const cv = $("taCanvas"), ctx = cv.getContext("2d");
+  const FONTS = {
+    titre: '"Bricolage Grotesque", sans-serif', sans: '"DM Sans", sans-serif',
+    impact: 'Impact, "Arial Black", sans-serif', serif: 'Georgia, "Times New Roman", serif',
+    mono: '"Courier New", monospace', cursive: '"Brush Script MT", "Segoe Script", cursive'
+  };
+  const SIZES = { square: [720, 720], vertical: [720, 1280], wide: [1280, 720] };
+  let u = 0, last = 0, paused = false, recording = false, forVideo = false, cache = null;
 
+  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+  const rnd = (s) => { const x = Math.sin(s * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
+  const rgb = (h) => [1, 3, 5].map((k) => parseInt(h.slice(k, k + 2), 16));
+  const mix = (a, b, t) => { const A = rgb(a), B = rgb(b); return "rgb(" + A.map((v, k) => Math.round(v + (B[k] - v) * t)).join(",") + ")"; };
+  function taMessage(msg, isError = false) {
+    $("taStatus").textContent = msg;
+    $("taStatus").classList.toggle("error", isError);
+  }
+
+  // Découpe le texte en lignes et calcule la position de chaque lettre
+  function layout(text, fontKey, W, H, sizePct) {
+    const key = [text, fontKey, W, H, sizePct].join("|");
+    if (cache && cache.key === key) return cache;
+    let fs = Math.min(W, H) * sizePct / 100, out;
+    for (let pass = 0; pass < 2; pass++) {
+      ctx.font = `bold ${fs}px ${FONTS[fontKey]}`;
+      const maxW = W * 0.88, lines = [];
+      text.split("\n").forEach((para) => {
+        let cur = "";
+        para.split(" ").forEach((word) => {
+          const test = cur ? cur + " " + word : word;
+          if (cur && ctx.measureText(test).width > maxW) { lines.push(cur); cur = word; } else cur = test;
+        });
+        lines.push(cur);
+      });
+      const lh = fs * 1.2, top = H / 2 - (lines.length * lh) / 2 + lh / 2;
+      let idx = 0, widest = 0;
+      const L = lines.map((ln, li) => {
+        const w = ctx.measureText(ln).width; widest = Math.max(widest, w);
+        const x0 = W / 2 - w / 2;
+        const chars = [...ln].map((c, k) => {
+          const pre = ctx.measureText(ln.slice(0, k)).width, cw = ctx.measureText(c).width;
+          return { c, x: x0 + pre + cw / 2, w: cw, i: idx++ };
+        });
+        return { y: top + li * lh, chars, x0, w };
+      });
+      out = { key, fs, lines: L, n: idx, lh };
+      if (widest > W * 0.94) fs *= (W * 0.94) / widest; else break;
+    }
+    cache = out;
+    return out;
+  }
+
+  function background(W, H) {
+    const bg = $("taBg").value;
+    ctx.clearRect(0, 0, W, H);
+    if (bg === "transparent" && !forVideo) return;
+    let fill = "#13183f";
+    if (bg === "black") fill = "#000000";
+    else if (bg === "white") fill = "#ffffff";
+    else if (bg === "custom") fill = $("taBgColor").value;
+    else if (bg === "grad") { const g = ctx.createLinearGradient(0, 0, W, H); g.addColorStop(0, "#7b2ff7"); g.addColorStop(1, "#f107a3"); fill = g; }
+    ctx.fillStyle = fill;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  // Dessine une lettre avec ses transformations
+  function glyph(c, x, y, fs, o) {
+    ctx.save();
+    ctx.translate(x + (o.dx || 0), y + (o.dy || 0));
+    if (o.rot) ctx.rotate(o.rot);
+    ctx.scale(o.sx == null ? 1 : o.sx, o.sy == null ? 1 : o.sy);
+    ctx.globalAlpha = o.alpha == null ? 1 : o.alpha;
+    ctx.font = `bold ${fs}px ${FONTS[$("taFont").value]}`;
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.lineJoin = "round";
+    if (o.glow) { ctx.shadowColor = o.glow; ctx.shadowBlur = o.blur; }
+    else if ($("taShadow").checked) { ctx.shadowColor = "rgba(0,0,0,.45)"; ctx.shadowBlur = fs * 0.1; ctx.shadowOffsetY = fs * 0.04; }
+    if ($("taOutline").checked && !o.noOutline) {
+      ctx.lineWidth = fs * 0.08; ctx.strokeStyle = "rgba(0,0,0,.65)";
+      ctx.strokeText(c, 0, 0);
+      if (!o.glow) { ctx.shadowColor = "transparent"; }
+    }
+    ctx.fillStyle = o.color;
+    ctx.fillText(c, 0, 0);
+    if (o.glow) ctx.fillText(c, 0, 0);
+    ctx.restore();
+  }
+
+  function frame() {
+    const W = cv.width, H = cv.height;
+    const anim = $("taAnim").value, c1 = $("taColor1").value, c2 = $("taColor2").value;
+    const lay = layout($("taText").value || " ", $("taFont").value, W, H, +$("taSize").value);
+    const { fs, n } = lay, cyc = u - Math.floor(u);
+    background(W, H);
+
+    // Machine à écrire : nombre de lettres visibles
+    const typed = anim === "typewriter" ? (cyc < 0.8 ? Math.floor((n + 1) * cyc / 0.8) : n) : n;
+
+    lay.lines.forEach((ln) => ln.chars.forEach((ch) => {
+      const i = ch.i, t = n > 1 ? i / (n - 1) : 0;
+      const o = { color: mix(c1, c2, t) };
+      switch (anim) {
+        case "wave": o.dy = Math.sin(2 * Math.PI * (cyc - i * 0.08)) * fs * 0.18; break;
+        case "bounce": { const p = (((cyc * 2 - i * 0.08) % 1) + 1) % 1; o.dy = -Math.abs(Math.sin(Math.PI * p)) * fs * 0.3; break; }
+        case "typewriter": if (i >= typed) return; break;
+        case "fade": {
+          const a = clamp((cyc - (i / n) * 0.5) / 0.15, 0, 1);
+          o.alpha = Math.min(a, clamp((1 - cyc) / 0.1, 0, 1)); o.dy = (1 - a) * fs * 0.3; break;
+        }
+        case "neon":
+          o.glow = c2; o.blur = fs * (0.3 + 0.2 * Math.sin(4 * Math.PI * cyc));
+          o.alpha = rnd(Math.floor(u * 10) + i) > 0.93 ? 0.7 : 1; o.color = c1; break;
+        case "rainbow":
+          o.color = `hsl(${(i * 25 + cyc * 360) % 360},90%,60%)`;
+          o.dy = Math.sin(2 * Math.PI * (cyc - i * 0.05)) * fs * 0.06; break;
+        case "shake": {
+          const s = Math.floor(u * 48) * 31 + i;
+          o.dx = (rnd(s) - 0.5) * fs * 0.07; o.dy = (rnd(s + 7) - 0.5) * fs * 0.07; o.rot = (rnd(s + 13) - 0.5) * 0.12; break;
+        }
+        case "glitch": {
+          const step = Math.floor(u * 24), on = rnd(step) > 0.6;
+          if (on) {
+            const d = fs * 0.05 * (rnd(step + i) + 0.5), jy = rnd(step * 3 + i) > 0.8 ? (rnd(step + i * 5) - 0.5) * fs * 0.2 : 0;
+            glyph(ch.c, ch.x, ch.y0 = ln.y, fs, { color: "#ff2a6d", dx: -d, dy: jy, alpha: 0.85, noOutline: true });
+            glyph(ch.c, ch.x, ln.y, fs, { color: "#05d9e8", dx: d, dy: -jy, alpha: 0.85, noOutline: true });
+            o.dy = jy * 0.5;
+          }
+          break;
+        }
+        case "zoom": { const s = 1 + 0.18 * Math.sin(2 * Math.PI * (cyc - i * 0.03)); o.sx = s; o.sy = s; break; }
+        case "flip": o.sy = Math.cos(2 * Math.PI * (cyc - i * 0.06)); if (Math.abs(o.sy) < 0.04) o.sy = 0.04; break;
+      }
+      glyph(ch.c, ch.x, ln.y, fs, o);
+    }));
+
+    // Curseur de la machine à écrire
+    if (anim === "typewriter" && (typed < n || Math.floor(u * 8) % 2 === 0)) {
+      let cx = null, cy = null;
+      lay.lines.forEach((ln) => ln.chars.forEach((ch) => {
+        if (ch.i === typed) { cx = ch.x - ch.w / 2; cy = ln.y; }
+        if (typed >= n && ch.i === n - 1) { cx = ch.x + ch.w / 2; cy = ln.y; }
+      }));
+      if (cx != null) { ctx.fillStyle = c1; ctx.fillRect(cx + fs * 0.03, cy - fs * 0.4, Math.max(3, fs * 0.06), fs * 0.8); }
+    }
+  }
+
+  function loop(now) {
+    const dt = Math.min(0.1, (now - (last || now)) / 1000);
+    last = now;
+    if (panel.classList.contains("active")) {
+      if (!paused) u += dt * parseFloat($("taSpeed").value) / 2;
+      frame();
+    }
+    requestAnimationFrame(loop);
+  }
+
+  function resize() {
+    const [w, h] = SIZES[$("taFormat").value];
+    cv.width = w; cv.height = h; cache = null;
+  }
+  function loadFont() { try { document.fonts.load(`bold 40px ${FONTS[$("taFont").value]}`); } catch (e) {} }
+  function download(blob, name) {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  }
+
+  $("taSize").addEventListener("input", () => { $("taSizeVal").textContent = $("taSize").value; });
+  $("taSpeed").addEventListener("input", () => { $("taSpeedVal").textContent = $("taSpeed").value; });
+  $("taFormat").addEventListener("change", resize);
+  $("taFont").addEventListener("change", loadFont);
+  $("taBg").addEventListener("change", () => { $("taBgBox").hidden = $("taBg").value !== "custom"; });
+  $("taPlay").addEventListener("click", () => {
+    paused = !paused; $("taPlay").textContent = paused ? "▶ Lecture" : "⏸ Pause";
+  });
+  $("taRestart").addEventListener("click", () => { u = 0; });
+
+  $("taPng").addEventListener("click", () => {
+    frame();
+    cv.toBlob((b) => {
+      if (!b) { taMessage("Impossible de créer l'image.", true); return; }
+      download(b, "texte-anime.png");
+      taMessage("Image enregistrée (le moment affiché à l'écran). Mets en pause pour choisir l'image.");
+    }, "image/png");
+  });
+
+  $("taVideo").addEventListener("click", () => {
+    if (recording) return;
+    if (!window.MediaRecorder || !cv.captureStream) {
+      taMessage("Ton navigateur ne sait pas enregistrer de vidéo. Utilise l'image PNG ou un navigateur récent.", true); return;
+    }
+    const mime = ["video/mp4;codecs=avc1", "video/mp4", "video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm"]
+      .find((t) => MediaRecorder.isTypeSupported(t));
+    if (!mime) { taMessage("Aucun format vidéo disponible sur ce navigateur.", true); return; }
+    const speed = parseFloat($("taSpeed").value);
+    const dur = Math.max(1, Math.ceil(3 * speed / 2)) * 2 / speed; // nombre entier de cycles : la boucle est parfaite
+    const wasPaused = paused;
+    paused = false; recording = true; forVideo = true; u = 0;
+    $("taVideo").disabled = true;
+    taMessage(`Enregistrement en cours (${dur.toFixed(1)} s)… garde cet onglet ouvert.`);
+    const chunks = [];
+    let rec;
+    try { rec = new MediaRecorder(cv.captureStream(30), { mimeType: mime, videoBitsPerSecond: 6000000 }); }
+    catch (e) { recording = forVideo = false; $("taVideo").disabled = false; taMessage("L'enregistrement a échoué.", true); return; }
+    rec.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
+    rec.onstop = () => {
+      recording = forVideo = false; paused = wasPaused; $("taVideo").disabled = false;
+      const ext = mime.indexOf("mp4") >= 0 ? "mp4" : "webm";
+      download(new Blob(chunks, { type: mime.split(";")[0] }), "texte-anime." + ext);
+      taMessage(`Vidéo .${ext} téléchargée.`);
+    };
+    rec.start();
+    setTimeout(() => rec.stop(), dur * 1000 + 150);
+  });
+
+  resize(); loadFont();
+  requestAnimationFrame(loop);
+})();
