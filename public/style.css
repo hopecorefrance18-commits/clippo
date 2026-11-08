@@ -2625,3 +2625,21 @@ button.pod-tool:focus-visible { outline: 3px solid var(--sun); outline-offset: 3
   .hm-discord a.primary { grid-row: auto; width: 100%; }
 }
 @media (prefers-reduced-motion: reduce) { .hm-discord a.primary { transition: none; } }
+/* ---------- Mobile : plus aucun encadré ne dépasse ni ne s'étire ---------- */
+@media (max-width: 700px) {
+  /* Les lignes passent en colonne : la taille de base des enfants ne doit plus compter en hauteur */
+  .row > * { flex-basis: auto; min-width: 0; max-width: 100%; }
+  .row > .select, .row > .grow, .row > .text-in { width: 100%; }
+
+  /* Boutons de Sudoku et de Mots croisés : une vraie ligne, 2 par rangée */
+  .sdk-tools, .cw-tools { flex-direction: row; flex-wrap: wrap; align-items: stretch; justify-content: center; gap: 8px; }
+  .sdk-tools .ghost-btn, .cw-tools .ghost-btn { flex: 1 1 calc(50% - 8px); min-width: 0; }
+
+  /* Filets de sécurité */
+  .panel:not(#home) .card { min-width: 0; max-width: 100%; }
+  .panel:not(#home) img, .panel:not(#home) canvas, .panel:not(#home) video, .panel:not(#home) svg { max-width: 100%; }
+  .panel:not(#home) .card :is(h1, h2, h3, p, label, span, strong, small, li) { overflow-wrap: anywhere; }
+  .panel:not(#home) .card textarea, .panel:not(#home) .card input:not([type=checkbox]):not([type=radio]), .panel:not(#home) .card select { max-width: 100%; box-sizing: border-box; }
+  .panel:not(#home) .card table { display: block; max-width: 100%; overflow-x: auto; }
+  .panel:not(#home) .card pre { max-width: 100%; overflow-x: auto; }
+}
