@@ -2643,3 +2643,9 @@ button.pod-tool:focus-visible { outline: 3px solid var(--sun); outline-offset: 3
   .panel:not(#home) .card table { display: block; max-width: 100%; overflow-x: auto; }
   .panel:not(#home) .card pre { max-width: 100%; overflow-x: auto; }
 }
+/* ---------- Sauvegarde par code ---------- */
+.cfg-sync { display: grid; gap: 10px; }
+.cfg-sync textarea { width: 100%; min-width: 0; box-sizing: border-box; resize: vertical; font: 500 .78rem/1.4 ui-monospace, Menlo, Consolas, monospace; word-break: break-all; }
+.cfg-sync-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.cfg-sync .ghost-btn { width: 100%; padding: 11px 12px; }
+.cfg-sync .cfg-note.error { color: #ff8aa0; }
