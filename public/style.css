@@ -2649,3 +2649,5 @@ button.pod-tool:focus-visible { outline: 3px solid var(--sun); outline-offset: 3
 .cfg-sync-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .cfg-sync .ghost-btn { width: 100%; padding: 11px 12px; }
 .cfg-sync .cfg-note.error { color: #ff8aa0; }
+/* Bouton « Sauvegarder » du podium : à gauche, pour ne pas chevaucher « Remettre à zéro » */
+.pod-head #podSave { left: 0; right: auto; }
