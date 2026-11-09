@@ -7475,3 +7475,108 @@ puzOnOpen("crossword", () => {
 
   render();
 })();
+// ---------- Sauvegarde par code (podium + progression, sans compte) ----------
+(() => {
+  const exportBtn = $("syncExport"), ta = $("syncCode"), panel = $("syncPanel"), overlay = $("syncOverlay");
+  if (!exportBtn || !ta || !panel || !overlay) return;
+  const PREFIX = "clippo_";
+  const SKIP = new Set(["clippo_fx", "clippo_version", "clippo_updates_seen"]); // cache de taux, version vue, journal lu
+  const status = $("syncStatus");
+  const say = (t, isError = false) => { status.textContent = t; status.classList.toggle("error", isError); };
+
+  // Fenêtre
+  let opener = null;
+  const open = (from) => { opener = from || null; panel.hidden = false; overlay.hidden = false; $("syncClose").focus(); };
+  const close = () => { panel.hidden = true; overlay.hidden = true; if (opener && opener.focus) opener.focus(); };
+  ["syncLink", "podSave"].forEach((id) => { const el = $(id); if (el) el.addEventListener("click", (e) => { e.preventDefault(); open(el); }); });
+  $("syncClose").addEventListener("click", close);
+  overlay.addEventListener("click", close);
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !panel.hidden) close(); });
+
+  const toB64 = (bytes) => {
+    let s = "";
+    for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+    return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  };
+  const fromB64 = (str) => {
+    const s = str.replace(/-/g, "+").replace(/_/g, "/");
+    const bin = atob(s + "=".repeat((4 - (s.length % 4)) % 4));
+    const out = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out;
+  };
+  const hash = (str) => { let h = 0x811c9dc5; for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 0x01000193); } return (h >>> 0).toString(36); };
+  const pipe = async (bytes, Stream) =>
+    new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(new Stream("deflate-raw"))).arrayBuffer());
+
+  const collect = () => {
+    const d = {};
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith(PREFIX) && !SKIP.has(k)) { const v = localStorage.getItem(k); if (v !== null) d[k] = v; }
+      }
+    } catch { /* stockage indisponible */ }
+    return d;
+  };
+
+  async function decode(raw) {
+    const m = /^CLIPPO([01])\.([A-Za-z0-9_-]+)\.([0-9a-z]+)$/.exec(raw.replace(/\s+/g, ""));
+    if (!m) throw new Error("format");
+    if (hash(m[2]) !== m[3]) throw new Error("copie"); // code coupé ou modifié
+    let bytes = fromB64(m[2]);
+    if (m[1] === "1") {
+      if (!("DecompressionStream" in window)) throw new Error("navigateur");
+      bytes = await pipe(bytes, DecompressionStream);
+    }
+    const obj = JSON.parse(new TextDecoder().decode(bytes));
+    if (!obj || obj.v !== 1 || typeof obj.d !== "object" || obj.d === null) throw new Error("format");
+    const out = {};
+    for (const [k, v] of Object.entries(obj.d)) {
+      if (!k.startsWith(PREFIX) || SKIP.has(k) || typeof v !== "string" || v.length > 1500000) continue;
+      if (!/^[A-Za-z-]{2,12}$/.test(v)) { try { JSON.parse(v); } catch { continue; } } // une donnée doit être du JSON (ou un code de langue)
+      out[k] = v;
+    }
+    return out;
+  }
+
+  exportBtn.addEventListener("click", async () => {
+    const d = collect(), n = Object.keys(d).length;
+    if (!n) { say("Rien à sauvegarder pour l'instant : utilise d'abord quelques outils.", true); return; }
+    const bytes = new TextEncoder().encode(JSON.stringify({ v: 1, d }));
+    let tag = "1", body;
+    try {
+      if (!("CompressionStream" in window)) throw new Error("no");
+      body = toB64(await pipe(bytes, CompressionStream));
+    } catch { tag = "0"; body = toB64(bytes); }
+    ta.value = `CLIPPO${tag}.${body}.${hash(body)}`;
+    ta.focus(); ta.select();
+    say(`Code créé (${n} données, ${ta.value.length} caractères). Copie-le avec le bouton « Copier », puis colle-le sur ton autre appareil.`);
+  });
+
+  $("syncCopy").addEventListener("click", async () => {
+    if (!ta.value.trim()) { say("Crée d'abord ton code.", true); return; }
+    try { await navigator.clipboard.writeText(ta.value); say("Code copié ✓"); }
+    catch { ta.focus(); ta.select(); say(document.execCommand && document.execCommand("copy") ? "Code copié ✓" : "Sélectionne le code et copie-le (Ctrl+C).", false); }
+  });
+
+  $("syncImport").addEventListener("click", async () => {
+    if (!ta.value.trim()) { say("Colle d'abord un code dans la zone.", true); return; }
+    let d;
+    try { d = await decode(ta.value); }
+    catch (e) {
+      say(e.message === "copie" ? "Ce code est incomplet ou a été modifié. Copie-le de nouveau en entier."
+        : e.message === "navigateur" ? "Ce navigateur est trop ancien pour lire ce code. Mets-le à jour."
+        : "Ce code n'est pas valide.", true);
+      return;
+    }
+    const n = Object.keys(d).length;
+    if (!n) { say("Ce code ne contient aucune donnée utilisable.", true); return; }
+    if (!confirm(`Restaurer ${n} données ? Elles remplaceront celles de cet appareil pour les mêmes outils.`)) return;
+    const write = () => { try { for (const [k, v] of Object.entries(d)) localStorage.setItem(k, v); return true; } catch { return false; } };
+    if (!write()) { say("Impossible d'écrire : le stockage du navigateur est plein ou bloqué.", true); return; }
+    window.addEventListener("pagehide", write); // au cas où un outil réécrirait ses anciennes données en quittant la page
+    say("Progression restaurée ✓ La page se recharge…");
+    setTimeout(() => location.reload(), 700);
+  });
+})();
