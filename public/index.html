@@ -2479,7 +2479,25 @@ Hugo</textarea>
         <p id="cfgStatus" class="cfg-note" role="status"></p>
     <p class="cfg-note">Pour traduire aussi le contenu des outils, utilise la traduction de ton navigateur (clic droit, puis « Traduire »).</p>
   </section>
-  
+
+          <div id="syncOverlay" class="cfg-overlay" hidden></div>
+  <section id="syncPanel" class="cfg-panel" role="dialog" aria-modal="true" aria-labelledby="syncTitle" hidden>
+    <div class="cfg-head">
+      <h2 id="syncTitle">💾 Sauvegarde</h2>
+      <button id="syncClose" class="cfg-close" type="button" aria-label="Fermer">×</button>
+    </div>
+    <p class="cfg-note">Garde ton podium et ta progression sur un autre appareil, sans compte : crée ton code, copie-le, puis colle-le ici sur l'autre appareil et appuie sur « Restaurer ».</p>
+    <div class="cfg-sync">
+      <button id="syncExport" class="ghost-btn" type="button">🔑 Créer mon code</button>
+      <textarea id="syncCode" class="text-in" rows="4" spellcheck="false" autocomplete="off" autocapitalize="off" placeholder="Ton code apparaît ici. Pour restaurer, colle un code ici." aria-label="Code de sauvegarde"></textarea>
+      <div class="cfg-sync-row">
+        <button id="syncCopy" class="ghost-btn" type="button">📋 Copier</button>
+        <button id="syncImport" class="ghost-btn" type="button">📥 Restaurer</button>
+      </div>
+      <p id="syncStatus" class="cfg-note" role="status"></p>
+    </div>
+    <p class="cfg-note">Le code contient tes données (notes, tâches, podium…) : garde-le pour toi. Rien n'est envoyé sur un serveur.</p>
+  </section>
   <button id="toTop" class="to-top" type="button" aria-label="Remonter en haut de la page" hidden>↑</button>
 
            
