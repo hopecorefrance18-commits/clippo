@@ -2651,5 +2651,10 @@ button.pod-tool:focus-visible { outline: 3px solid var(--sun); outline-offset: 3
 .cfg-sync .cfg-note.error { color: #ff8aa0; }
 /* Bouton « Sauvegarder » du podium : à gauche, pour ne pas chevaucher « Remettre à zéro » */
 .pod-head #podSave { left: 0; right: auto; }
-/* Pied de page : 5 liens sur une seule ligne, espacement régulier */
-.foot p:has(> a[href="guides.html"]) { gap: 6px 10px; }
+/* Pied de page : bouton « Sauvegarder ma progression », centré sous les liens */
+.foot .foot-sync { margin-top: 14px; text-align: center; }
+.foot .foot-sync a {
+  display: inline-flex; align-items: center; gap: 8px; padding: 9px 18px; border-radius: 999px; font-size: .9rem;
+  background: rgba(255, 255, 255, .07); border: 1px solid rgba(255, 255, 255, .2); transition: background .15s, border-color .15s;
+}
+.foot .foot-sync a:hover { background: rgba(41, 182, 255, .16); border-color: var(--aqua); text-decoration: none; }
