@@ -2687,3 +2687,11 @@ button.pod-tool:focus-visible { outline: 3px solid var(--sun); outline-offset: 3
 }
 @media (max-width: 700px) { .soon-box { padding: 28px 16px; border-radius: 20px; } }
 @media (prefers-reduced-motion: reduce) { .soon-box::before, .soon-box i { animation: none; } }
+/* ---------- Mobile : cartes d'outils en une colonne (grandes cartes) ---------- */
+@media (max-width: 700px) {
+  .home-tools .tool-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+  .home-tools .tool-card { flex: none; width: 100%; max-width: none; min-height: 0; padding: 18px 18px 20px; }
+  .home-tools .tc-go { display: grid; }
+  .home-cat .tool-cat { text-align: left; margin: 26px 0 12px; }
+  .home-cat .tool-cat::after { margin: 8px 0 0; }
+}
