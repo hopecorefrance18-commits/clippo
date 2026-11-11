@@ -7104,7 +7104,7 @@ puzOnOpen("crossword", () => {
 (() => {
   const HC_RAINBOW = false; // true : chaque carte a sa propre couleur, au lieu d'une couleur par catégorie
   const HC_COLORS = ["31, 123, 255", "139, 92, 246", "236, 72, 153", "6, 182, 212", "34, 197, 94", "249, 115, 22"];
- const HC_BY = { educatif: 0, medias: 1, createurs: 2, pratique: 3, argent: 4, jeux: 5, webdeveloppement: 3 };
+const HC_BY = { educatif: 0, medias: 1, createurs: 2, pratique: 3, argent: 4, jeux: 5, webdeveloppement: 3, sportactivites: 5 };
   const hcNorm = (s) => String(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z]/g, "");
 
   document.querySelectorAll("#home .home-cat").forEach((cat, ci) => {
