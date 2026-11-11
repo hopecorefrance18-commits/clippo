@@ -2370,7 +2370,7 @@ button.pod-tool:focus-visible { outline: 3px solid var(--sun); outline-offset: 3
     flex: none; width: 100%; min-height: 0; padding: 12px 14px; border-radius: 16px; gap: 0 14px;
     grid-template-columns: 48px minmax(0, 1fr) 28px; grid-template-rows: auto auto; align-items: center;
   }
-  .home-tools .tool-card::after { display: none; }
+    .home-tools .tool-card::after { font-size: 5rem; right: 18px; top: 50%; margin-top: -2.6rem; opacity: .12; transform: rotate(14deg); }
   .home-tools .tc-ico { grid-column: 1; grid-row: 1 / span 2; width: 48px; height: 48px; border-radius: 14px; font-size: 1.5rem; justify-self: center; }
   .home-tools .tool-card strong { grid-column: 2; grid-row: 1; font-size: 1rem; align-self: end; }
   .home-tools .tool-card span {
