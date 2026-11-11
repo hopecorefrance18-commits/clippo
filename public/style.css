@@ -2748,3 +2748,58 @@ button.pod-tool:focus-visible { outline: 3px solid var(--sun); outline-offset: 3
   .jr-body .tag { width: auto; justify-self: start; padding: 3px 12px; }
 }
 @media (prefers-reduced-motion: reduce) { .jr-close { transition: none; } .jr-close:hover { transform: none; } }
+/* ---------- Encadré « Ajoute Clippo à tes favoris / à l'écran d'accueil » ---------- */
+.hm-pwa {
+  position: relative; overflow: hidden; isolation: isolate; max-width: 1040px; margin: 46px auto 0; padding: 22px 26px;
+  display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(0, 1.25fr); align-items: center; gap: 18px 24px;
+  border-radius: 24px; border: 1px solid rgba(46, 230, 214, .45);
+  background:
+    radial-gradient(70% 160% at 0% 0%, rgba(46, 230, 214, .24), transparent 62%),
+    radial-gradient(50% 120% at 100% 100%, rgba(31, 123, 255, .16), transparent 65%),
+    linear-gradient(135deg, rgba(10, 30, 52, .9), rgba(8, 14, 34, .94));
+  box-shadow: 0 16px 44px rgba(0, 0, 0, .35), 0 0 46px rgba(46, 230, 214, .14), inset 0 1px 0 rgba(255, 255, 255, .1);
+  backdrop-filter: blur(14px);
+}
+.hm-pwa::after {
+  content: "⭐"; position: absolute; z-index: -1; right: 26px; bottom: -30px; font-size: 8rem; line-height: 1;
+  opacity: .06; transform: rotate(-12deg); pointer-events: none;
+}
+.hm-pwa-ico {
+  display: grid; place-items: center; width: 64px; height: 64px; border-radius: 20px; font-size: 1.9rem;
+  background: linear-gradient(135deg, #2ee6d6, #1f7bff);
+  box-shadow: 0 10px 26px rgba(46, 230, 214, .4), inset 0 1px 0 rgba(255, 255, 255, .4);
+}
+.hm-pwa-text { display: grid; gap: 6px; min-width: 0; text-align: left; }
+.hm-pwa-text strong { font: 800 clamp(1.2rem, 2.4vw, 1.45rem) "Bricolage Grotesque", sans-serif; letter-spacing: -.01em; }
+.hm-pwa-text span { color: #b4c2e4; font-size: .98rem; line-height: 1.5; }
+.hm-pwa-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.hm-pwa-steps li {
+  display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 12px; align-items: center; padding: 10px 12px; border-radius: 14px;
+  background: rgba(255, 255, 255, .06); border: 1px solid rgba(255, 255, 255, .12);
+}
+.hm-pwa-steps p { margin: 0; color: #dbe5fb; font-size: .9rem; line-height: 1.45; text-align: left; }
+.hm-pwa-steps small { color: #9fb6df; font-size: .82rem; }
+.pwa-n {
+  display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; font: 800 .95rem "DM Sans", sans-serif;
+  background: rgba(46, 230, 214, .18); border: 1px solid rgba(46, 230, 214, .5); color: var(--aqua);
+}
+.hm-pwa kbd {
+  display: inline-block; min-width: 1.5em; padding: 1px 7px; border-radius: 7px; text-align: center; font: 700 .82em "DM Sans", sans-serif;
+  background: rgba(255, 255, 255, .12); border: 1px solid rgba(255, 255, 255, .25); border-bottom-width: 2px; color: #fff;
+}
+/* PC : conseils favoris. Téléphone / tablette : conseils écran d'accueil. */
+.pwa-m { display: none; }
+@media (hover: none) and (pointer: coarse), (max-width: 700px) {
+  .pwa-d { display: none; }
+  .hm-pwa-ico span.pwa-m, .hm-pwa-steps.pwa-m { display: grid; }
+}
+@media (max-width: 1000px) {
+  .hm-pwa { grid-template-columns: auto minmax(0, 1fr); }
+  .hm-pwa-steps { grid-column: 1 / -1; }
+}
+@media (max-width: 700px) {
+  .hm-pwa { margin-top: 34px; padding: 20px 16px; grid-template-columns: 1fr; justify-items: center; text-align: center; }
+  .hm-pwa::after { content: "📲"; right: -10px; }
+  .hm-pwa-text { text-align: center; }
+  .hm-pwa-steps { grid-column: 1; width: 100%; }
+}
