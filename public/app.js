@@ -2710,7 +2710,7 @@ if (homeSearch) {
         card.hidden = !visible;
         if (visible) shown++;
       });
-      cat.hidden = !shown;
+           cat.hidden = cat.hasAttribute("data-soon") ? searching : !shown; // le bloc « bientôt » reste visible hors recherche
       total += shown;
     });
     if (homeEmpty) homeEmpty.hidden = total > 0;
