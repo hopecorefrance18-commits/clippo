@@ -2695,3 +2695,56 @@ button.pod-tool:focus-visible { outline: 3px solid var(--sun); outline-offset: 3
   .home-cat .tool-cat { text-align: left; margin: 26px 0 12px; }
   .home-cat .tool-cat::after { margin: 8px 0 0; }
 }
+/* ---------- Panneau « Mises à jour » (bouton 📰) : design (tous appareils) ---------- */
+.jr-panel {
+  background: radial-gradient(120% 40% at 100% 0%, rgba(31, 123, 255, .22), transparent 70%), linear-gradient(180deg, #0a1230, #060b1f);
+  border-left: 1px solid rgba(111, 211, 255, .25);
+}
+.jr-head {
+  position: relative; padding: 16px 16px 14px 20px; border-bottom: 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, .06), transparent);
+}
+.jr-head::after {
+  content: ""; position: absolute; left: 20px; right: 16px; bottom: 0; height: 1px;
+  background: linear-gradient(90deg, rgba(41, 182, 255, .7), rgba(139, 92, 246, .35), transparent);
+}
+.jr-head strong { font-size: 1.3rem; letter-spacing: -.01em; }
+.jr-close { border-radius: 12px; background: rgba(255, 255, 255, .08); border: 1px solid rgba(255, 255, 255, .14); transition: background .15s, transform .15s; }
+.jr-close:hover { background: rgba(255, 255, 255, .16); transform: rotate(90deg); }
+.jr-body { padding: 16px 14px 32px 16px; scrollbar-width: thin; scrollbar-color: rgba(111, 211, 255, .35) transparent; }
+.jr-body .timeline { display: grid; gap: 14px; padding: 0; margin: 0; }
+.jr-body .upd-item {
+  position: relative; margin: 0; padding: 16px 16px 14px 20px; border-radius: 18px; transform: none;
+  border: 1px solid rgba(255, 255, 255, .1); background: linear-gradient(180deg, rgba(20, 34, 72, .7), rgba(10, 18, 42, .85));
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .25);
+}
+.jr-body .upd-item:hover { transform: none; border-color: rgba(111, 211, 255, .35); }
+.jr-body .upd-item::before {
+  content: ""; display: block; position: absolute; left: 0; right: auto; top: 18px; bottom: 18px; width: 4px; height: auto;
+  border: 0; border-radius: 0 4px 4px 0; animation: none;
+  background: linear-gradient(180deg, #29b6ff, #1f7bff); box-shadow: 0 0 12px rgba(41, 182, 255, .5);
+}
+.jr-body .upd-item time { display: inline-block; padding: 3px 10px; font-size: .76rem; letter-spacing: .02em; }
+.jr-body .upd-item h3 { margin: 10px 0 10px; font-size: 1.12rem; line-height: 1.25; letter-spacing: -.01em; }
+.jr-body .upd-item ul { gap: 0; justify-items: stretch; }
+.jr-body .upd-item li {
+  display: grid; grid-template-columns: 78px minmax(0, 1fr); gap: 10px; align-items: start; text-align: left;
+  padding: 9px 0; border-top: 1px solid rgba(255, 255, 255, .07); font-size: .9rem; line-height: 1.45; color: #dbe5fb;
+}
+.jr-body .upd-item li:first-child { border-top: 0; padding-top: 2px; }
+.jr-body .tag { width: 100%; padding: 3px 6px; font-size: .64rem; letter-spacing: .04em; text-transform: uppercase; text-align: center; }
+
+/* Seule la 1re entrée porte le badge « Dernière » */
+.jr-body .upd-item.latest { border-color: rgba(41, 182, 255, .55); box-shadow: 0 8px 24px rgba(31, 123, 255, .22); }
+.jr-body .upd-item.latest::after {
+  position: absolute; top: 14px; right: 14px; margin: 0; display: inline-block; font-size: .62rem; padding: 3px 9px;
+}
+.jr-body .timeline > .upd-item.latest ~ .upd-item.latest { border-color: rgba(255, 255, 255, .1); box-shadow: 0 6px 18px rgba(0, 0, 0, .25); }
+.jr-body .timeline > .upd-item.latest ~ .upd-item.latest::after { display: none; }
+[dir="rtl"] .jr-body .upd-item { padding: 16px 20px 14px 16px; }
+@media (max-width: 420px) {
+  .jr-body { padding: 14px 12px 28px; }
+  .jr-body .upd-item li { grid-template-columns: 1fr; gap: 5px; }
+  .jr-body .tag { width: auto; justify-self: start; padding: 3px 12px; }
+}
+@media (prefers-reduced-motion: reduce) { .jr-close { transition: none; } .jr-close:hover { transform: none; } }
