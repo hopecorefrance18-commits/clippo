@@ -2803,3 +2803,35 @@ button.pod-tool:focus-visible { outline: 3px solid var(--sun); outline-offset: 3
   .hm-pwa-text { text-align: center; }
   .hm-pwa-steps { grid-column: 1; width: 100%; }
 }
+/* ---------- Outils populaires : défilement en boucle ---------- */
+.hm-marq { position: relative; flex: 0 0 100%; width: 100%; min-width: 0; max-width: 100%; }
+.hm-grid.is-marquee-grid {
+  display: flex; gap: 16px; overflow-x: auto; scroll-snap-type: none; scrollbar-width: none; overscroll-behavior-x: contain;
+  margin: 0 -14px; padding: 8px 14px 18px;
+}
+.hm-grid.is-marquee-grid::-webkit-scrollbar { display: none; }
+.hm-grid.is-marquee-grid .hm-feat, .hm-grid.is-marquee-grid .hm-feat:nth-child(-n+2) {
+  flex: 0 0 clamp(250px, 26vw, 300px); max-width: none; grid-column: auto; min-height: 196px; padding: 22px; scroll-snap-align: none;
+}
+.hm-marq.is-marquee::before, .hm-marq.is-marquee::after {
+  content: ""; position: absolute; top: 0; bottom: 0; width: 38px; z-index: 2; pointer-events: none;
+}
+.hm-marq.is-marquee::before { left: -14px; background: linear-gradient(90deg, rgba(5, 10, 28, .85), transparent); }
+.hm-marq.is-marquee::after { right: -14px; background: linear-gradient(270deg, rgba(5, 10, 28, .85), transparent); }
+.hm-marq-btn {
+  position: absolute; top: 50%; z-index: 3; width: 44px; height: 44px; margin-top: -30px; border-radius: 50%; cursor: pointer;
+  display: none; place-items: center; font: 700 1.6rem/1 "DM Sans", sans-serif; padding-bottom: 3px;
+  color: #fff; background: rgba(10, 20, 48, .85); border: 1px solid rgba(111, 211, 255, .5);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, .4); backdrop-filter: blur(8px); transition: transform .15s, background .15s;
+}
+.hm-marq-btn:hover { background: var(--pink); transform: scale(1.08); }
+.hm-marq-prev { left: -10px; } .hm-marq-next { right: -10px; }
+.hm-marq.is-marquee .hm-marq-btn { display: grid; }
+@media (max-width: 700px) {
+  .hm-grid.is-marquee-grid { gap: 12px; }
+  .hm-grid.is-marquee-grid .hm-feat, .hm-grid.is-marquee-grid .hm-feat:nth-child(-n+2) { flex-basis: 78%; max-width: 310px; min-height: 204px; padding: 18px; }
+  .hm-marq-btn { width: 38px; height: 38px; font-size: 1.4rem; margin-top: -26px; }
+  .hm-marq-prev { left: -6px; } .hm-marq-next { right: -6px; }
+}
+@media (prefers-reduced-motion: reduce) { .hm-marq-btn { transition: none; } }
+@media (hover: none) { .hm-marq-btn { display: none !important; } }
