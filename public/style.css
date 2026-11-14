@@ -2835,3 +2835,46 @@ button.pod-tool:focus-visible { outline: 3px solid var(--sun); outline-offset: 3
 }
 @media (prefers-reduced-motion: reduce) { .hm-marq-btn { transition: none; } }
 @media (hover: none) { .hm-marq-btn { display: none !important; } }
+/* ---------- Chronomètre d'entraînement ---------- */
+#workout .card { min-width: 0; }
+.wk-clock { --wk: var(--aqua); position: relative; width: min(300px, 78vw); aspect-ratio: 1; margin: 22px auto 8px; }
+.wk-clock[data-phase="idle"] { --wk: #8aa4d6; }
+.wk-clock[data-phase="prep"] { --wk: #2ee6d6; }
+.wk-clock[data-phase="work"] { --wk: #ff4d6d; }
+.wk-clock[data-phase="rest"] { --wk: #4ade80; }
+.wk-clock[data-phase="done"] { --wk: #ffd84d; }
+.wk-clock::before {
+  content: ""; position: absolute; inset: 8%; border-radius: 50%; z-index: 0; pointer-events: none;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--wk) 22%, transparent), transparent 75%); transition: background .3s;
+}
+.wk-ring { position: relative; z-index: 1; width: 100%; height: 100%; transform: rotate(-90deg); overflow: visible; }
+.wk-track { fill: none; stroke: rgba(255, 255, 255, .1); stroke-width: 10; }
+.wk-progress {
+  fill: none; stroke: var(--wk); stroke-width: 10; stroke-linecap: round; transition: stroke .3s;
+  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--wk) 70%, transparent));
+}
+.wk-center { position: absolute; inset: 0; z-index: 2; display: grid; place-content: center; justify-items: center; gap: 2px; text-align: center; }
+.wk-phase { font: 800 .95rem "DM Sans", sans-serif; letter-spacing: .12em; text-transform: uppercase; color: var(--wk); }
+.wk-time { font: 800 clamp(3.4rem, 17vw, 4.8rem)/1 "Bricolage Grotesque", sans-serif; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+.wk-round { color: var(--muted); font-size: .92rem; }
+.wk-dots { display: flex; flex-wrap: wrap; justify-content: center; gap: 7px; margin: 14px auto 4px; max-width: 360px; min-height: 12px; }
+.wk-dots span { width: 12px; height: 12px; border-radius: 50%; background: rgba(255, 255, 255, .14); border: 1px solid rgba(255, 255, 255, .22); transition: background .2s, transform .2s; }
+.wk-dots span.done { background: #4ade80; border-color: #4ade80; }
+.wk-dots span.now { background: #ff4d6d; border-color: #ff4d6d; transform: scale(1.25); box-shadow: 0 0 10px rgba(255, 77, 109, .7); }
+.wk-meta { display: flex; justify-content: center; gap: 8px 22px; flex-wrap: wrap; margin: 10px 0 4px; color: var(--muted); font-size: .92rem; }
+.wk-actions, .wk-checks { justify-content: center; flex-wrap: wrap; gap: 10px; }
+.wk-opts { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin: 16px 0 8px; }
+#workout .text-in { min-width: 0; width: 100%; box-sizing: border-box; }
+#workout .status { text-align: center; }
+@media (max-width: 700px) {
+  .wk-opts { grid-template-columns: 1fr 1fr; }
+  .wk-actions button { flex: 1 1 100%; }
+}
+@media (prefers-reduced-motion: reduce) { .wk-dots span, .wk-progress, .wk-clock::before { transition: none; } }
+
+/* complément mobile : boutons et cases bien rangés */
+.row.wk-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.row.wk-actions #wkStart { grid-column: 1 / -1; }
+.row.wk-actions > * { width: 100%; min-width: 0; flex: none; height: auto; min-height: 48px; }
+.row.wk-checks { display: flex; flex-direction: row; flex-wrap: wrap; justify-content: center; gap: 8px 18px; }
+.row.wk-checks > * { flex: 0 0 auto; width: auto; }
