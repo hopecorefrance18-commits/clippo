@@ -2490,6 +2490,7 @@ buRender();
 const homeSearch = $("homeSearch"), homeEmpty = $("homeEmpty");
 const HS_STOP = new Set("le la les un une des du de au aux en et ou a pour sur mon ma mes ton ta tes comment faire fait je veux voudrais besoin outil outils avec sans cherche trouver".split(" "));
 const HS_KW = {
+  workout: "chronometre entrainement sport fitness hiit tabata intervalle minuteur timer gym musculation circuit training gainage repos serie round",
     textanim: "texte anime animation animer effet neon glitch machine ecrire video tiktok instagram reseaux sociaux story titre sous-titre",
     subs: "abonnement abonnements netflix spotify disney prime youtube premium forfait mensuel depenses recurrentes facture resilier argent",
    sudoku: "sudoku grille chiffres jeu logique casse tete numeros",
