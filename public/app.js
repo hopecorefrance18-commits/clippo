@@ -7657,3 +7657,188 @@ const HC_BY = { educatif: 0, medias: 1, createurs: 2, pratique: 3, argent: 4, je
   check();
   requestAnimationFrame(tick);
 })();
+// ---------- Chronomètre d'entraînement ----------
+(() => {
+  const panel = $("workout");
+  if (!panel) return;
+  const KEY = "clippo_workout";
+  const PRESETS = {
+    tabata: { prep: 10, work: 20, rest: 10, rounds: 8 },
+    hiit: { prep: 10, work: 40, rest: 20, rounds: 10 },
+    core: { prep: 10, work: 45, rest: 15, rounds: 5 }
+  };
+  const C = 2 * Math.PI * 90;
+  const el = {};
+  ["Clock", "Ring", "Time", "Phase", "Round", "Total", "Left", "Dots", "Start", "Skip", "Reset", "Msg", "Prep", "Work", "Rest", "Rounds", "Sound", "Vibe", "Wake", "Presets"]
+    .forEach((k) => { el[k.toLowerCase()] = $("wk" + k); });
+  el.ring.style.strokeDasharray = C;
+
+  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+  const num = (inp, min, max, d) => { const v = parseInt(inp.value, 10); return Number.isFinite(v) ? clamp(v, min, max) : d; };
+  const cfg = () => ({ prep: num(el.prep, 0, 60, 10), work: num(el.work, 5, 600, 20), rest: num(el.rest, 0, 600, 10), rounds: num(el.rounds, 1, 50, 8) });
+  const fmt = (s) => { s = Math.max(0, Math.round(s)); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); };
+  const LABEL = { prep: "Prépare-toi", work: "Effort !", rest: "Repos" };
+
+  let phases = [], idx = 0, running = false, started = false, done = false, endAt = 0, remMs = 0, lastSec = null, preset = "tabata";
+
+  function buildPhases(c) {
+    const p = [];
+    if (c.prep > 0) p.push({ t: "prep", d: c.prep, r: 0 });
+    for (let r = 1; r <= c.rounds; r++) {
+      p.push({ t: "work", d: c.work, r });
+      if (r < c.rounds && c.rest > 0) p.push({ t: "rest", d: c.rest, r });
+    }
+    return p;
+  }
+
+  // Sons, vibration, écran allumé
+  let ac = null;
+  function beep(freq, ms, vol = 0.28) {
+    if (!el.sound.checked) return;
+    try {
+      ac = ac || new (window.AudioContext || window.webkitAudioContext)();
+      if (ac.state === "suspended") ac.resume();
+      const o = ac.createOscillator(), g = ac.createGain(), t = ac.currentTime;
+      o.type = "sine"; o.frequency.value = freq;
+      g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + ms / 1000);
+      o.connect(g); g.connect(ac.destination);
+      o.start(t); o.stop(t + ms / 1000 + 0.03);
+    } catch { /* son indisponible */ }
+  }
+  const buzz = (p) => { if (el.vibe.checked && navigator.vibrate) { try { navigator.vibrate(p); } catch { /* ignoré */ } } };
+  let lock = null;
+  async function wakeOn() {
+    if (!el.wake.checked || !("wakeLock" in navigator) || lock) return;
+    try { lock = await navigator.wakeLock.request("screen"); lock.addEventListener("release", () => { lock = null; }); } catch { /* refusé */ }
+  }
+  function wakeOff() { if (lock) { lock.release().catch(() => {}); lock = null; } }
+
+  // Affichage
+  function drawDots() {
+    const c = cfg(), cur = phases[idx] && phases[idx].r;
+    if (el.dots.children.length !== c.rounds) {
+      el.dots.textContent = "";
+      for (let i = 0; i < c.rounds; i++) el.dots.appendChild(document.createElement("span"));
+    }
+    [...el.dots.children].forEach((d, i) => {
+      d.className = done || (cur && i + 1 < cur) ? "done" : cur === i + 1 && started ? "now" : "";
+    });
+  }
+  function render(rem) {
+    const ph = phases[idx], c = cfg();
+    if (done) {
+      el.clock.dataset.phase = "done"; el.ring.style.strokeDashoffset = 0;
+      el.phase.textContent = "Bravo !"; el.time.textContent = "🎉"; el.round.textContent = "Entraînement terminé";
+      el.left.textContent = "Reste : 0:00"; drawDots(); return;
+    }
+    el.clock.dataset.phase = started ? ph.t : "idle";
+    el.phase.textContent = started ? LABEL[ph.t] : "Prêt ?";
+    el.time.textContent = fmt(Math.ceil(rem / 1000));
+    el.round.textContent = ph.t === "prep" || !started
+      ? `${c.rounds} série${c.rounds > 1 ? "s" : ""} au programme`
+      : `Série ${ph.r} / ${c.rounds}`;
+    el.ring.style.strokeDashoffset = C * (1 - clamp(rem / (ph.d * 1000), 0, 1));
+    let left = rem / 1000;
+    for (let i = idx + 1; i < phases.length; i++) left += phases[i].d;
+    el.left.textContent = "Reste : " + fmt(Math.ceil(left));
+    drawDots();
+  }
+  function setStartLabel() { el.start.textContent = done ? "Recommencer" : running ? "Pause" : started ? "Reprendre" : "Démarrer"; }
+  function lockInputs() {
+    [el.prep, el.work, el.rest, el.rounds].forEach((i) => { i.disabled = running; });
+    el.presets.querySelectorAll(".chip").forEach((b) => { b.disabled = running; });
+  }
+
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify({ ...cfg(), sound: el.sound.checked, vibe: el.vibe.checked, wake: el.wake.checked, preset })); } catch { /* stockage indisponible */ }
+  }
+  function markPreset() {
+    const c = cfg();
+    preset = Object.keys(PRESETS).find((k) => ["prep", "work", "rest", "rounds"].every((f) => PRESETS[k][f] === c[f])) || "custom";
+    el.presets.querySelectorAll(".chip").forEach((b) => b.classList.toggle("active", b.dataset.p === preset));
+  }
+  function total() { return phases.reduce((a, p) => a + p.d, 0); }
+  function rebuild() {
+    running = started = done = false; wakeOff(); lastSec = null;
+    phases = buildPhases(cfg()); idx = 0; remMs = phases[0].d * 1000;
+    el.total.textContent = "Durée totale : " + fmt(total());
+    el.msg.textContent = "";
+    markPreset(); render(remMs); setStartLabel(); lockInputs();
+  }
+
+  function announce(ph) {
+    if (ph.t === "work") { beep(1000, 420); buzz([220]); }
+    else if (ph.t === "rest") { beep(620, 420); buzz([90, 70, 90]); }
+    else beep(760, 250);
+    el.msg.textContent = LABEL[ph.t] + (ph.r ? ` — série ${ph.r}` : "");
+  }
+  function finish() {
+    running = false; done = true; wakeOff();
+    beep(880, 160); setTimeout(() => beep(1100, 160), 220); setTimeout(() => beep(1320, 420), 440);
+    buzz([200, 100, 200, 100, 450]);
+    el.msg.textContent = "Entraînement terminé, bravo !";
+    render(0); setStartLabel(); lockInputs();
+  }
+  function tick() {
+    if (!running) return;
+    const now = performance.now();
+    let guard = 0;
+    while (now >= endAt && guard++ < 500) {
+      if (idx >= phases.length - 1) { finish(); return; }
+      idx++; endAt += phases[idx].d * 1000; lastSec = null; announce(phases[idx]);
+    }
+    const rem = endAt - now, sec = Math.ceil(rem / 1000);
+    if (sec !== lastSec) { if (sec >= 1 && sec <= 3) beep(880, 110, 0.22); lastSec = sec; }
+    render(rem);
+  }
+
+  function startPause() {
+    if (done) rebuild();
+    const now = performance.now();
+    if (running) { remMs = Math.max(0, endAt - now); running = false; wakeOff(); el.msg.textContent = "En pause."; }
+    else {
+      const first = !started;
+      started = true; running = true; endAt = now + remMs; lastSec = null; wakeOn();
+      if (first) announce(phases[idx]); else el.msg.textContent = "C'est reparti !";
+    }
+    setStartLabel(); lockInputs(); render(running ? endAt - now : remMs);
+  }
+  function skip() {
+    if (!started || done) return;
+    if (idx >= phases.length - 1) { finish(); return; }
+    idx++; lastSec = null;
+    if (running) { endAt = performance.now() + phases[idx].d * 1000; announce(phases[idx]); render(phases[idx].d * 1000); }
+    else { remMs = phases[idx].d * 1000; render(remMs); }
+  }
+
+  // Événements
+  el.start.addEventListener("click", startPause);
+  el.skip.addEventListener("click", skip);
+  el.reset.addEventListener("click", () => { rebuild(); });
+  [el.prep, el.work, el.rest, el.rounds].forEach((i) => i.addEventListener("input", () => { rebuild(); save(); }));
+  el.presets.addEventListener("click", (e) => {
+    const b = e.target.closest(".chip[data-p]");
+    if (!b || running) return;
+    const p = PRESETS[b.dataset.p];
+    if (p) { el.prep.value = p.prep; el.work.value = p.work; el.rest.value = p.rest; el.rounds.value = p.rounds; rebuild(); save(); }
+    else { el.presets.querySelectorAll(".chip").forEach((x) => x.classList.toggle("active", x === b)); preset = "custom"; }
+  });
+  [el.sound, el.vibe, el.wake].forEach((c) => c.addEventListener("change", () => { save(); if (c === el.wake) { if (c.checked && running) wakeOn(); else if (!c.checked) wakeOff(); } }));
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) { if (running) wakeOn(); tick(); } });
+  setInterval(tick, 100);
+
+  // Réglages enregistrés
+  try {
+    const s = JSON.parse(localStorage.getItem(KEY) || "null");
+    if (s && typeof s === "object") {
+      if (Number.isFinite(s.prep)) el.prep.value = clamp(Math.round(s.prep), 0, 60);
+      if (Number.isFinite(s.work)) el.work.value = clamp(Math.round(s.work), 5, 600);
+      if (Number.isFinite(s.rest)) el.rest.value = clamp(Math.round(s.rest), 0, 600);
+      if (Number.isFinite(s.rounds)) el.rounds.value = clamp(Math.round(s.rounds), 1, 50);
+      if (typeof s.sound === "boolean") el.sound.checked = s.sound;
+      if (typeof s.vibe === "boolean") el.vibe.checked = s.vibe;
+      if (typeof s.wake === "boolean") el.wake.checked = s.wake;
+    }
+  } catch { /* données illisibles : réglages par défaut */ }
+  rebuild();
+})();
