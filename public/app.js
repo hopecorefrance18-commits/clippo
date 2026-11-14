@@ -7580,3 +7580,80 @@ const HC_BY = { educatif: 0, medias: 1, createurs: 2, pratique: 3, argent: 4, je
     setTimeout(() => location.reload(), 700);
   });
 })();
+// ---------- Outils populaires : défilement automatique en boucle ----------
+(() => {
+  const grid = document.querySelector("#home .hm-grid");
+  if (!grid || grid.children.length < 3) return;
+  const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const SPEED = 34; // pixels par seconde
+  let pos = 0, last = 0, paused = false, resumeAt = 0, visible = true, active = false;
+
+  const gapPx = () => parseFloat(getComputedStyle(grid).columnGap) || 16;
+  const step = () => grid.children[0].getBoundingClientRect().width + gapPx();
+
+  // Enveloppe + flèches
+  const wrap = document.createElement("div");
+  wrap.className = "hm-marq";
+  grid.parentNode.insertBefore(wrap, grid);
+  wrap.appendChild(grid);
+  const mk = (dir, label, txt) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "hm-marq-btn hm-marq-" + dir; b.setAttribute("aria-label", label); b.textContent = txt;
+    wrap.appendChild(b); return b;
+  };
+  const prev = mk("prev", "Outils précédents", "‹"), next = mk("next", "Outils suivants", "›");
+
+  // Boucle sans doublon : la 1re carte sortie de l'écran passe à la fin (et inversement)
+  let lockUntil = 0;
+  const recycle = () => {
+    if (performance.now() < lockUntil) return;
+    let s = step(), guard = 0;
+    while (grid.scrollLeft >= s && guard++ < 10) { grid.appendChild(grid.children[0]); pos -= s; grid.scrollLeft -= s; }
+  };
+  const goNext = () => { paused = true; resumeAt = performance.now() + 3500; grid.scrollBy({ left: step(), behavior: "smooth" }); };
+  const goPrev = () => {
+    paused = true; resumeAt = performance.now() + 3500;
+    const s = step();
+    lockUntil = performance.now() + 900; // pendant l'animation, on ne recycle pas
+    if (grid.scrollLeft < s) { grid.insertBefore(grid.lastElementChild, grid.children[0]); grid.scrollLeft += s; pos = grid.scrollLeft; }
+    grid.scrollBy({ left: -s, behavior: "smooth" });
+  };
+  next.addEventListener("click", goNext);
+  prev.addEventListener("click", goPrev);
+
+  const pause = (ms = 0) => { paused = true; resumeAt = ms ? performance.now() + ms : Infinity; };
+  const resume = (ms = 1200) => { resumeAt = performance.now() + ms; };
+  wrap.addEventListener("pointerenter", (e) => { if (e.pointerType === "mouse") pause(); });
+  wrap.addEventListener("pointerleave", (e) => { if (e.pointerType === "mouse") resume(600); });
+  wrap.addEventListener("focusin", () => pause());
+  wrap.addEventListener("focusout", () => resume(800));
+  grid.addEventListener("touchstart", () => pause(), { passive: true });
+  grid.addEventListener("touchend", () => resume(2500), { passive: true });
+  grid.addEventListener("wheel", () => { pause(2500); }, { passive: true });
+  grid.addEventListener("scroll", () => { if (Math.abs(grid.scrollLeft - pos) > 2) pos = grid.scrollLeft; recycle(); }, { passive: true });
+
+  if ("IntersectionObserver" in window) new IntersectionObserver((en) => { visible = en[0].isIntersecting; }, { threshold: 0.05 }).observe(wrap);
+
+  function tick(now) {
+    requestAnimationFrame(tick);
+    const dt = Math.min(0.1, (now - (last || now)) / 1000); last = now;
+    if (!active || !visible || document.hidden) return;
+    if (paused && now >= resumeAt) paused = false;
+    if (paused) return;
+    pos += SPEED * dt;
+    grid.scrollLeft = pos;
+    recycle();
+  }
+
+  // On ne défile que si les cartes dépassent de la zone visible
+  const check = () => {
+    const overflow = grid.scrollWidth > grid.clientWidth + 8;
+    wrap.classList.toggle("is-marquee", overflow);
+    active = overflow && !reduce;
+    if (!overflow) grid.scrollLeft = 0; else pos = grid.scrollLeft;
+  };
+  window.addEventListener("resize", check);
+  grid.classList.add("is-marquee-grid");
+  check();
+  requestAnimationFrame(tick);
+})();
