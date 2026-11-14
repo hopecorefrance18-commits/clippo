@@ -2510,6 +2510,55 @@ Hugo</textarea>
         <p class="gr-note">Tes abonnements restent sur ton appareil (dans ce navigateur) et ne sont envoyés nulle part. Si tu vides les données du site, ils disparaissent. Le coût mensuel d'un paiement annuel est le prix divisé par 12 ; celui d'un paiement hebdomadaire est calculé sur 52 semaines par an.</p>
       </div>
     </section>
+              <!-- Chronomètre d'entraînement -->
+    <section id="workout" class="panel">
+      <h1>Ton entraînement, chrono en main.</h1>
+      <p class="sub">Règle tes séries d'effort et de repos, lance le chrono et laisse les bips te guider. Parfait pour le Tabata, le HIIT, le gainage ou le circuit training.</p>
+
+      <div class="card">
+        <div class="chips" id="wkPresets">
+          <button class="chip active" type="button" data-p="tabata">Tabata 20/10</button>
+          <button class="chip" type="button" data-p="hiit">HIIT 40/20</button>
+          <button class="chip" type="button" data-p="core">Gainage 45/15</button>
+          <button class="chip" type="button" data-p="custom">Perso</button>
+        </div>
+
+        <div class="wk-clock" id="wkClock" data-phase="idle">
+          <svg viewBox="0 0 200 200" class="wk-ring" aria-hidden="true">
+            <circle cx="100" cy="100" r="90" class="wk-track"></circle>
+            <circle id="wkRing" cx="100" cy="100" r="90" class="wk-progress"></circle>
+          </svg>
+          <div class="wk-center">
+            <div id="wkPhase" class="wk-phase">Prêt ?</div>
+            <div id="wkTime" class="wk-time" aria-live="off">0:10</div>
+            <div id="wkRound" class="wk-round">8 séries au programme</div>
+          </div>
+        </div>
+
+        <div id="wkDots" class="wk-dots" aria-hidden="true"></div>
+        <p class="wk-meta"><span id="wkTotal">Durée totale : 4:00</span><span id="wkLeft">Reste : 4:00</span></p>
+
+        <div class="row wk-actions">
+          <button id="wkStart" class="primary" type="button">Démarrer</button>
+          <button id="wkSkip" class="ghost-btn" type="button">Passer ⏭</button>
+          <button id="wkReset" class="ghost-btn" type="button">Réinitialiser</button>
+        </div>
+        <p id="wkMsg" class="status" role="status"></p>
+
+        <div class="wk-opts">
+          <label class="select"><span>Préparation (s)</span><input id="wkPrep" type="number" min="0" max="60" value="10" class="text-in" inputmode="numeric"></label>
+          <label class="select"><span>Effort (s)</span><input id="wkWork" type="number" min="5" max="600" value="20" class="text-in" inputmode="numeric"></label>
+          <label class="select"><span>Repos (s)</span><input id="wkRest" type="number" min="0" max="600" value="10" class="text-in" inputmode="numeric"></label>
+          <label class="select"><span>Séries</span><input id="wkRounds" type="number" min="1" max="50" value="8" class="text-in" inputmode="numeric"></label>
+        </div>
+        <div class="row wk-checks">
+          <label class="check"><input id="wkSound" type="checkbox" checked> Bips sonores</label>
+          <label class="check"><input id="wkVibe" type="checkbox" checked> Vibration</label>
+          <label class="check"><input id="wkWake" type="checkbox" checked> Garder l'écran allumé</label>
+        </div>
+        <p class="gr-note">Les 3 dernières secondes de chaque phase sont annoncées par un bip, un bip plus long marque le début de l'effort et du repos. Tes réglages sont enregistrés sur ton appareil. Le chrono continue si tu changes d'outil, mais garde l'onglet du navigateur ouvert pour entendre les bips.</p>
+      </div>
+    </section>
         </main>
 
     <footer class="foot">
