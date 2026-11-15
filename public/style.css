@@ -3007,3 +3007,39 @@ html:has(#home.active), body:has(#home.active) { overflow-x: clip; }
   .iso-trust { margin-bottom: 18px; }
 }
 @media (prefers-reduced-motion: reduce) { .iso-float { animation: none; } .iso-btn { transition: none; } }
+
+/* ===== Encadré unique : favoris + Discord + soutien ===== */
+#tools .hm-sechead > .hub { order: 3; }
+.hub { position: relative; flex: 0 0 100%; width: 100%; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); overflow: hidden; border-radius: 28px;
+  background: linear-gradient(160deg, rgba(24, 44, 120, .6), rgba(6, 12, 40, .88));
+  border: 1px solid rgba(130, 170, 255, .24); box-shadow: 0 30px 70px rgba(2, 10, 45, .5), inset 0 1px 0 rgba(255, 255, 255, .08); }
+.hub::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 3px; z-index: 2; background: linear-gradient(90deg, #2ee6d6, #4a8dff 35%, #8a6bff 65%, #ffd84d); }
+.hub-col { position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 12px; min-width: 0; padding: clamp(24px, 3vw, 36px) clamp(20px, 2.6vw, 32px) clamp(22px, 2.6vw, 32px); text-align: left; }
+.hub-col + .hub-col { border-left: 1px solid rgba(150, 190, 255, .16); }
+.hub-pwa { background: radial-gradient(ellipse 90% 60% at 0 0, rgba(46, 230, 214, .16), transparent 70%); }
+.hub-discord { background: radial-gradient(ellipse 90% 60% at 50% 0, rgba(124, 108, 255, .2), transparent 70%); }
+.hub-support { background: radial-gradient(ellipse 90% 60% at 100% 0, rgba(255, 216, 77, .15), transparent 70%); }
+.hub-ico { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 17px; font-size: 1.7rem; box-shadow: 0 10px 24px rgba(0, 10, 50, .45), inset 0 1px 0 rgba(255, 255, 255, .35); }
+.hub-pwa .hub-ico { background: linear-gradient(135deg, #25e0d0, #1f7bff); }
+.hub-discord .hub-ico { background: linear-gradient(135deg, #8a7bff, #5865f2); }
+.hub-support .hub-ico { background: linear-gradient(135deg, #ffe27a, #ffb43a); }
+.hub-ico .pwa-m { display: none; }
+.hub h3 { margin: 6px 0 0; font: 800 clamp(1.15rem, 2vw, 1.4rem)/1.2 "Bricolage Grotesque", sans-serif; letter-spacing: -.01em; color: #fff; }
+.hub-txt { margin: 0; color: #b4c2e4; font-size: .96rem; line-height: 1.55; }
+.hub .hm-pwa-steps { width: 100%; margin-top: 4px; }
+.hub kbd { display: inline-block; min-width: 1.5em; padding: 1px 7px; border-radius: 7px; text-align: center; font: 700 .82em "DM Sans", sans-serif; background: rgba(255, 255, 255, .12); border: 1px solid rgba(255, 255, 255, .25); border-bottom-width: 2px; color: #fff; }
+.hub-tags { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.hub-tags li { padding: 6px 11px; border-radius: 999px; font-size: .8rem; color: #dbe5fb; background: rgba(255, 255, 255, .07); border: 1px solid rgba(255, 255, 255, .15); }
+.hub .hub-btn { margin: auto 0 0; width: 100%; align-self: stretch; box-sizing: border-box; display: inline-flex; justify-content: center; align-items: center; text-align: center; text-decoration: none; }
+.hub-col > :nth-last-child(2) { margin-bottom: 16px; }
+
+@media (max-width: 1000px) {
+  .hub { grid-template-columns: minmax(0, 1fr); }
+  .hub-col + .hub-col { border-left: 0; border-top: 1px solid rgba(150, 190, 255, .16); }
+  .hub .hub-btn { align-self: stretch; }
+}
+@media (hover: none) and (pointer: coarse), (max-width: 700px) {
+  .hub-ico .pwa-d { display: none; }
+  .hub-ico .pwa-m { display: inline; }
+}
+@media (max-width: 700px) { .hub { border-radius: 22px; } }
