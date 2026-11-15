@@ -3007,3 +3007,4 @@ html:has(#home.active), body:has(#home.active) { overflow-x: clip; }
 .qz-vortex::before { content: ""; position: absolute; inset: 0; border-radius: 50%; background: repeating-radial-gradient(closest-side, transparent 0 5.2%, rgba(130, 215, 255, .35) 5.5%, transparent 5.9%); -webkit-mask: radial-gradient(closest-side, transparent 12%, #000 40%, transparent 96%); mask: radial-gradient(closest-side, transparent 12%, #000 40%, transparent 96%); }
 .qz-vortex i:nth-child(1) { filter: blur(1.5px); }
 .qz-vortex i:nth-child(2) { filter: blur(1px); }
+.qz-ico { outline: 3px solid red !important; }
