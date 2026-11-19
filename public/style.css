@@ -3042,7 +3042,7 @@ html:has(#home.active), body:has(#home.active) { overflow-x: clip; }
   .hub-ico .pwa-d { display: none; }
   .hub-ico .pwa-m { display: inline; }
 }
-@media (max-width: 700px) { .hub { border-radius: 22px; } }
+  #planner .pl-actions > *, .pg-actions > * { flex: 1 1 100%; }
 
 /* ---------- Planificateur de séances + Générateur de programme ---------- */
 #planner .card, #progen .card { min-width: 0; }
@@ -3076,7 +3076,7 @@ html:has(#home.active), body:has(#home.active) { overflow-x: clip; }
 .pl-note { margin: 6px 0 0 25px; font-size: .8rem; color: #b4c2e4; }
 .pl-note summary { cursor: pointer; color: #7cc4ff; }
 .pl-note pre { margin: 6px 0 0; white-space: pre-wrap; font: inherit; line-height: 1.5; }
-.pl-actions, .pg-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+#planner .pl-actions, .pg-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
 .pg-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; }
 .pg-out { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 14px; margin-top: 8px; }
 .pg-card { min-width: 0; padding: 16px; border-radius: 18px; background: linear-gradient(160deg, rgba(40, 80, 190, .25), rgba(8, 16, 55, .6)); border: 1px solid rgba(130, 170, 255, .22); }
