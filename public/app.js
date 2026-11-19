@@ -2490,6 +2490,8 @@ buRender();
 const homeSearch = $("homeSearch"), homeEmpty = $("homeEmpty");
 const HS_STOP = new Set("le la les un une des du de au aux en et ou a pour sur mon ma mes ton ta tes comment faire fait je veux voudrais besoin outil outils avec sans cherche trouver".split(" "));
 const HS_KW = {
+    planner: "planificateur seances planning semaine sport entrainement calendrier agenda programme jour routine suivi",
+  progen: "generateur programme sportif musculation fitness perte poids prise muscle endurance seance routine entrainement coach plan",
   workout: "chronometre entrainement sport fitness hiit tabata intervalle minuteur timer gym musculation circuit training gainage repos serie round",
     textanim: "texte anime animation animer effet neon glitch machine ecrire video tiktok instagram reseaux sociaux story titre sous-titre",
     subs: "abonnement abonnements netflix spotify disney prime youtube premium forfait mensuel depenses recurrentes facture resilier argent",
@@ -7842,4 +7844,266 @@ const HC_BY = { educatif: 0, medias: 1, createurs: 2, pratique: 3, argent: 4, je
     }
   } catch { /* données illisibles : réglages par défaut */ }
   rebuild();
+})();
+// ---------- Planificateur de séances ----------
+(() => {
+  const panel = $("planner");
+  if (!panel) return;
+  const KEY = "clippo_planner";
+  const DAYS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
+  const TYPES = { muscu: "🏋️", cardio: "🏃", yoga: "🧘", sport: "⚽", autre: "✨" };
+  const el = {};
+  ["Form", "Day", "Name", "Type", "Time", "Min", "Msg", "Bar", "Stat", "Week", "Uncheck", "Copy", "Clear"].forEach((k) => { el[k.toLowerCase()] = $("pl" + k); });
+
+  const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  const clean = (s) => {
+    if (!s || typeof s !== "object") return null;
+    const day = parseInt(s.day, 10), min = parseInt(s.min, 10);
+    const name = String(s.name || "").trim().slice(0, 60);
+    if (!(day >= 0 && day <= 6) || !name) return null;
+    return {
+      id: typeof s.id === "string" && s.id ? s.id.slice(0, 20) : uid(), day, name,
+      type: TYPES[s.type] ? s.type : "autre",
+      time: /^\d\d:\d\d$/.test(s.time || "") ? s.time : "",
+      min: min >= 0 && min <= 600 ? min : 0, done: !!s.done,
+      note: String(s.note || "").slice(0, 2000)
+    };
+  };
+  let list = [];
+  try { const raw = JSON.parse(localStorage.getItem(KEY) || "[]"); if (Array.isArray(raw)) list = raw.map(clean).filter(Boolean).slice(0, 200); } catch { /* vide */ }
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(list)); } catch { /* stockage indisponible */ } };
+  const say = (m, err) => { el.msg.textContent = m; el.msg.classList.toggle("error", !!err); };
+  const hm = (m) => (m >= 60 ? Math.floor(m / 60) + " h" + (m % 60 ? " " + String(m % 60).padStart(2, "0") : "") : m + " min");
+  const today = () => (new Date().getDay() + 6) % 7;
+
+  function mk(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+
+  function render() {
+    el.week.textContent = "";
+    const t = today();
+    DAYS.forEach((d, i) => {
+      const items = list.filter((s) => s.day === i).sort((a, b) => (a.time || "99:99").localeCompare(b.time || "99:99"));
+      const col = mk("div", "pl-day" + (i === t ? " today" : "") + (items.length ? "" : " empty"));
+      const head = mk("div", "pl-dayhead");
+      head.append(mk("strong", "", d), mk("span", "", items.length ? String(items.length) : ""));
+      col.appendChild(head);
+      if (!items.length) col.appendChild(mk("p", "pl-none", "Repos"));
+      items.forEach((s) => {
+        const card = mk("div", "pl-item" + (s.done ? " done" : ""));
+        const lab = mk("label", "pl-check");
+        const cb = document.createElement("input");
+        cb.type = "checkbox"; cb.checked = s.done; cb.setAttribute("aria-label", "Séance faite : " + s.name);
+        cb.addEventListener("change", () => { s.done = cb.checked; save(); render(); });
+        lab.append(cb, mk("span", "pl-name", s.name));
+        const del = mk("button", "pl-del", "×");
+        del.type = "button"; del.setAttribute("aria-label", "Supprimer " + s.name);
+        del.addEventListener("click", () => { list = list.filter((x) => x.id !== s.id); save(); render(); });
+        const top = mk("div", "pl-top"); top.append(lab, del);
+        card.appendChild(top);
+        const meta = [TYPES[s.type], s.time, s.min ? hm(s.min) : ""].filter(Boolean).join(" · ");
+        card.appendChild(mk("p", "pl-meta", meta));
+        if (s.note) {
+          const det = mk("details", "pl-note");
+          det.append(mk("summary", "", "Voir le détail"), mk("pre", "", s.note));
+          card.appendChild(det);
+        }
+        col.appendChild(card);
+      });
+      el.week.appendChild(col);
+    });
+    const done = list.filter((s) => s.done).length, mins = list.reduce((a, s) => a + s.min, 0);
+    el.bar.style.width = list.length ? Math.round((done / list.length) * 100) + "%" : "0%";
+    el.stat.textContent = list.length
+      ? `${done} / ${list.length} séance${list.length > 1 ? "s" : ""} faite${list.length > 1 ? "s" : ""} · ${hm(mins)} planifiées`
+      : "Aucune séance planifiée.";
+  }
+
+  el.form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const s = clean({ day: el.day.value, name: el.name.value, type: el.type.value, time: el.time.value, min: el.min.value, done: false });
+    if (!s) { say("Donne un nom à ta séance.", true); return; }
+    if (list.length >= 200) { say("Tu as atteint la limite de 200 séances.", true); return; }
+    list.push(s); save(); render();
+    el.name.value = ""; el.name.focus();
+    say(`Séance ajoutée le ${DAYS[s.day].toLowerCase()}.`);
+  });
+  el.uncheck.addEventListener("click", () => { list.forEach((s) => { s.done = false; }); save(); render(); say("Nouvelle semaine : toutes les séances sont décochées."); });
+  el.copy.addEventListener("click", () => {
+    if (!list.length) { say("Rien à copier pour l'instant.", true); return; }
+    const txt = DAYS.map((d, i) => {
+      const it = list.filter((s) => s.day === i);
+      return it.length ? d + "\n" + it.map((s) => `- ${s.done ? "[x]" : "[ ]"} ${s.name}${s.time ? " (" + s.time + ")" : ""}${s.min ? " · " + hm(s.min) : ""}`).join("\n") : "";
+    }).filter(Boolean).join("\n\n");
+    copyText(txt).then(() => say("Planning copié !"), () => say("Copie impossible sur ce navigateur.", true));
+  });
+  let armed = 0;
+  el.clear.addEventListener("click", () => {
+    if (!list.length) return;
+    if (!armed) {
+      el.clear.textContent = "Confirmer l'effacement ?";
+      armed = setTimeout(() => { armed = 0; el.clear.textContent = "Tout effacer"; }, 3500);
+      return;
+    }
+    clearTimeout(armed); armed = 0; el.clear.textContent = "Tout effacer";
+    list = []; save(); render(); say("Planning vidé.");
+  });
+  // Ajout depuis le générateur de programme
+  document.addEventListener("clippo:planner-add", (e) => {
+    const add = (Array.isArray(e.detail) ? e.detail : []).map(clean).filter(Boolean);
+    list = list.concat(add).slice(0, 200); save(); render();
+  });
+  el.day.value = String(today());
+  render();
+})();
+
+// ---------- Générateur de programme sportif ----------
+(() => {
+  const panel = $("progen");
+  if (!panel) return;
+  const KEY = "clippo_progen";
+  const el = {};
+  ["Goal", "Level", "Days", "Dur", "Equip", "Go", "Msg", "Out", "Tools", "Again", "Copy", "ToPlan"].forEach((k) => { el[k.toLowerCase()] = $("pg" + k); });
+  const DAYS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
+  const SCHEDULE = { 2: [0, 3], 3: [0, 2, 4], 4: [0, 1, 3, 4], 5: [0, 1, 2, 4, 5], 6: [0, 1, 2, 3, 4, 5] };
+  // n = nom, eq = matériel minimal (0 aucun, 1 haltères, 2 salle), lv = niveau minimal, t = exercice chronométré
+  const DB = {
+    push: [
+      { n: "Pompes sur les genoux", eq: 0, lv: 0 }, { n: "Pompes", eq: 0, lv: 0 }, { n: "Pompes diamant", eq: 0, lv: 1 }, { n: "Dips sur chaise", eq: 0, lv: 0 }, { n: "Pompes pieds surélevés", eq: 0, lv: 2 },
+      { n: "Développé couché aux haltères", eq: 1, lv: 0 }, { n: "Développé épaules aux haltères", eq: 1, lv: 0 }, { n: "Élévations latérales", eq: 1, lv: 0 }, { n: "Extensions triceps haltère", eq: 1, lv: 0 },
+      { n: "Développé couché à la barre", eq: 2, lv: 0 }, { n: "Développé incliné", eq: 2, lv: 1 }, { n: "Pec deck", eq: 2, lv: 0 }, { n: "Triceps à la poulie", eq: 2, lv: 0 }, { n: "Développé militaire", eq: 2, lv: 1 }
+    ],
+    pull: [
+      { n: "Superman", eq: 0, lv: 0 }, { n: "Rowing inversé sous une table solide", eq: 0, lv: 1 }, { n: "Tractions à la barre fixe", eq: 0, lv: 2 }, { n: "Rowing serviette (isométrique)", eq: 0, lv: 0 },
+      { n: "Rowing haltère à un bras", eq: 1, lv: 0 }, { n: "Rowing buste penché aux haltères", eq: 1, lv: 1 }, { n: "Curl biceps aux haltères", eq: 1, lv: 0 }, { n: "Pull-over haltère", eq: 1, lv: 1 },
+      { n: "Tirage vertical", eq: 2, lv: 0 }, { n: "Tirage horizontal", eq: 2, lv: 0 }, { n: "Tractions lestées ou assistées", eq: 2, lv: 1 }, { n: "Curl à la barre EZ", eq: 2, lv: 0 }
+    ],
+    legs: [
+      { n: "Squats", eq: 0, lv: 0 }, { n: "Fentes alternées", eq: 0, lv: 0 }, { n: "Pont fessier", eq: 0, lv: 0 }, { n: "Squats sautés", eq: 0, lv: 1 }, { n: "Chaise contre le mur", eq: 0, lv: 0, t: 1 }, { n: "Fentes bulgares", eq: 0, lv: 2 },
+      { n: "Squat gobelet", eq: 1, lv: 0 }, { n: "Soulevé de terre roumain aux haltères", eq: 1, lv: 1 }, { n: "Fentes marchées lestées", eq: 1, lv: 1 }, { n: "Mollets debout", eq: 1, lv: 0 },
+      { n: "Presse à cuisses", eq: 2, lv: 0 }, { n: "Squat à la barre", eq: 2, lv: 1 }, { n: "Leg curl", eq: 2, lv: 0 }, { n: "Leg extension", eq: 2, lv: 0 }, { n: "Hip thrust", eq: 2, lv: 1 }
+    ],
+    core: [
+      { n: "Planche", eq: 0, lv: 0, t: 1 }, { n: "Gainage latéral (par côté)", eq: 0, lv: 0, t: 1 }, { n: "Crunchs", eq: 0, lv: 0 }, { n: "Relevés de jambes", eq: 0, lv: 1 },
+      { n: "Mountain climbers", eq: 0, lv: 0, t: 1 }, { n: "Russian twist", eq: 0, lv: 1 }, { n: "Bicycle crunch", eq: 0, lv: 0 }, { n: "Gainage dorsal", eq: 0, lv: 0, t: 1 }
+    ]
+  };
+  const COMP = {
+    full: ["legs", "push", "pull", "legs", "core", "push", "pull", "core"],
+    upper: ["push", "pull", "push", "pull", "core", "push", "pull", "core"],
+    lower: ["legs", "legs", "legs", "legs", "core", "legs", "legs", "core"],
+    push: ["push", "push", "push", "push", "core", "push", "push", "core"],
+    pull: ["pull", "pull", "pull", "pull", "core", "pull", "pull", "core"],
+    legs: ["legs", "legs", "legs", "legs", "core", "legs", "legs", "core"]
+  };
+  const NAMES = { full: "Corps entier", upper: "Haut du corps", lower: "Bas du corps", push: "Poussée · pecs, épaules, triceps", pull: "Tirage · dos, biceps", legs: "Jambes et fessiers", cardio: "Cardio / HIIT" };
+  const PLAN = {
+    2: ["full", "full"], 3: ["full", "full", "full"], 4: ["upper", "lower", "upper", "lower"],
+    5: ["push", "pull", "legs", "upper", "lower"], 6: ["push", "pull", "legs", "push", "pull", "legs"]
+  };
+  const PARAMS = {
+    muscle: { sets: [3, 4, 4], reps: "8-12", rest: 75 }, loss: { sets: [3, 3, 4], reps: "12-15", rest: 45 },
+    endurance: { sets: [3, 3, 4], reps: "15-20", rest: 30 }, fit: { sets: [3, 3, 4], reps: "10-12", rest: 60 }
+  };
+  const COUNT = { 20: 4, 30: 5, 45: 6, 60: 8 };
+  const CARDIO = ["Course à pied", "Vélo", "Corde à sauter", "Rameur", "Marche rapide en côte", "Jumping jacks et burpees"];
+
+  let seed = Math.floor(Math.random() * 1e9), sessions = [];
+  const rng = () => { seed |= 0; seed = (seed + 0x6D2B79F5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  const choice = (a) => a[Math.floor(rng() * a.length)];
+  const say = (m, err) => { el.msg.textContent = m; el.msg.classList.toggle("error", !!err); };
+  const opts = () => ({ goal: el.goal.value, level: +el.level.value, days: +el.days.value, dur: +el.dur.value, equip: +el.equip.value });
+
+  function pick(group, used, o) {
+    let pool = DB[group].filter((e) => e.eq <= o.equip && e.lv <= o.level);
+    const pref = pool.filter((e) => e.eq === o.equip && o.equip > 0);
+    if (pref.length >= 2 && rng() < 0.7) pool = pref;
+    let fresh = pool.filter((e) => !used.has(e.n));
+    if (!fresh.length) fresh = DB[group].filter((e) => e.eq <= o.equip && e.lv <= o.level && !used.has(e.n));
+    if (!fresh.length) return null; // plus d'exercice inédit dans ce groupe
+    const e = choice(fresh);
+    used.add(e.n);
+    return e;
+  }
+  function line(e, group, o) {
+    const p = PARAMS[o.goal];
+    if (group === "core" || e.t) {
+      const secs = [30, 40, 50][o.level] + (o.goal === "endurance" ? 10 : 0);
+      return `${e.n} : 3 × ${secs} s · repos ${Math.min(p.rest, 45)} s`;
+    }
+    return `${e.n} : ${p.sets[o.level]} × ${p.reps} · repos ${p.rest} s`;
+  }
+  function cardioSession(o) {
+    const mode = choice(CARDIO);
+    const rounds = { 20: 6, 30: 8, 45: 12, 60: 16 }[o.dur] + [-2, 0, 2][o.level];
+    const [w, r] = [[30, 60], [40, 40], [45, 30]][o.level];
+    return [
+      "Échauffement : 5 min de " + mode.toLowerCase() + " tranquille",
+      `Intervalles : ${w} s d'effort / ${r} s de repos × ${rounds} (${mode.toLowerCase()})`,
+      "Retour au calme : 5 min de marche et d'étirements"
+    ];
+  }
+  function build() {
+    const o = opts();
+    const plan = PLAN[o.days].slice();
+    if ((o.goal === "loss" || o.goal === "endurance") && o.days >= 4) plan[plan.length - 1] = "cardio";
+    if (o.goal === "endurance" && o.days >= 3) plan[1] = "cardio";
+    const n = COUNT[o.dur];
+    return plan.map((kind, i) => {
+      let lines;
+      if (kind === "cardio") lines = cardioSession(o);
+      else {
+        const used = new Set();
+        lines = ["Échauffement : 5 min (mobilité, montée en intensité progressive)"];
+        COMP[kind].slice(0, n).forEach((g) => {
+          const e = pick(g, used, o) || pick("core", used, o);
+          if (e) lines.push(line(e, DB.core.includes(e) ? "core" : g, o));
+        });
+        if ((o.goal === "loss" || o.goal === "endurance") && o.dur >= 30) lines.push("Finisher cardio : 8 min (corde à sauter, jumping jacks ou vélo)");
+        lines.push("Étirements : 5 min");
+      }
+      return { day: SCHEDULE[o.days][i], kind, name: NAMES[kind], min: o.dur, lines };
+    });
+  }
+  function mk(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  function render() {
+    el.out.textContent = "";
+    sessions.forEach((s) => {
+      const card = mk("article", "pg-card");
+      const head = mk("div", "pg-head");
+      head.append(mk("strong", "", DAYS[s.day]), mk("span", "", `${s.min} min`));
+      card.append(head, mk("h3", "", s.name));
+      const ul = mk("ul", "pg-list");
+      s.lines.forEach((l) => ul.appendChild(mk("li", /^(Échauffement|Étirements|Retour)/.test(l) ? "soft" : "", l)));
+      card.appendChild(ul);
+      el.out.appendChild(card);
+    });
+    el.out.hidden = el.tools.hidden = !sessions.length;
+  }
+  function generate() {
+    sessions = build(); render();
+    try { localStorage.setItem(KEY, JSON.stringify(opts())); } catch { /* ignoré */ }
+    const o = opts();
+    say(`Programme de ${o.days} séances prêt. Tu peux le copier ou l'ajouter à ton planificateur.`);
+  }
+  el.go.addEventListener("click", () => { seed = Math.floor(Math.random() * 1e9); generate(); el.out.scrollIntoView({ behavior: "smooth", block: "nearest" }); });
+  el.again.addEventListener("click", () => { seed = Math.floor(Math.random() * 1e9); generate(); });
+  el.copy.addEventListener("click", () => {
+    const txt = sessions.map((s) => `${DAYS[s.day]} — ${s.name} (${s.min} min)\n` + s.lines.map((l) => "- " + l).join("\n")).join("\n\n");
+    copyText(txt).then(() => say("Programme copié !"), () => say("Copie impossible sur ce navigateur.", true));
+  });
+  el.toplan.addEventListener("click", () => {
+    if (!sessions.length) return;
+    document.dispatchEvent(new CustomEvent("clippo:planner-add", {
+      detail: sessions.map((s) => ({ day: s.day, name: s.name.split(" · ")[0], type: s.kind === "cardio" ? "cardio" : "muscu", time: "", min: s.min, done: false, note: s.lines.join("\n") }))
+    }));
+    say(`${sessions.length} séances ajoutées au planificateur.`);
+  });
+  [el.goal, el.level, el.days, el.dur, el.equip].forEach((s) => s.addEventListener("change", () => { say(""); }));
+  try {
+    const s = JSON.parse(localStorage.getItem(KEY) || "null");
+    if (s && typeof s === "object") {
+      const set = (sel, v) => { if ([...sel.options].some((op) => op.value === String(v))) sel.value = String(v); };
+      set(el.goal, s.goal); set(el.level, s.level); set(el.days, s.days); set(el.dur, s.dur); set(el.equip, s.equip);
+    }
+  } catch { /* réglages par défaut */ }
 })();
