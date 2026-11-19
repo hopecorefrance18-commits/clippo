@@ -3184,3 +3184,37 @@ input[type="checkbox"], input[type="radio"], input[type="range"] { accent-color:
 #pomodoro .pd-settings { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 #pomodoro .pd-settings .select { min-width: 0; }
 #pomodoro .pd-settings .text-in { width: 100%; min-width: 0; box-sizing: border-box; }
+
+/* --- Flashcards : options supplémentaires --- */
+.fc-opts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) auto; gap: 12px; align-items: end; }
+.fc-opts select { width: 100%; min-width: 0; box-sizing: border-box; }
+.fc-typed { padding-bottom: 12px; white-space: nowrap; }
+.fc-progress { display: grid; gap: 6px; }
+.fc-prog { margin: 0; color: var(--muted); font-size: .88rem; text-align: center; }
+.fc-card[data-size="s"] { font-size: clamp(1.05rem, 3vw, 1.35rem); }
+.fc-card[data-size="l"] { font-size: clamp(1.7rem, 5.5vw, 2.6rem); min-height: 260px; }
+.fc-card { position: relative; }
+.fc-meta { font: 600 .78rem "DM Sans", sans-serif; font-style: normal; color: #8ea4cf; letter-spacing: .04em; }
+.fc-type { display: flex; gap: 10px; }
+.fc-type .text-in { flex: 1 1 auto; min-width: 0; width: 100%; box-sizing: border-box; }
+.fc-type .primary { flex: 0 0 auto; margin-left: 0; }
+.fc-keys { margin: 0; text-align: center; color: #7b8db5; font-size: .8rem; line-height: 1.9; }
+.fc-keys kbd { padding: 1px 7px; border-radius: 6px; font: 700 .85em "DM Sans", sans-serif; background: rgba(255, 255, 255, .1); border: 1px solid rgba(255, 255, 255, .2); border-bottom-width: 2px; color: #dbe5fb; }
+.fc-addbtns { display: flex; flex-wrap: wrap; gap: 10px; }
+.fc-addbtns .primary { margin-left: 0; }
+.fc-tag { display: block; margin-top: 4px; font-size: .74rem; color: #7cc4ff; }
+#fcSearch { width: 100%; box-sizing: border-box; }
+.fc-io { border: 1px solid rgba(150, 190, 255, .2); border-radius: 16px; background: rgba(255, 255, 255, .03); padding: 12px 16px; }
+.fc-io[open] { display: grid; gap: 12px; }
+.fc-io summary { font-weight: 700; }
+.fc-iohelp { margin: 0; color: #a9bbdf; font-size: .88rem; line-height: 1.6; }
+.fc-io textarea { width: 100%; box-sizing: border-box; resize: vertical; }
+.fc-iobtns { display: flex; flex-wrap: wrap; gap: 10px; }
+.fc-iobtns .primary { margin-left: 0; }
+#fcFeedback:empty, #fcMsg:empty { display: none; }
+@media (max-width: 700px) {
+  .fc-opts { grid-template-columns: minmax(0, 1fr); }
+  .fc-typed { padding-bottom: 0; }
+  .fc-type { flex-direction: column; }
+  .fc-type .primary, .fc-addbtns > *, .fc-iobtns > * { width: 100%; }
+}
