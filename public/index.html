@@ -734,19 +734,46 @@ Hugo</textarea>
     </section>
 
   </main>
-      <!-- Flashcards -->
-  
-    <section id="flashcards" class="panel">
+         <section id="flashcards" class="panel">
       <h1>Révise avec des flashcards.</h1>
-      <p class="sub">Crée tes cartes (question d'un côté, réponse de l'autre), puis entraîne-toi. Elles sont gardées dans ton navigateur.</p>
-      
+      <p class="sub">Crée tes cartes (question d'un côté, réponse de l'autre), range-les par paquets, puis entraîne-toi. Elles sont gardées dans ton navigateur.</p>
 
       <div class="card">
-        <button id="fcCard" class="fc-card" type="button" aria-live="polite">
+        <div class="fc-opts">
+          <label class="select"><span>Paquet</span><select id="fcDeckSel"></select></label>
+          <label class="select"><span>Sens des cartes</span>
+            <select id="fcDir"><option value="qa">Question → réponse</option><option value="aq">Réponse → question</option><option value="mix">Mélangé</option></select>
+          </label>
+          <label class="select"><span>Taille du texte</span>
+            <select id="fcSize"><option value="s">Petite</option><option value="m">Moyenne</option><option value="l">Grande</option></select>
+          </label>
+          <label class="check fc-typed"><input id="fcTyped" type="checkbox"> Je tape ma réponse</label>
+        </div>
+
+        <div class="chips" id="fcFilters">
+          <button class="chip active" data-filter="all">Toutes</button>
+          <button class="chip" data-filter="due">📅 Du jour</button>
+          <button class="chip" data-filter="review">À revoir</button>
+          <button class="chip" data-filter="star">⭐ Favorites</button>
+        </div>
+
+        <div class="fc-progress">
+          <div class="todo-meter"><div id="fcBar" class="todo-bar"></div></div>
+          <p id="fcProg" class="fc-prog"></p>
+        </div>
+
+        <button id="fcCard" class="fc-card" type="button" aria-live="polite" data-size="m">
           <small id="fcSide">Question</small>
           <span id="fcText"></span>
+          <em id="fcMeta" class="fc-meta"></em>
         </button>
         <p id="fcCount" class="status" role="status"></p>
+
+        <div id="fcTypeBox" class="fc-type" hidden>
+          <input id="fcTypeIn" type="text" class="text-in" maxlength="300" placeholder="Écris ta réponse…" autocomplete="off" aria-label="Ta réponse">
+          <button id="fcCheck" class="primary" type="button">Vérifier</button>
+        </div>
+        <p id="fcFeedback" class="status" role="status"></p>
 
         <div class="row fc-actions">
           <button id="fcPrev" class="ghost-btn">← Précédente</button>
@@ -756,29 +783,47 @@ Hugo</textarea>
         <div class="row fc-actions">
           <button id="fcKnow" class="ghost-btn">✅ Je savais</button>
           <button id="fcAgain" class="ghost-btn">🔁 À revoir</button>
+          <button id="fcStar" class="ghost-btn" aria-pressed="false">☆ Favorite</button>
           <button id="fcShuffle" class="ghost-btn">🔀 Mélanger</button>
         </div>
+        <p class="fc-keys">Raccourcis : <kbd>Espace</kbd> retourner · <kbd>←</kbd> <kbd>→</kbd> naviguer · <kbd>K</kbd> je savais · <kbd>A</kbd> à revoir · <kbd>S</kbd> favorite</p>
 
-        <div class="chips" id="fcFilters">
-          <button class="chip active" data-filter="all">Toutes</button>
-          <button class="chip" data-filter="review">À revoir</button>
-        </div>
-
-        <h2 class="fc-title">Ajouter une carte</h2>
+        <h2 id="fcFormTitle" class="fc-title">Ajouter une carte</h2>
         <div class="fc-add">
           <input id="fcQ" type="text" class="text-in" maxlength="200" placeholder="Question (ex. Capitale de l'Australie ?)" autocomplete="off">
           <input id="fcA" type="text" class="text-in" maxlength="300" placeholder="Réponse (ex. Canberra)" autocomplete="off">
-          <button id="fcAdd" class="primary">Ajouter la carte</button>
+          <input id="fcDeckIn" type="text" class="text-in" maxlength="30" list="fcDeckList" placeholder="Paquet (ex. Géographie), facultatif" autocomplete="off">
+          <datalist id="fcDeckList"></datalist>
+          <div class="fc-addbtns">
+            <button id="fcAdd" class="primary">Ajouter la carte</button>
+            <button id="fcCancel" class="ghost-btn" type="button" hidden>Annuler</button>
+          </div>
         </div>
 
+        <h2 class="fc-title">Mes cartes</h2>
+        <input id="fcSearch" type="search" class="text-in" maxlength="60" placeholder="Rechercher dans mes cartes…" autocomplete="off" aria-label="Rechercher dans mes cartes">
         <ul id="fcList" class="todo-list"></ul>
+
+        <details class="fc-io">
+          <summary>📥 Importer ou 📤 exporter mes cartes</summary>
+          <p class="fc-iohelp">Une carte par ligne : <b>Question ; Réponse ; Paquet</b> (le paquet est facultatif). Une tabulation fonctionne aussi, ce qui permet de coller depuis un tableur.</p>
+          <textarea id="fcIO" class="fancy-in" rows="6" placeholder="Capitale de l'Australie ? ; Canberra ; Géographie" aria-label="Cartes à importer ou exportées"></textarea>
+          <div class="row fc-iobtns">
+            <button id="fcImport" class="primary" type="button">Importer ces cartes</button>
+            <button id="fcExport" class="ghost-btn" type="button">Exporter mes cartes</button>
+            <button id="fcCopy" class="ghost-btn" type="button">Copier</button>
+            <button id="fcDownload" class="ghost-btn" type="button">Télécharger (.txt)</button>
+          </div>
+        </details>
+        <p id="fcMsg" class="status" role="status"></p>
+
         <div class="row">
+          <button id="fcResetProg" class="ghost-btn">Remettre la progression à zéro</button>
           <button id="fcClearAll" class="ghost-btn">Tout supprimer</button>
         </div>
-        <p class="gr-note">Tes cartes restent sur ton appareil (dans ce navigateur) et ne sont envoyées nulle part. Si tu vides les données du site, elles disparaissent.</p>
+        <p class="gr-note">Les cartes que tu sais reviennent de moins en moins souvent : 1 jour, 3 jours, puis 7 et 14 jours. Celles que tu rates reviennent tout de suite. Tes cartes restent sur ton appareil (dans ce navigateur) et ne sont envoyées nulle part. Si tu vides les données du site, elles disparaissent.</p>
       </div>
     </section>
-     
 
    
     <!-- Mises à jour -->
