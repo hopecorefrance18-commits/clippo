@@ -97,6 +97,8 @@
         </div>
         <div class="subgroup" data-cat="sport" hidden>
   <button class="tab" data-tab="workout">Chronomètre</button>
+          <button class="tab" data-tab="planner">Planificateur</button>
+<button class="tab" data-tab="progen">Programme</button>
 </div>
                       <div class="subgroup" data-cat="games" hidden>
         <button class="tab" data-tab="tictactoe">Morpion</button>
@@ -295,6 +297,8 @@
   <h3 class="tool-cat">🏅 Sport &amp; Activités</h3>
   <div class="tool-grid">
     <button class="tool-card" data-go="workout"><i class="tc-ico">🏋️</i><strong>Chronomètre d'entraînement</strong><span>Séries d'effort et de repos avec bips : Tabata, HIIT, gainage.</span><em class="tc-go">→</em></button>
+  <button class="tool-card" data-go="planner"><i class="tc-ico">📅</i><strong>Planificateur de séances</strong><span>Place tes entraînements sur la semaine et coche-les.</span><em class="tc-go">→</em></button>
+<button class="tool-card" data-go="progen"><i class="tc-ico">📋</i><strong>Générateur de programme sportif</strong><span>Un programme sur mesure selon ton objectif et ton niveau.</span><em class="tc-go">→</em></button>
   </div>
 </div>
         <div class="home-cat" data-soon>
@@ -2560,6 +2564,83 @@ Hugo</textarea>
           <label class="check"><input id="wkWake" type="checkbox" checked> Garder l'écran allumé</label>
         </div>
         <p class="gr-note">Les 3 dernières secondes de chaque phase sont annoncées par un bip, un bip plus long marque le début de l'effort et du repos. Tes réglages sont enregistrés sur ton appareil. Le chrono continue si tu changes d'outil, mais garde l'onglet du navigateur ouvert pour entendre les bips.</p>
+      </div>
+    </section>
+              <!-- Planificateur de séances -->
+    <section id="planner" class="panel">
+      <h1>Planifie tes séances de sport.</h1>
+      <p class="sub">Place tes entraînements sur la semaine, coche-les quand ils sont faits et suis ta progression. Tout reste sur ton appareil.</p>
+
+      <div class="card">
+        <form id="plForm" class="pl-form" autocomplete="off">
+          <label class="select"><span>Jour</span>
+            <select id="plDay">
+              <option value="0">Lundi</option><option value="1">Mardi</option><option value="2">Mercredi</option><option value="3">Jeudi</option><option value="4">Vendredi</option><option value="5">Samedi</option><option value="6">Dimanche</option>
+            </select>
+          </label>
+          <label class="select pl-wide"><span>Séance</span><input id="plName" type="text" class="text-in" maxlength="60" placeholder="Ex : Jambes, Course 5 km, Yoga…" required></label>
+          <label class="select"><span>Type</span>
+            <select id="plType">
+              <option value="muscu">🏋️ Musculation</option><option value="cardio">🏃 Cardio</option><option value="yoga">🧘 Yoga / étirements</option><option value="sport">⚽ Sport collectif</option><option value="autre">✨ Autre</option>
+            </select>
+          </label>
+          <label class="select"><span>Heure (facultatif)</span><input id="plTime" type="time" class="text-in"></label>
+          <label class="select"><span>Durée (min)</span><input id="plMin" type="number" min="5" max="600" value="45" class="text-in" inputmode="numeric"></label>
+          <button id="plAdd" class="primary" type="submit">Ajouter</button>
+        </form>
+        <p id="plMsg" class="status" role="status"></p>
+
+        <div class="pl-stats">
+          <div class="pl-bar" aria-hidden="true"><i id="plBar"></i></div>
+          <p id="plStat">Aucune séance planifiée.</p>
+        </div>
+
+        <div id="plWeek" class="pl-week"></div>
+
+        <div class="pl-actions">
+          <button id="plUncheck" class="ghost-btn" type="button">Nouvelle semaine (tout décocher)</button>
+          <button id="plCopy" class="ghost-btn" type="button">Copier le planning</button>
+          <button id="plClear" class="ghost-btn" type="button">Tout effacer</button>
+        </div>
+        <p class="gr-note">Astuce : le Générateur de programme peut remplir ce planificateur en un clic. Tes séances sont enregistrées sur ton appareil (et incluses dans ta sauvegarde Clippo).</p>
+      </div>
+    </section>
+
+    <!-- Générateur de programme sportif -->
+    <section id="progen" class="panel">
+      <h1>Ton programme sportif sur mesure.</h1>
+      <p class="sub">Choisis ton objectif, ton niveau et ton matériel : Clippo te propose un programme de la semaine, séance par séance.</p>
+
+      <div class="card">
+        <div class="pg-form">
+          <label class="select"><span>Objectif</span>
+            <select id="pgGoal"><option value="muscle">Prendre du muscle</option><option value="loss">Perdre du poids</option><option value="endurance">Gagner en endurance</option><option value="fit">Remise en forme</option></select>
+          </label>
+          <label class="select"><span>Niveau</span>
+            <select id="pgLevel"><option value="0">Débutant</option><option value="1">Intermédiaire</option><option value="2">Avancé</option></select>
+          </label>
+          <label class="select"><span>Séances par semaine</span>
+            <select id="pgDays"><option value="2">2 jours</option><option value="3" selected>3 jours</option><option value="4">4 jours</option><option value="5">5 jours</option><option value="6">6 jours</option></select>
+          </label>
+          <label class="select"><span>Durée d'une séance</span>
+            <select id="pgDur"><option value="20">20 min</option><option value="30">30 min</option><option value="45" selected>45 min</option><option value="60">60 min</option></select>
+          </label>
+          <label class="select"><span>Matériel</span>
+            <select id="pgEquip"><option value="0">Aucun (poids du corps)</option><option value="1">Haltères</option><option value="2">Salle de sport</option></select>
+          </label>
+        </div>
+        <div class="pg-actions">
+          <button id="pgGo" class="primary" type="button">Générer mon programme</button>
+        </div>
+        <p id="pgMsg" class="status" role="status"></p>
+
+        <div id="pgOut" class="pg-out" hidden></div>
+        <div id="pgTools" class="pg-actions" hidden>
+          <button id="pgAgain" class="ghost-btn" type="button">🔄 Autre version</button>
+          <button id="pgCopy" class="ghost-btn" type="button">Copier</button>
+          <button id="pgToPlan" class="primary" type="button">Ajouter au planificateur</button>
+        </div>
+        <p class="gr-note">Ce programme est une base générale et ne remplace pas l'avis d'un coach ou d'un médecin. Échauffe-toi toujours, adapte les charges à ton ressenti et arrête-toi en cas de douleur.</p>
       </div>
     </section>
         </main>
