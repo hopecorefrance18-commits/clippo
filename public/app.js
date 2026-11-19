@@ -1328,66 +1328,158 @@ todoRender();
 setInterval(() => { if (!todoList.querySelector(".editing")) todoRender(); }, 60000);
 document.addEventListener("visibilitychange", () => { if (!document.hidden && !todoList.querySelector(".editing")) todoRender(); });
 // ---------- Flashcards ----------
-const fcCard = $("fcCard"), fcSide = $("fcSide"), fcText = $("fcText"), fcCount = $("fcCount");
-const fcQ = $("fcQ"), fcA = $("fcA"), fcList = $("fcList");
-const FC_KEY = "clippo_flashcards", FC_MAX = 300;
-let fcCards = [], fcIndex = 0, fcShowAnswer = false, fcFilter = "all";
+const fcCard = $("fcCard"), fcSide = $("fcSide"), fcText = $("fcText"), fcMeta = $("fcMeta"), fcCount = $("fcCount");
+const fcQ = $("fcQ"), fcA = $("fcA"), fcDeckIn = $("fcDeckIn"), fcList = $("fcList"), fcMsg = $("fcMsg"), fcFeedback = $("fcFeedback");
+const FC_KEY = "clippo_flashcards", FC_OPT = "clippo_fc_opts", FC_MAX = 300, FC_DAY = 86400000;
+const FC_GAP = { 1: 0, 2: 1, 3: 3, 4: 7, 5: 14 }; // jours avant la prochaine révision, selon le niveau
+let fcCards = [], fcIndex = 0, fcShowAnswer = false, fcFilter = "all", fcRev = false, fcEditId = null, fcAnswered = false;
+const fcOpts = { dir: "qa", size: "m", deck: "", typed: false };
 
 function fcLoad() {
   try {
     const data = JSON.parse(localStorage.getItem(FC_KEY) || "[]");
     return Array.isArray(data)
       ? data.filter((c) => c && typeof c.q === "string" && typeof c.a === "string").slice(0, FC_MAX)
-          .map((c) => ({ id: String(c.id), q: c.q.slice(0, 200), a: c.a.slice(0, 300), known: !!c.known }))
+          .map((c) => {
+            const box = Math.min(5, Math.max(1, parseInt(c.box, 10) || (c.known ? 3 : 1)));
+            return {
+              id: String(c.id), q: c.q.slice(0, 200), a: c.a.slice(0, 300), known: !!c.known, star: !!c.star,
+              deck: String(c.deck || "Général").trim().slice(0, 30) || "Général",
+              box, due: Number.isFinite(c.due) ? c.due : 0
+            };
+          })
       : [];
   } catch { return []; }
 }
 function fcSave() {
   try { localStorage.setItem(FC_KEY, JSON.stringify(fcCards)); } catch { /* stockage indisponible */ }
 }
-function fcDeck() {
-  return fcFilter === "review" ? fcCards.filter((c) => !c.known) : fcCards;
+function fcSaveOpts() {
+  try { localStorage.setItem(FC_OPT, JSON.stringify(fcOpts)); } catch { /* ignoré */ }
+}
+function fcSay(msg, isError) { fcMsg.textContent = msg; fcMsg.classList.toggle("error", !!isError); }
+
+function fcPool() { return fcOpts.deck ? fcCards.filter((c) => c.deck === fcOpts.deck) : fcCards; }
+function fcMatch(c, filter) {
+  if (filter === "due") return c.due <= Date.now();
+  if (filter === "review") return !c.known;
+  if (filter === "star") return c.star;
+  return true;
+}
+function fcDeck() { return fcPool().filter((c) => fcMatch(c, fcFilter)); }
+
+// Textes proches : on ignore la casse, les accents et la ponctuation
+function fcNorm(s) { return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, " ").trim(); }
+function fcDist(a, b) {
+  const m = a.length, n = b.length;
+  let prev = Array.from({ length: n + 1 }, (_, j) => j);
+  for (let i = 1; i <= m; i++) {
+    const cur = [i];
+    for (let j = 1; j <= n; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    prev = cur;
+  }
+  return prev[n];
+}
+function fcIsRight(expected, given) {
+  const e = fcNorm(expected), g = fcNorm(given);
+  if (!g) return false;
+  if (e === g) return true;
+  return fcDist(e, g) <= (e.length >= 9 ? 2 : e.length >= 5 ? 1 : 0);
+}
+
+function fcSetCard() { // nouvelle carte affichée : on remet l'état à zéro
+  fcShowAnswer = false; fcAnswered = false;
+  $("fcTypeIn").value = ""; fcFeedback.textContent = ""; fcFeedback.classList.remove("error");
+  fcRev = fcOpts.dir === "aq" || (fcOpts.dir === "mix" && Math.random() < 0.5);
+  $("fcCheck").textContent = "Vérifier";
+}
+
+function fcRenderDecks() {
+  const decks = [...new Set(fcCards.map((c) => c.deck))].sort((a, b) => a.localeCompare(b, "fr"));
+  if (fcOpts.deck && !decks.includes(fcOpts.deck)) fcOpts.deck = "";
+  const sel = $("fcDeckSel");
+  sel.textContent = "";
+  const add = (value, label) => { const o = document.createElement("option"); o.value = value; o.textContent = label; sel.appendChild(o); };
+  add("", `Tous les paquets (${fcCards.length})`);
+  decks.forEach((d) => add(d, `${d} (${fcCards.filter((c) => c.deck === d).length})`));
+  sel.value = fcOpts.deck;
+  const dl = $("fcDeckList");
+  dl.textContent = "";
+  decks.forEach((d) => { const o = document.createElement("option"); o.value = d; dl.appendChild(o); });
 }
 
 function fcRender() {
-  const deck = fcDeck();
+  fcRenderDecks();
+  const pool = fcPool(), deck = fcDeck();
   if (fcIndex >= deck.length) fcIndex = 0;
   const empty = !deck.length;
-  ["fcPrev", "fcFlip", "fcNext", "fcKnow", "fcAgain", "fcShuffle"].forEach((id) => { $(id).disabled = empty; });
+  ["fcPrev", "fcFlip", "fcNext", "fcKnow", "fcAgain", "fcShuffle", "fcStar"].forEach((id) => { $(id).disabled = empty; });
   fcCard.disabled = empty;
+  $("fcCheck").disabled = empty;
+  $("fcTypeBox").hidden = !fcOpts.typed;
+  fcCard.dataset.size = fcOpts.size;
+
+  // Pastilles avec compteurs
+  $("fcFilters").querySelectorAll(".chip").forEach((chip) => {
+    const f = chip.dataset.filter;
+    const base = { all: "Toutes", due: "📅 Du jour", review: "À revoir", star: "⭐ Favorites" }[f];
+    chip.textContent = `${base} (${pool.filter((c) => fcMatch(c, f)).length})`;
+    chip.classList.toggle("active", f === fcFilter);
+  });
+
+  // Progression du paquet
+  const known = pool.filter((c) => c.known).length, due = pool.filter((c) => c.due <= Date.now()).length;
+  const pct = pool.length ? Math.round((known / pool.length) * 100) : 0;
+  $("fcBar").style.width = pct + "%";
+  $("fcProg").textContent = pool.length ? `${known} sue${known > 1 ? "s" : ""} sur ${pool.length} (${pct} %) · ${due} à réviser aujourd'hui` : "";
 
   if (empty) {
     fcCard.classList.remove("back");
     fcSide.textContent = "";
-    fcText.textContent = fcCards.length ? "Bravo, tu connais toutes les cartes !" : "Ajoute ta première carte ci-dessous.";
+    fcMeta.textContent = "";
+    fcText.textContent = !fcCards.length ? "Ajoute ta première carte ci-dessous."
+      : fcFilter === "due" ? "Rien à réviser pour le moment, reviens plus tard !"
+      : fcFilter === "star" ? "Aucune carte favorite pour l'instant."
+      : "Bravo, tu connais toutes les cartes !";
     fcCount.textContent = "";
   } else {
     const c = deck[fcIndex];
+    const front = fcRev ? c.a : c.q, back = fcRev ? c.q : c.a;
     fcCard.classList.toggle("back", fcShowAnswer);
-    fcSide.textContent = fcShowAnswer ? "Réponse" : "Question";
-    fcText.textContent = fcShowAnswer ? c.a : c.q;
-    const known = fcCards.filter((x) => x.known).length;
-    fcCount.textContent = `Carte ${fcIndex + 1} sur ${deck.length} · ${known} sue${known > 1 ? "s" : ""} sur ${fcCards.length}`;
+    fcSide.textContent = (fcShowAnswer ? !fcRev : fcRev) ? "Réponse" : "Question";
+    fcText.textContent = fcShowAnswer ? back : front;
+    fcMeta.textContent = `${c.star ? "⭐ " : ""}${c.deck} · Niveau ${c.box}/5`;
+    fcCount.textContent = `Carte ${fcIndex + 1} sur ${deck.length}`;
+    $("fcStar").textContent = c.star ? "★ Favorite" : "☆ Favorite";
+    $("fcStar").setAttribute("aria-pressed", String(c.star));
   }
 
-  fcList.innerHTML = "";
-  fcCards.forEach((c) => {
+  // Liste des cartes
+  const term = fcNorm($("fcSearch").value);
+  fcList.textContent = "";
+  pool.filter((c) => !term || fcNorm(c.q + " " + c.a + " " + c.deck).includes(term)).forEach((c) => {
     const li = document.createElement("li");
     li.className = "todo-item" + (c.known ? " known" : "");
     const text = document.createElement("span");
     text.className = "todo-text";
-    text.textContent = c.q;
+    text.textContent = (c.star ? "⭐ " : "") + c.q;
     const ans = document.createElement("span");
     ans.className = "fc-ans";
     ans.textContent = c.a;
-    text.appendChild(ans);
-    const del = document.createElement("button");
-    del.className = "todo-btn";
-    del.type = "button";
-    del.textContent = "×";
-    del.setAttribute("aria-label", "Supprimer : " + c.q);
-    del.addEventListener("click", () => { fcCards = fcCards.filter((x) => x.id !== c.id); fcSave(); fcRender(); });
-    li.append(text, del);
+    const tag = document.createElement("span");
+    tag.className = "fc-tag";
+    tag.textContent = `${c.deck} · niveau ${c.box}/5`;
+    text.append(ans, tag);
+    const mkBtn = (label, aria, fn) => {
+      const b = document.createElement("button");
+      b.className = "todo-btn"; b.type = "button"; b.textContent = label; b.setAttribute("aria-label", aria + " : " + c.q);
+      b.addEventListener("click", fn);
+      return b;
+    };
+    li.append(text,
+      mkBtn(c.star ? "★" : "☆", "Favorite", () => { c.star = !c.star; fcSave(); fcRender(); }),
+      mkBtn("✏️", "Modifier", () => fcEdit(c)),
+      mkBtn("×", "Supprimer", () => { fcCards = fcCards.filter((x) => x.id !== c.id); if (fcEditId === c.id) fcStopEdit(); fcSave(); fcRender(); }));
     fcList.appendChild(li);
   });
 }
@@ -1396,61 +1488,184 @@ function fcMove(step) {
   const deck = fcDeck();
   if (!deck.length) return;
   fcIndex = (fcIndex + step + deck.length) % deck.length;
-  fcShowAnswer = false;
+  fcSetCard();
   fcRender();
+}
+function fcApply(card, known) { // révision espacée : on monte ou on redescend d'un niveau
+  card.known = known;
+  card.box = known ? Math.min(5, card.box + 1) : 1;
+  card.due = known ? Date.now() + FC_GAP[card.box] * FC_DAY : Date.now();
+  fcSave();
 }
 function fcMark(known) {
   const deck = fcDeck();
   if (!deck.length) return;
-  deck[fcIndex].known = known;
-  fcSave();
-  fcShowAnswer = false;
-  if (fcFilter === "all") fcIndex = (fcIndex + 1) % deck.length; // en mode « À revoir », la carte sue disparaît du paquet
+  const card = deck[fcIndex];
+  if (!fcAnswered) fcApply(card, known);
+  const after = fcDeck();
+  if (after.includes(card)) fcIndex = (after.indexOf(card) + 1) % after.length; // la carte reste dans le paquet : on passe à la suivante
+  else if (fcIndex >= after.length) fcIndex = 0;
+  fcSetCard();
   fcRender();
 }
 function fcFlip() { fcShowAnswer = !fcShowAnswer; fcRender(); }
 
+function fcCheckAnswer() {
+  const deck = fcDeck();
+  if (!deck.length) return;
+  if (fcAnswered) { // deuxième appui : carte suivante
+    const card = deck[fcIndex];
+    const after = fcDeck();
+    if (after.includes(card)) fcIndex = (after.indexOf(card) + 1) % after.length; else if (fcIndex >= after.length) fcIndex = 0;
+    fcSetCard(); fcRender();
+    $("fcTypeIn").focus();
+    return;
+  }
+  const card = deck[fcIndex], expected = fcRev ? card.q : card.a, given = $("fcTypeIn").value;
+  if (!given.trim()) { fcFeedback.textContent = "Écris d'abord ta réponse."; fcFeedback.classList.add("error"); return; }
+  const ok = fcIsRight(expected, given);
+  fcApply(card, ok);
+  fcAnswered = true; fcShowAnswer = true;
+  fcFeedback.classList.toggle("error", !ok);
+  fcFeedback.textContent = ok ? "✅ Correct ! La carte monte d'un niveau." : `❌ Pas tout à fait. La bonne réponse : ${expected}`;
+  $("fcCheck").textContent = "Suivante →";
+  fcRender();
+}
+
+// Ajout, modification
+function fcStopEdit() {
+  fcEditId = null; fcQ.value = ""; fcA.value = ""; fcDeckIn.value = "";
+  $("fcFormTitle").textContent = "Ajouter une carte"; $("fcAdd").textContent = "Ajouter la carte"; $("fcCancel").hidden = true;
+}
+function fcEdit(c) {
+  fcEditId = c.id; fcQ.value = c.q; fcA.value = c.a; fcDeckIn.value = c.deck;
+  $("fcFormTitle").textContent = "Modifier la carte"; $("fcAdd").textContent = "Enregistrer"; $("fcCancel").hidden = false;
+  fcQ.scrollIntoView({ behavior: "smooth", block: "center" }); fcQ.focus();
+}
 $("fcAdd").addEventListener("click", () => {
   const q = fcQ.value.trim(), a = fcA.value.trim();
-  if (!q || !a) return;
-  if (fcCards.length >= FC_MAX) return;
-  fcCards.push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), q, a, known: false });
+  const deck = fcDeckIn.value.trim().slice(0, 30) || fcOpts.deck || "Général";
+  if (!q || !a) { fcSay("Remplis la question et la réponse.", true); return; }
+  if (fcEditId) {
+    const c = fcCards.find((x) => x.id === fcEditId);
+    if (c) { c.q = q; c.a = a; c.deck = deck; }
+    fcStopEdit(); fcSave(); fcRender(); fcSay("Carte modifiée.");
+    return;
+  }
+  if (fcCards.length >= FC_MAX) { fcSay(`Tu as atteint la limite de ${FC_MAX} cartes.`, true); return; }
+  fcCards.push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), q, a, known: false, star: false, deck, box: 1, due: 0 });
   fcQ.value = ""; fcA.value = "";
-  fcSave();
-  fcRender();
+  fcSave(); fcRender(); fcSay("Carte ajoutée.");
   fcQ.focus();
 });
-[fcQ, fcA].forEach((el) => el.addEventListener("keydown", (e) => { if (e.key === "Enter") $("fcAdd").click(); }));
+$("fcCancel").addEventListener("click", () => { fcStopEdit(); fcSay(""); });
+[fcQ, fcA, fcDeckIn].forEach((el) => el.addEventListener("keydown", (e) => { if (e.key === "Enter") $("fcAdd").click(); }));
+
+// Étude
 fcCard.addEventListener("click", fcFlip);
 $("fcFlip").addEventListener("click", fcFlip);
 $("fcNext").addEventListener("click", () => fcMove(1));
 $("fcPrev").addEventListener("click", () => fcMove(-1));
 $("fcKnow").addEventListener("click", () => fcMark(true));
 $("fcAgain").addEventListener("click", () => fcMark(false));
+$("fcStar").addEventListener("click", () => { const d = fcDeck(); if (d.length) { d[fcIndex].star = !d[fcIndex].star; fcSave(); fcRender(); } });
+$("fcCheck").addEventListener("click", fcCheckAnswer);
+$("fcTypeIn").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); fcCheckAnswer(); } });
 $("fcShuffle").addEventListener("click", () => {
   for (let i = fcCards.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [fcCards[i], fcCards[j]] = [fcCards[j], fcCards[i]];
   }
-  fcIndex = 0; fcShowAnswer = false;
+  fcIndex = 0; fcSetCard();
   fcSave();
   fcRender();
 });
+$("fcFilters").querySelectorAll(".chip").forEach((chip) => chip.addEventListener("click", () => {
+  fcFilter = chip.dataset.filter; fcIndex = 0; fcSetCard(); fcRender();
+}));
+$("fcDeckSel").addEventListener("change", (e) => { fcOpts.deck = e.target.value; fcSaveOpts(); fcIndex = 0; fcSetCard(); fcRender(); });
+$("fcDir").addEventListener("change", (e) => { fcOpts.dir = e.target.value; fcSaveOpts(); fcSetCard(); fcRender(); });
+$("fcSize").addEventListener("change", (e) => { fcOpts.size = e.target.value; fcSaveOpts(); fcRender(); });
+$("fcTyped").addEventListener("change", (e) => { fcOpts.typed = e.target.checked; fcSaveOpts(); fcSetCard(); fcRender(); });
+$("fcSearch").addEventListener("input", fcRender);
+
+// Raccourcis clavier (uniquement quand l'onglet est ouvert et qu'on n'écrit pas)
+document.addEventListener("keydown", (e) => {
+  if (!$("flashcards").classList.contains("active") || e.ctrlKey || e.metaKey || e.altKey) return;
+  const t = e.target, tag = t && t.tagName;
+  if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || (t && t.isContentEditable)) return;
+  const k = e.key.toLowerCase();
+  if (k === "arrowright") { e.preventDefault(); fcMove(1); }
+  else if (k === "arrowleft") { e.preventDefault(); fcMove(-1); }
+  else if (k === " " && tag !== "BUTTON") { e.preventDefault(); if (fcDeck().length) fcFlip(); }
+  else if (k === "k") fcMark(true);
+  else if (k === "a") fcMark(false);
+  else if (k === "s") $("fcStar").click();
+});
+
+// Importer / exporter
+function fcExportText() { return fcPool().map((c) => [c.q, c.a, c.deck].join("\t")).join("\n"); }
+$("fcExport").addEventListener("click", () => {
+  $("fcIO").value = fcExportText();
+  fcSay(fcPool().length ? `${fcPool().length} carte${fcPool().length > 1 ? "s" : ""} exportée${fcPool().length > 1 ? "s" : ""} dans la zone ci-dessus.` : "Aucune carte à exporter.", !fcPool().length);
+});
+$("fcCopy").addEventListener("click", () => {
+  const txt = $("fcIO").value || fcExportText();
+  if (!txt) { fcSay("Rien à copier.", true); return; }
+  copyText(txt).then(() => fcSay("Copié !"), () => fcSay("Copie impossible sur ce navigateur.", true));
+});
+$("fcDownload").addEventListener("click", () => {
+  const txt = $("fcIO").value || fcExportText();
+  if (!txt) { fcSay("Rien à télécharger.", true); return; }
+  const url = URL.createObjectURL(new Blob([txt], { type: "text/plain;charset=utf-8" }));
+  const a = document.createElement("a");
+  a.href = url; a.download = "clippo-flashcards.txt";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+});
+$("fcImport").addEventListener("click", () => {
+  const lines = $("fcIO").value.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  if (!lines.length) { fcSay("Colle d'abord tes cartes dans la zone.", true); return; }
+  let added = 0, skipped = 0;
+  lines.forEach((line) => {
+    const parts = (line.includes("\t") ? line.split("\t") : line.split(";")).map((p) => p.trim());
+    const q = (parts[0] || "").slice(0, 200), a = (parts[1] || "").slice(0, 300);
+    if (!q || !a || fcCards.length >= FC_MAX) { skipped++; return; }
+    const deck = (parts[2] || "").slice(0, 30) || fcOpts.deck || "Général";
+    fcCards.push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6) + added, q, a, known: false, star: false, deck, box: 1, due: 0 });
+    added++;
+  });
+  fcSave(); fcRender();
+  fcSay(`${added} carte${added > 1 ? "s" : ""} importée${added > 1 ? "s" : ""}${skipped ? `, ${skipped} ligne${skipped > 1 ? "s" : ""} ignorée${skipped > 1 ? "s" : ""}` : ""}.`, !added);
+  if (added) $("fcIO").value = "";
+});
+
+$("fcResetProg").addEventListener("click", () => {
+  if (fcCards.length && confirm("Remettre la progression de toutes les cartes à zéro ?")) {
+    fcCards.forEach((c) => { c.known = false; c.box = 1; c.due = 0; });
+    fcIndex = 0; fcSetCard(); fcSave(); fcRender(); fcSay("Progression remise à zéro.");
+  }
+});
 $("fcClearAll").addEventListener("click", () => {
   if (fcCards.length && confirm("Supprimer toutes tes cartes ?")) {
-    fcCards = []; fcIndex = 0; fcShowAnswer = false;
+    fcCards = []; fcIndex = 0; fcStopEdit(); fcSetCard();
     fcSave();
     fcRender();
   }
 });
-$("fcFilters").querySelectorAll(".chip").forEach((chip) => chip.addEventListener("click", () => {
-  fcFilter = chip.dataset.filter;
-  fcIndex = 0; fcShowAnswer = false;
-  $("fcFilters").querySelectorAll(".chip").forEach((c) => c.classList.toggle("active", c === chip));
-  fcRender();
-}));
 
+try {
+  const o = JSON.parse(localStorage.getItem(FC_OPT) || "null");
+  if (o && typeof o === "object") {
+    if (["qa", "aq", "mix"].includes(o.dir)) fcOpts.dir = o.dir;
+    if (["s", "m", "l"].includes(o.size)) fcOpts.size = o.size;
+    if (typeof o.deck === "string") fcOpts.deck = o.deck.slice(0, 30);
+    fcOpts.typed = !!o.typed;
+  }
+} catch { /* réglages par défaut */ }
+$("fcDir").value = fcOpts.dir; $("fcSize").value = fcOpts.size; $("fcTyped").checked = fcOpts.typed;
 fcCards = fcLoad();
+fcSetCard();
 fcRender();
 
 todos = todoLoad();
