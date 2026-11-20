@@ -7803,13 +7803,10 @@ const HC_BY = { educatif: 0, medias: 1, createurs: 2, pratique: 3, argent: 4, je
   const grid = document.querySelector("#home .hm-grid");
   if (!grid || grid.children.length < 3) return;
   const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const SPEED = 34; // pixels par seconde
-  let pos = 0, last = 0, paused = false, resumeAt = 0, visible = true, active = false;
+  const SPEED = 40; // pixels par seconde
+  let x = 0, vel = 0, last = 0, hold = 0, visible = true, active = false, dragging = false, moved = false, tween = null;
+  let resumeAt = 0, hovering = false;
 
-  const gapPx = () => parseFloat(getComputedStyle(grid).columnGap) || 16;
-  const step = () => grid.children[0].getBoundingClientRect().width + gapPx();
-
-  // Enveloppe + flèches
   const wrap = document.createElement("div");
   wrap.className = "hm-marq";
   grid.parentNode.insertBefore(wrap, grid);
@@ -7821,54 +7818,111 @@ const HC_BY = { educatif: 0, medias: 1, createurs: 2, pratique: 3, argent: 4, je
   };
   const prev = mk("prev", "Outils précédents", "‹"), next = mk("next", "Outils suivants", "›");
 
-  // Boucle sans doublon : la 1re carte sortie de l'écran passe à la fin (et inversement)
-  let lockUntil = 0;
-  const recycle = () => {
-    if (performance.now() < lockUntil) return;
-    let s = step(), guard = 0;
-    while (grid.scrollLeft >= s && guard++ < 10) { grid.appendChild(grid.children[0]); pos -= s; grid.scrollLeft -= s; }
-  };
-  const goNext = () => { paused = true; resumeAt = performance.now() + 3500; grid.scrollBy({ left: step(), behavior: "smooth" }); };
-  const goPrev = () => {
-    paused = true; resumeAt = performance.now() + 3500;
+  const gapPx = () => parseFloat(getComputedStyle(grid).columnGap) || 16;
+  const step = () => grid.children[0].getBoundingClientRect().width + gapPx();
+  const paint = () => { grid.style.transform = `translate3d(${x.toFixed(2)}px,0,0)`; };
+
+  // Boucle sans doublon : la 1re carte sortie à gauche passe à la fin, et inversement
+  function recycle() {
     const s = step();
-    lockUntil = performance.now() + 900; // pendant l'animation, on ne recycle pas
-    if (grid.scrollLeft < s) { grid.insertBefore(grid.lastElementChild, grid.children[0]); grid.scrollLeft += s; pos = grid.scrollLeft; }
-    grid.scrollBy({ left: -s, behavior: "smooth" });
+    let guard = 0;
+    while (x <= -s && guard++ < 12) { grid.appendChild(grid.children[0]); x += s; }
+    while (x > 0 && guard++ < 24) { grid.insertBefore(grid.lastElementChild, grid.children[0]); x -= s; }
+  }
+  const hold_ = (ms) => { resumeAt = performance.now() + ms; };
+
+  // Glissement animé (flèches, clavier)
+  function slideBy(dx) {
+    vel = 0; hold_(3500);
+    const s = step();
+    let from = x, to = x + dx;
+    if (dx > 0) { // vers la gauche : on s'assure d'avoir une carte à faire apparaître
+      grid.insertBefore(grid.lastElementChild, grid.children[0]); x -= s; from = x; to = x + dx;
+    }
+    tween = { from, to, t0: performance.now(), dur: 520 };
+  }
+  next.addEventListener("click", () => slideBy(-step()));
+  prev.addEventListener("click", () => slideBy(step()));
+
+  // Glisser à la souris / au doigt, avec inertie
+  let startX = 0, startY = 0, lastX = 0, lastT = 0, pid = null, axis = null;
+  grid.addEventListener("pointerdown", (e) => {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    pid = e.pointerId; startX = lastX = e.clientX; startY = e.clientY; lastT = performance.now();
+    moved = false; axis = null; vel = 0; tween = null; dragging = true;
+  });
+  window.addEventListener("pointermove", (e) => {
+    if (!dragging || e.pointerId !== pid) return;
+    const dx = e.clientX - startX, dy = e.clientY - startY;
+    if (!axis) {
+      if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+      axis = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
+      if (axis === "x") { moved = true; try { grid.setPointerCapture(pid); } catch { /* ignoré */ } wrap.classList.add("is-drag"); }
+    }
+    if (axis !== "x") return;
+    const now = performance.now(), d = e.clientX - lastX, dt = Math.max(1, now - lastT);
+    x += d; vel = 0.8 * vel + 0.2 * (d / dt * 1000); lastX = e.clientX; lastT = now;
+    recycle(); paint();
+  });
+  const endDrag = (e) => {
+    if (!dragging || (e && e.pointerId !== pid)) return;
+    dragging = false; wrap.classList.remove("is-drag");
+    if (performance.now() - lastT > 90) vel = 0; // doigt arrêté avant le relâchement : pas d'élan
+    hold_(axis === "x" ? 2600 : 800);
+    setTimeout(() => { moved = false; }, 0);
   };
-  next.addEventListener("click", goNext);
-  prev.addEventListener("click", goPrev);
+  window.addEventListener("pointerup", endDrag);
+  window.addEventListener("pointercancel", endDrag);
+  grid.addEventListener("click", (e) => { if (moved) { e.preventDefault(); e.stopPropagation(); } }, true);
+  grid.addEventListener("dragstart", (e) => e.preventDefault());
 
-  const pause = (ms = 0) => { paused = true; resumeAt = ms ? performance.now() + ms : Infinity; };
-  const resume = (ms = 1200) => { resumeAt = performance.now() + ms; };
-  wrap.addEventListener("pointerenter", (e) => { if (e.pointerType === "mouse") pause(); });
-  wrap.addEventListener("pointerleave", (e) => { if (e.pointerType === "mouse") resume(600); });
-  wrap.addEventListener("focusin", () => pause());
-  wrap.addEventListener("focusout", () => resume(800));
-  grid.addEventListener("touchstart", () => pause(), { passive: true });
-  grid.addEventListener("touchend", () => resume(2500), { passive: true });
-  grid.addEventListener("wheel", () => { pause(2500); }, { passive: true });
-  grid.addEventListener("scroll", () => { if (Math.abs(grid.scrollLeft - pos) > 2) pos = grid.scrollLeft; recycle(); }, { passive: true });
+  // Molette horizontale / pavé tactile
+  wrap.addEventListener("wheel", (e) => {
+    if (Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;
+    e.preventDefault(); tween = null; vel = 0; x -= e.deltaX; recycle(); paint(); hold_(2500);
+  }, { passive: false });
 
-  if ("IntersectionObserver" in window) new IntersectionObserver((en) => { visible = en[0].isIntersecting; }, { threshold: 0.05 }).observe(wrap);
+  // Souris au-dessus : pause. Focus clavier : on amène la carte en vue.
+  wrap.addEventListener("pointerenter", (e) => { if (e.pointerType === "mouse") hovering = true; });
+  wrap.addEventListener("pointerleave", (e) => { if (e.pointerType === "mouse") { hovering = false; hold_(500); } });
+  wrap.addEventListener("scroll", () => { wrap.scrollLeft = 0; });
+  wrap.addEventListener("focusin", (e) => {
+    hold_(6000);
+    const card = e.target.closest && e.target.closest(".hm-feat");
+    if (!card) return;
+    const r = card.getBoundingClientRect(), w = wrap.getBoundingClientRect();
+    if (r.left < w.left + 20) tween = { from: x, to: x + (w.left + 20 - r.left), t0: performance.now(), dur: 350 };
+    else if (r.right > w.right - 20) tween = { from: x, to: x - (r.right - w.right + 20), t0: performance.now(), dur: 350 };
+  });
+  document.addEventListener("visibilitychange", () => { last = 0; });
+  if ("IntersectionObserver" in window) new IntersectionObserver((en) => { visible = en[0].isIntersecting; }, { threshold: 0.02 }).observe(wrap);
 
+  const ease = (t) => 1 - Math.pow(1 - t, 3);
   function tick(now) {
     requestAnimationFrame(tick);
     const dt = Math.min(0.1, (now - (last || now)) / 1000); last = now;
     if (!active || !visible || document.hidden) return;
-    if (paused && now >= resumeAt) paused = false;
-    if (paused) return;
-    pos += SPEED * dt;
-    grid.scrollLeft = pos;
-    recycle();
+    if (dragging) return;
+    if (tween) {
+      const t = Math.min(1, (now - tween.t0) / tween.dur);
+      x = tween.from + (tween.to - tween.from) * ease(t);
+      if (t >= 1) tween = null;
+    } else if (Math.abs(vel) > 8) {
+      x += vel * dt; vel *= Math.pow(0.0025, dt); // frottement : l'élan s'éteint en ~1 s
+    } else {
+      vel = 0;
+      if (!hovering && !reduce && now >= resumeAt) x -= SPEED * dt;
+    }
+    recycle(); paint();
   }
 
   // On ne défile que si les cartes dépassent de la zone visible
   const check = () => {
-    const overflow = grid.scrollWidth > grid.clientWidth + 8;
+    const total = Array.from(grid.children).reduce((s, c) => s + c.getBoundingClientRect().width + gapPx(), 0);
+    const overflow = total > wrap.clientWidth + 8;
     wrap.classList.toggle("is-marquee", overflow);
-    active = overflow && !reduce;
-    if (!overflow) grid.scrollLeft = 0; else pos = grid.scrollLeft;
+    active = overflow;
+    if (!overflow) { x = 0; vel = 0; tween = null; paint(); }
   };
   window.addEventListener("resize", check);
   grid.classList.add("is-marquee-grid");
