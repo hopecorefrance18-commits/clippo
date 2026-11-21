@@ -2705,6 +2705,7 @@ buRender();
 const homeSearch = $("homeSearch"), homeEmpty = $("homeEmpty");
 const HS_STOP = new Set("le la les un une des du de au aux en et ou a pour sur mon ma mes ton ta tes comment faire fait je veux voudrais besoin outil outils avec sans cherche trouver".split(" "));
 const HS_KW = {
+    subtitles: "sous titres soustitres sous-titre srt vtt video tiktok karaoke legende texte cc transcription capcut youtube",
     planner: "planificateur seances planning semaine sport entrainement calendrier agenda programme jour routine suivi",
   progen: "generateur programme sportif musculation fitness perte poids prise muscle endurance seance routine entrainement coach plan",
   workout: "chronometre entrainement sport fitness hiit tabata intervalle minuteur timer gym musculation circuit training gainage repos serie round",
