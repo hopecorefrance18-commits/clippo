@@ -4313,24 +4313,6 @@ if (podBox) {
   if (podTools[podStart]) podTrack(podStart);
   podRender();
 }
-
-  $("podClear").addEventListener("click", () => { podRecent = []; podSave(POD_REC_KEY, podRecent); podRender(); });
-  $("podReset").addEventListener("click", () => {
-    if (!confirm("Remettre ton podium à zéro ?")) return;
-    podUsage = {};
-    podSave(POD_KEY, podUsage);
-    podRender();
-  });
-  if (podSearch) podSearch.addEventListener("input", podRender);
-
-  // Chaque ouverture d'outil est comptée (menu, cartes, raccourcis, liens directs)
-  const podOpenTab = openTab;
-  openTab = (id) => { podOpenTab(id); podTrack(id); };
-  const podStart = location.hash.slice(1);
-  if (podTools[podStart]) podTrack(podStart);
-  podRender();
-}
-
 // ---------- Palette de couleurs ----------
 const plSwatches = $("plSwatches"), plStatus = $("plStatus"), plCount = $("plCount"), plHarmony = $("plHarmony"), plFmt = $("plFmt");
 const plGo = $("plGo"), plPhotoBox = $("plPhotoBox"), plHarmonyBox = $("plHarmonyBox"), plPreview = $("plPreview");
