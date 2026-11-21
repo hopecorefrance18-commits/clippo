@@ -8376,3 +8376,333 @@ const HC_BY = { educatif: 0, medias: 1, createurs: 2, pratique: 3, argent: 4, je
     }
   } catch { /* réglages par défaut */ }
 })();
+// ---------- Création de sous-titres ----------
+(() => {
+  const panel = $("subtitles");
+  if (!panel) return;
+  const KEY = "clippo_subtitles", MAX = 300;
+  const FONT = {
+    sans: '"DM Sans", system-ui, sans-serif',
+    impact: 'Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif',
+    mono: 'ui-monospace, "Courier New", monospace',
+    serif: 'Georgia, "Times New Roman", serif',
+    comic: '"Comic Sans MS", "Chalkboard SE", "Marker Felt", cursive'
+  };
+  // out = [couleur du contour, épaisseur en em] ; glow = halo ; hl = couleur du mot prononcé (effet karaoké)
+  const MODELS = {
+    classic: { n: "Classique", f: "sans", w: 700, c: "#ffffff", out: ["#000000", .07] },
+    netflix: { n: "Cinéma", f: "sans", w: 600, c: "#ffffff", sh: "0 .06em .16em rgba(0,0,0,.95)" },
+    yellow: { n: "Jaune", f: "sans", w: 800, c: "#ffe14d", out: ["#000000", .08] },
+    tiktok: { n: "TikTok", f: "impact", w: 400, c: "#ffffff", out: ["#000000", .1], up: true, ls: ".01em" },
+    karaoke: { n: "Karaoké", f: "impact", w: 400, c: "#ffffff", out: ["#000000", .1], up: true, hl: "#ffe14d" },
+    karapink: { n: "Karaoké rose", f: "sans", w: 800, c: "#ffffff", out: ["#2a0a3a", .09], hl: "#ff4fa3" },
+    box: { n: "Boîte noire", f: "sans", w: 600, c: "#ffffff", bg: "rgba(0,0,0,.78)", r: .25, pad: ".25em .6em" },
+    boxy: { n: "Boîte jaune", f: "sans", w: 800, c: "#111111", bg: "#ffe14d", r: .2, pad: ".2em .55em" },
+    pill: { n: "Pastille", f: "sans", w: 700, c: "#4b2aa8", bg: "#ffe3f1", r: 1, pad: ".22em .8em" },
+    neonpink: { n: "Néon rose", f: "sans", w: 700, c: "#fff2fb", glow: "#ff2bd6" },
+    neoncyan: { n: "Néon cyan", f: "sans", w: 700, c: "#eaffff", glow: "#18e0ff" },
+    comic: { n: "Comics", f: "comic", w: 800, c: "#fff200", out: ["#d60000", .09], it: true, up: true },
+    vhs: { n: "Rétro VHS", f: "mono", w: 700, c: "#7dff9a", sh: "0 0 .35em rgba(125,255,154,.8), .08em .08em 0 #000", up: true },
+    typewriter: { n: "Machine à écrire", f: "mono", w: 700, c: "#1a1a1a", bg: "#f6f1e3", r: .08, pad: ".2em .6em" },
+    minimal: { n: "Minimal", f: "sans", w: 400, c: "#ffffff", sh: "0 .03em .12em rgba(0,0,0,.85)", ls: ".02em", size: .82 },
+    gold: { n: "Doré", f: "serif", w: 700, c: "#f2c660", out: ["#3a2500", .06], sh: "0 .05em .2em rgba(0,0,0,.8)", it: true },
+    horror: { n: "Horreur", f: "serif", w: 700, c: "#c40000", out: ["#000000", .05], sh: "0 0 .4em rgba(255,0,0,.7)", up: true, ls: ".05em" },
+    story: { n: "Story", f: "sans", w: 800, c: "#ffffff", bg: "rgba(20,20,40,.55)", r: .45, pad: ".3em .7em" }
+  };
+  const ORDER = Object.keys(MODELS);
+  const BG = [
+    "linear-gradient(135deg,#0a1230,#1b2f78)", "linear-gradient(135deg,#ff8a5c,#6a3df0)",
+    "linear-gradient(135deg,#052c4a,#1396a8)", "linear-gradient(135deg,#2b2b2b,#555)", "linear-gradient(135deg,#0c3a2a,#3aa86b)"
+  ];
+
+  const S = { lines: [], model: "classic", pos: "bottom", size: 100, caps: false, bg: 0, ratio: "16/9" };
+  let hasVideo = false, videoUrl = "", playing = false, clock = 0, lastTs = 0, nid = 1;
+  const stage = $("stStage"), vid = $("stVideo"), cue = $("stCue"), msg = $("stMsg"), list = $("stList");
+
+  const uid = () => "s" + Date.now().toString(36) + (nid++);
+  const say = (t, err) => { msg.textContent = t; msg.classList.toggle("error", !!err); };
+  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+
+  // ---- Temps ----
+  const pad = (n, l = 2) => String(n).padStart(l, "0");
+  function fmtShort(t) { t = Math.max(0, t); const m = Math.floor(t / 60); return m + ":" + pad((t - m * 60).toFixed(2), 5); }
+  function fmtFile(t, sep) {
+    t = Math.max(0, Math.round(t * 1000));
+    const h = Math.floor(t / 3600000), m = Math.floor(t / 60000) % 60, s = Math.floor(t / 1000) % 60, ms = t % 1000;
+    return `${pad(h)}:${pad(m)}:${pad(s)}${sep}${pad(ms, 3)}`;
+  }
+  function parseTime(str) { // accepte 1:05.5, 65,5, 00:01:05,500
+    const parts = String(str).trim().replace(",", ".").split(":").map((p) => parseFloat(p));
+    if (!parts.length || parts.some((p) => !Number.isFinite(p) || p < 0)) return null;
+    return parts.reduce((acc, p) => acc * 60 + p, 0);
+  }
+
+  // ---- Sauvegarde ----
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch { /* stockage indisponible */ } }
+  function load() {
+    try {
+      const d = JSON.parse(localStorage.getItem(KEY) || "null");
+      if (!d || typeof d !== "object") return;
+      if (Array.isArray(d.lines)) S.lines = d.lines.filter((l) => l && typeof l.t === "string" && Number.isFinite(l.s) && Number.isFinite(l.e)).slice(0, MAX).map((l) => ({ id: uid(), s: l.s, e: l.e, t: l.t.slice(0, 200) }));
+      if (MODELS[d.model]) S.model = d.model;
+      if (["top", "middle", "bottom"].includes(d.pos)) S.pos = d.pos;
+      S.size = clamp(parseInt(d.size, 10) || 100, 60, 170);
+      S.caps = !!d.caps;
+      S.bg = clamp(parseInt(d.bg, 10) || 0, 0, BG.length - 1);
+      if (["16/9", "9/16", "1/1", "4/5"].includes(d.ratio)) S.ratio = d.ratio;
+    } catch { /* données par défaut */ }
+  }
+
+  // ---- Style d'un modèle (tailles en em : la taille réelle vient du conteneur) ----
+  function modelCss(m, caps) {
+    const sh = [];
+    if (m.out) { const [c, w] = m.out; [[1, 0], [-1, 0], [0, 1], [0, -1], [.7, .7], [-.7, .7], [.7, -.7], [-.7, -.7]].forEach(([x, y]) => sh.push(`${(x * w).toFixed(3)}em ${(y * w).toFixed(3)}em 0 ${c}`)); }
+    if (m.glow) sh.push(`0 0 .12em ${m.glow}`, `0 0 .3em ${m.glow}`, `0 0 .7em ${m.glow}`, `0 0 1.2em ${m.glow}`);
+    if (m.sh) sh.push(m.sh);
+    return {
+      fontFamily: FONT[m.f], fontWeight: m.w, fontStyle: m.it ? "italic" : "normal", color: m.c, letterSpacing: m.ls || "normal",
+      textTransform: m.up || caps ? "uppercase" : "none", textShadow: sh.join(",") || "none",
+      background: m.bg || "transparent", borderRadius: (m.r || 0) + "em", padding: m.pad || "0", lineHeight: 1.25
+    };
+  }
+  function applyStyle(el, m, caps) { Object.assign(el.style, modelCss(m, caps)); }
+
+  // ---- Modèles ----
+  function renderModels() {
+    const box = $("stModels");
+    box.textContent = "";
+    ORDER.forEach((k) => {
+      const m = MODELS[k];
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "st-model" + (k === S.model ? " active" : ""); b.setAttribute("role", "option"); b.setAttribute("aria-selected", String(k === S.model));
+      const view = document.createElement("span"); view.className = "st-sample";
+      const txt = document.createElement("span"); txt.className = "st-sample-t";
+      applyStyle(txt, m, false);
+      if (m.hl) { const a = document.createElement("span"); a.textContent = "Salut "; a.style.color = m.hl; txt.append(a, document.createTextNode("toi")); } else txt.textContent = "Salut toi";
+      view.appendChild(txt);
+      const name = document.createElement("span"); name.className = "st-mname"; name.textContent = m.n;
+      b.append(view, name);
+      b.addEventListener("click", () => { S.model = k; save(); renderModels(); renderCue(); });
+      box.appendChild(b);
+    });
+  }
+
+  // ---- Aperçu ----
+  const maxEnd = () => S.lines.reduce((a, l) => Math.max(a, l.e), 0);
+  const duration = () => (hasVideo && Number.isFinite(vid.duration) ? vid.duration : Math.max(10, Math.ceil(maxEnd() + 1)));
+  const now = () => (hasVideo ? vid.currentTime : clock);
+
+  function renderCue() {
+    const t = now(), m = MODELS[S.model];
+    const l = S.lines.find((x) => x.t.trim() && t >= x.s && t < x.e);
+    cue.className = "st-cue pos-" + S.pos;
+    cue.textContent = "";
+    if (!l) { $("stTime").textContent = `${fmtShort(t).slice(0, -1)} / ${fmtShort(duration()).slice(0, -1)}`; return; }
+    const inner = document.createElement("span");
+    inner.className = "st-cue-t";
+    inner.style.fontSize = (5.2 * S.size / 100 * (m.size || 1)).toFixed(3) + "cqw";
+    applyStyle(inner, m, S.caps);
+    if (m.hl) {
+      const words = l.t.replace(/\s+/g, " ").trim().split(" ");
+      const prog = (t - l.s) / Math.max(.1, l.e - l.s);
+      words.forEach((w, i) => {
+        const sp = document.createElement("span");
+        sp.textContent = w + (i < words.length - 1 ? " " : "");
+        sp.style.color = prog >= i / words.length ? m.hl : m.c;
+        inner.appendChild(sp);
+      });
+    } else inner.textContent = l.t;
+    cue.appendChild(inner);
+    $("stTime").textContent = `${fmtShort(t).slice(0, -1)} / ${fmtShort(duration()).slice(0, -1)}`;
+  }
+  function syncSeek() { const d = duration(); $("stSeek").value = Math.round(clamp(now() / d, 0, 1) * 1000); }
+  function frame(ts) {
+    if (!playing) return;
+    if (!hasVideo) {
+      clock += Math.min(.1, (ts - (lastTs || ts)) / 1000); lastTs = ts;
+      if (clock >= duration()) { clock = 0; playing = false; $("stPlay").textContent = "▶ Lire"; }
+    }
+    syncSeek(); renderCue();
+    if (playing) requestAnimationFrame(frame);
+  }
+  function setPlaying(on) {
+    playing = on; lastTs = 0;
+    $("stPlay").textContent = on ? "⏸ Pause" : "▶ Lire";
+    if (hasVideo) { if (on) vid.play().catch(() => { playing = false; $("stPlay").textContent = "▶ Lire"; }); else vid.pause(); }
+    if (on) requestAnimationFrame(frame);
+  }
+  function seek(t) {
+    t = clamp(t, 0, duration());
+    if (hasVideo) vid.currentTime = t; else clock = t;
+    syncSeek(); renderCue();
+  }
+  function applyStage() {
+    stage.style.background = hasVideo ? "#000" : BG[S.bg];
+    if (!hasVideo) { stage.style.setProperty("--ar", S.ratio); const [a, b] = S.ratio.split("/").map(Number); stage.style.setProperty("--ar-n", (a / b).toFixed(4)); }
+  }
+
+  $("stPlay").addEventListener("click", () => setPlaying(!playing));
+  $("stSeek").addEventListener("input", (e) => seek(parseInt(e.target.value, 10) / 1000 * duration()));
+  vid.addEventListener("seeked", () => { syncSeek(); renderCue(); });
+  vid.addEventListener("pause", () => { if (playing) { playing = false; $("stPlay").textContent = "▶ Lire"; } });
+  vid.addEventListener("ended", () => { playing = false; $("stPlay").textContent = "▶ Lire"; });
+  vid.addEventListener("loadedmetadata", () => {
+    stage.style.setProperty("--ar", `${vid.videoWidth || 16}/${vid.videoHeight || 9}`);
+    stage.style.setProperty("--ar-n", ((vid.videoWidth || 16) / (vid.videoHeight || 9)).toFixed(4));
+    syncSeek(); renderCue();
+  });
+  $("stFile").addEventListener("change", (e) => {
+    const f = e.target.files && e.target.files[0];
+    if (!f) return;
+    if (!f.type.startsWith("video/")) { say("Choisis un fichier vidéo.", true); return; }
+    setPlaying(false);
+    if (videoUrl) URL.revokeObjectURL(videoUrl);
+    videoUrl = URL.createObjectURL(f);
+    vid.src = videoUrl; vid.hidden = false; hasVideo = true; vid.muted = false;
+    $("stFileName").textContent = "🎬 " + f.name.slice(0, 40);
+    applyStage(); say("Vidéo chargée. Utilise les boutons ⏱ pour caler chaque ligne sur la vidéo.");
+  });
+  $("stBg").addEventListener("change", (e) => { S.bg = parseInt(e.target.value, 10) || 0; save(); applyStage(); });
+  $("stRatio").addEventListener("change", (e) => { S.ratio = e.target.value; save(); applyStage(); });
+  $("stPos").addEventListener("change", (e) => { S.pos = e.target.value; save(); renderCue(); });
+  $("stSize").addEventListener("input", (e) => { S.size = parseInt(e.target.value, 10) || 100; $("stSizeVal").textContent = S.size; save(); renderCue(); });
+  $("stCaps").addEventListener("change", (e) => { S.caps = e.target.checked; save(); renderCue(); });
+
+  // ---- Liste des lignes ----
+  function sortLines() { S.lines.sort((a, b) => a.s - b.s); }
+  function renderList() {
+    list.textContent = "";
+    S.lines.forEach((l, i) => {
+      const li = document.createElement("li");
+      li.className = "st-row"; li.dataset.id = l.id;
+      const num = document.createElement("span"); num.className = "st-num"; num.textContent = i + 1;
+      const mkTime = (k, label) => {
+        const inp = document.createElement("input");
+        inp.type = "text"; inp.className = "text-in st-t"; inp.value = fmtShort(l[k]); inp.setAttribute("aria-label", label + " de la ligne " + (i + 1)); inp.inputMode = "decimal"; inp.autocomplete = "off";
+        inp.addEventListener("change", () => {
+          const v = parseTime(inp.value);
+          if (v === null) { inp.value = fmtShort(l[k]); say("Temps invalide. Exemple : 1:05.5", true); return; }
+          l[k] = v; inp.value = fmtShort(v); check(li, l); save(); renderCue(); say("");
+        });
+        return inp;
+      };
+      const s = mkTime("s", "Début"), e = mkTime("e", "Fin");
+      const ta = document.createElement("textarea");
+      ta.className = "fancy-in st-txt"; ta.rows = 2; ta.maxLength = 200; ta.value = l.t; ta.placeholder = "Ton sous-titre…"; ta.setAttribute("aria-label", "Texte de la ligne " + (i + 1));
+      ta.addEventListener("input", () => { l.t = ta.value; save(); renderCue(); });
+      const bt = document.createElement("div"); bt.className = "st-rb";
+      const mk = (label, aria, fn) => { const b = document.createElement("button"); b.type = "button"; b.className = "todo-btn"; b.textContent = label; b.setAttribute("aria-label", aria + " (ligne " + (i + 1) + ")"); b.title = aria; b.addEventListener("click", fn); return b; };
+      bt.append(
+        mk("👁", "Voir cette ligne dans l'aperçu", () => { setPlaying(false); seek(l.s + .01); stage.scrollIntoView({ behavior: "smooth", block: "nearest" }); }),
+        mk("⏱ début", "Début = position actuelle", () => { l.s = now(); if (l.e <= l.s) l.e = l.s + 2; save(); renderList(); renderCue(); }),
+        mk("⏱ fin", "Fin = position actuelle", () => { if (now() <= l.s) { say("La fin doit être après le début.", true); return; } l.e = now(); save(); renderList(); renderCue(); }),
+        mk("＋", "Insérer une ligne après", () => addAfter(i)),
+        mk("×", "Supprimer", () => { S.lines.splice(i, 1); save(); renderList(); renderCue(); })
+      );
+      li.append(num, s, e, ta, bt);
+      check(li, l);
+      list.appendChild(li);
+    });
+    if (!S.lines.length) { const p = document.createElement("li"); p.className = "st-empty"; p.textContent = "Aucune ligne pour l'instant. Ajoute-en une, ou colle ton texte plus bas."; list.appendChild(p); }
+  }
+  function check(li, l) { li.classList.toggle("bad", l.e <= l.s); }
+  function addAfter(i) {
+    if (S.lines.length >= MAX) { say(`Limite de ${MAX} lignes atteinte.`, true); return; }
+    const prev = S.lines[i], start = prev ? prev.e + .1 : 0;
+    S.lines.splice(prev ? i + 1 : S.lines.length, 0, { id: uid(), s: start, e: start + 2, t: "" });
+    save(); renderList(); renderCue();
+    const tas = list.querySelectorAll(".st-txt"); const ta = tas[prev ? i + 1 : tas.length - 1]; if (ta) ta.focus();
+  }
+  $("stAdd").addEventListener("click", () => addAfter(S.lines.length - 1));
+  $("stClear").addEventListener("click", () => { if (S.lines.length && confirm("Effacer tous les sous-titres ?")) { S.lines = []; save(); renderList(); renderCue(); say(""); } });
+
+  // ---- Découper un texte / importer SRT-VTT ----
+  function parseSub(text) {
+    const out = [];
+    text.replace(/\r/g, "").split(/\n{2,}/).forEach((block) => {
+      const rows = block.split("\n").map((r) => r.trim()).filter(Boolean);
+      const k = rows.findIndex((r) => r.includes("-->"));
+      if (k < 0) return;
+      const [a, b] = rows[k].split("-->").map((x) => parseTime(x.trim().split(/\s+/)[0]));
+      const t = rows.slice(k + 1).join("\n").replace(/<[^>]+>/g, "").trim();
+      if (a !== null && b !== null && b > a && t) out.push({ id: uid(), s: a, e: b, t: t.slice(0, 200) });
+    });
+    return out;
+  }
+  function splitText(text, max, cps) {
+    const sentences = text.replace(/\s+/g, " ").trim().split(/(?<=[.!?…:;])\s+/).filter(Boolean);
+    const chunks = [];
+    sentences.forEach((sen) => {
+      let cur = "";
+      sen.split(" ").forEach((w) => {
+        if (cur && (cur + " " + w).length > max) { chunks.push(cur); cur = w; } else cur = cur ? cur + " " + w : w;
+      });
+      if (cur) chunks.push(cur);
+    });
+    return chunks.map((t) => ({ t, d: Math.max(1.2, t.length / cps) }));
+  }
+  $("stSplit").addEventListener("click", () => {
+    const raw = $("stPaste").value.trim();
+    if (!raw) { say("Colle d'abord ton texte.", true); return; }
+    let add;
+    if (raw.includes("-->")) add = parseSub(raw);
+    else {
+      let t = S.lines.length ? maxEnd() + .3 : 0;
+      add = splitText(raw, parseInt($("stMax").value, 10) || 42, parseInt($("stCps").value, 10) || 15).map((c) => { const l = { id: uid(), s: t, e: t + c.d, t: c.t }; t += c.d + .05; return l; });
+    }
+    if (!add.length) { say("Rien à importer : vérifie le texte ou le format du fichier.", true); return; }
+    const room = MAX - S.lines.length;
+    S.lines = S.lines.concat(add.slice(0, Math.max(0, room)));
+    sortLines(); save(); renderList(); renderCue();
+    $("stPaste").value = "";
+    say(`${Math.min(add.length, room)} ligne${add.length > 1 ? "s" : ""} ajoutée${add.length > 1 ? "s" : ""}.` + (add.length > room ? ` (limite de ${MAX} atteinte)` : ""));
+  });
+  $("stShiftBtn").addEventListener("click", () => {
+    const d = parseFloat($("stShift").value);
+    if (!Number.isFinite(d) || !S.lines.length) { say("Indique un décalage et ajoute des lignes.", true); return; }
+    S.lines.forEach((l) => { l.s = Math.max(0, l.s + d); l.e = Math.max(l.s + .1, l.e + d); });
+    save(); renderList(); renderCue(); say(`Tous les temps sont décalés de ${d} s.`);
+  });
+
+  // ---- Export ----
+  function build(fmt) {
+    const ok = S.lines.filter((l) => l.t.trim() && l.e > l.s).slice().sort((a, b) => a.s - b.s);
+    const skipped = S.lines.length - ok.length;
+    if (fmt === "txt") return { text: ok.map((l) => l.t.trim()).join("\n"), skipped };
+    const sep = fmt === "vtt" ? "." : ",";
+    const body = ok.map((l, i) => `${fmt === "srt" ? i + 1 + "\n" : ""}${fmtFile(l.s, sep)} --> ${fmtFile(l.e, sep)}\n${l.t.trim()}`).join("\n\n");
+    return { text: (fmt === "vtt" ? "WEBVTT\n\n" : "") + body + (body ? "\n" : ""), skipped };
+  }
+  function generate() {
+    const r = build($("stFmt").value);
+    $("stOut").value = r.text;
+    say(r.text ? (r.skipped ? `${r.skipped} ligne${r.skipped > 1 ? "s" : ""} ignorée${r.skipped > 1 ? "s" : ""} (vide ou fin avant le début).` : "Fichier prêt.") : "Rien à exporter : ajoute des lignes avec du texte.", !r.text);
+    return r.text;
+  }
+  $("stGen").addEventListener("click", generate);
+  $("stFmt").addEventListener("change", () => { if ($("stOut").value) generate(); });
+  $("stCopy").addEventListener("click", () => {
+    const t = generate();
+    if (t) copyText(t).then(() => say("Copié !"), () => say("Copie impossible sur ce navigateur.", true));
+  });
+  $("stDl").addEventListener("click", () => {
+    const t = generate();
+    if (!t) return;
+    const fmt = $("stFmt").value;
+    const url = URL.createObjectURL(new Blob([t], { type: "text/plain;charset=utf-8" }));
+    const a = document.createElement("a");
+    a.href = url; a.download = "sous-titres-clippo." + fmt;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  });
+
+  // ---- Démarrage ----
+  load();
+  if (!S.lines.length) S.lines = [
+    { id: uid(), s: .5, e: 3, t: "Salut tout le monde !" },
+    { id: uid(), s: 3.2, e: 6.5, t: "Voici ton premier sous-titre." },
+    { id: uid(), s: 6.8, e: 9.5, t: "Change le modèle pour voir la différence." }
+  ];
+  $("stBg").value = S.bg; $("stRatio").value = S.ratio; $("stPos").value = S.pos; $("stSize").value = S.size; $("stSizeVal").textContent = S.size; $("stCaps").checked = S.caps;
+  renderModels(); renderList(); applyStage(); seek(1);
+})();
