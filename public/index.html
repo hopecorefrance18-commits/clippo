@@ -66,6 +66,7 @@
                     <button class="tab" data-tab="enhance">Améliorer une image</button>
                     <button class="tab" data-tab="photopdf">Photo en PDF</button>
                     <button class="tab" data-tab="watermark">Filigrane</button>
+                              <button class="tab" data-tab="subtitles">Sous-titres</button>
           <button class="tab" data-tab="textanim">Texte animé</button>
         </div>
         <div class="subgroup" data-cat="creators" hidden>
@@ -251,7 +252,8 @@
             <button class="tool-card" data-go="enhance"><i class="tc-ico">✨</i><strong>Améliorer une image</strong><span>Agrandis et rends ta photo plus nette.</span><em class="tc-go">→</em></button>
                     <button class="tool-card" data-go="photopdf"><i class="tc-ico">📄</i><strong>Photo en PDF</strong><span>Rassemble tes photos dans un seul PDF.</span><em class="tc-go">→</em></button>
                       <button class="tool-card" data-go="watermark"><i class="tc-ico">©️</i><strong>Ajout de filigrane</strong><span>Signe tes photos avec ton nom ou ton logo.</span><em class="tc-go">→</em></button>
-         <button class="tool-card" data-go="textanim"><i class="tc-ico">🎞️</i><strong>Générateur de texte animé</strong><span>Texte animé, couleurs et effets pour tes réseaux.</span><em class="tc-go">→</em></button>
+                     <button class="tool-card" data-go="subtitles"><i class="tc-ico">💬</i><strong>Création de sous-titres</strong><span>18 modèles, aperçu en direct, export .srt et .vtt.</span><em class="tc-go">→</em></button>
+            <button class="tool-card" data-go="textanim"><i class="tc-ico">🎞️</i><strong>Générateur de texte animé</strong><span>Texte animé, couleurs et effets pour tes réseaux.</span><em class="tc-go">→</em></button>
           </div>
         </div>
 
@@ -2696,6 +2698,96 @@ Hugo</textarea>
           <button id="pgToPlan" class="primary" type="button">Ajouter au planificateur</button>
         </div>
         <p class="gr-note">Ce programme est une base générale et ne remplace pas l'avis d'un coach ou d'un médecin. Échauffe-toi toujours, adapte les charges à ton ressenti et arrête-toi en cas de douleur.</p>
+      </div>
+    </section>
+              <section id="subtitles" class="panel">
+      <h1>Crée tes sous-titres.</h1>
+      <p class="sub">Écris tes sous-titres, choisis parmi 18 modèles et regarde le rendu en direct sur ta vidéo. Exporte ensuite un fichier .srt ou .vtt. Tout reste sur ton appareil.</p>
+
+      <div class="card">
+        <h2 class="fc-title">1. Aperçu</h2>
+        <div class="st-stage" id="stStage" style="--ar:16/9">
+          <video id="stVideo" playsinline muted preload="metadata" hidden></video>
+          <div id="stCue" class="st-cue pos-bottom" aria-live="polite"></div>
+        </div>
+        <div class="st-player">
+          <button id="stPlay" class="primary" type="button">▶ Lire</button>
+          <input id="stSeek" type="range" min="0" max="1000" value="0" aria-label="Position dans l'aperçu">
+          <span id="stTime" class="st-clock">0:00.0 / 0:10.0</span>
+        </div>
+        <div class="st-opts">
+          <label class="drop st-vdrop">
+            <input id="stFile" type="file" accept="video/*" hidden>
+            <strong id="stFileName">🎬 Charger une vidéo (facultatif)</strong>
+            <span>Elle reste sur ton appareil. Sans vidéo, tu vois les sous-titres sur un fond.</span>
+          </label>
+          <label class="select"><span>Fond sans vidéo</span>
+            <select id="stBg"><option value="0">Nuit</option><option value="1">Aube</option><option value="2">Océan</option><option value="3">Gris</option><option value="4">Vert</option></select>
+          </label>
+          <label class="select"><span>Format sans vidéo</span>
+            <select id="stRatio"><option value="16/9">16:9 (YouTube)</option><option value="9/16">9:16 (TikTok, Reels)</option><option value="1/1">1:1 (carré)</option><option value="4/5">4:5 (Instagram)</option></select>
+          </label>
+        </div>
+
+        <h2 class="fc-title">2. Choisis un modèle</h2>
+        <div id="stModels" class="st-models" role="listbox" aria-label="Modèles de sous-titres"></div>
+        <div class="st-opts st-opts3">
+          <label class="select"><span>Position</span>
+            <select id="stPos"><option value="bottom">En bas</option><option value="middle">Au milieu</option><option value="top">En haut</option></select>
+          </label>
+          <label class="select"><span>Taille : <b id="stSizeVal">100</b> %</span>
+            <input id="stSize" type="range" min="60" max="170" value="100" aria-label="Taille du texte">
+          </label>
+          <label class="check st-caps"><input id="stCaps" type="checkbox"> Tout en MAJUSCULES</label>
+        </div>
+
+        <h2 class="fc-title">3. Tes sous-titres</h2>
+        <ul id="stList" class="st-list"></ul>
+        <div class="row st-addbtns">
+          <button id="stAdd" class="primary" type="button">＋ Ajouter une ligne</button>
+          <button id="stClear" class="ghost-btn" type="button">Tout effacer</button>
+        </div>
+        <p id="stMsg" class="status" role="status"></p>
+
+        <details class="fc-io" id="stImp">
+          <summary>✍️ Coller un texte ou importer un fichier .srt / .vtt</summary>
+          <p class="fc-iohelp">Colle ton script : Clippo le découpe en sous-titres et calcule les durées selon la vitesse de lecture. Tu peux aussi coller le contenu d'un fichier .srt ou .vtt existant.</p>
+          <textarea id="stPaste" class="fancy-in" rows="6" placeholder="Salut tout le monde ! Aujourd'hui, on va voir comment faire des sous-titres." aria-label="Texte à découper"></textarea>
+          <div class="st-opts st-opts3">
+            <label class="select"><span>Longueur max d'une ligne</span>
+              <select id="stMax"><option value="28">28 caractères (TikTok)</option><option value="42" selected>42 caractères</option><option value="60">60 caractères</option></select>
+            </label>
+            <label class="select"><span>Vitesse de lecture</span>
+              <select id="stCps"><option value="12">Lente</option><option value="15" selected>Normale</option><option value="20">Rapide</option></select>
+            </label>
+          </div>
+          <div class="row st-addbtns">
+            <button id="stSplit" class="primary" type="button">Créer les sous-titres</button>
+          </div>
+        </details>
+
+        <details class="fc-io">
+          <summary>⏱ Décaler tous les temps</summary>
+          <p class="fc-iohelp">Les sous-titres arrivent trop tôt ou trop tard ? Décale-les d'un coup (en secondes, un nombre négatif les avance).</p>
+          <div class="st-shift">
+            <input id="stShift" class="text-in" type="number" step="0.1" value="0.5" aria-label="Décalage en secondes">
+            <button id="stShiftBtn" class="ghost-btn" type="button">Décaler</button>
+          </div>
+        </details>
+
+        <h2 class="fc-title">4. Exporte</h2>
+        <div class="st-opts">
+          <label class="select"><span>Format</span>
+            <select id="stFmt"><option value="srt">.srt (le plus courant)</option><option value="vtt">.vtt (web, YouTube)</option><option value="txt">Texte seul</option></select>
+          </label>
+        </div>
+        <textarea id="stOut" class="fancy-in" rows="7" readonly placeholder="Ton fichier apparaît ici." aria-label="Fichier de sous-titres"></textarea>
+        <div class="row st-addbtns">
+          <button id="stGen" class="primary" type="button">Générer</button>
+          <button id="stCopy" class="ghost-btn" type="button">Copier</button>
+          <button id="stDl" class="ghost-btn" type="button">Télécharger</button>
+        </div>
+        <p class="gr-note">Clippo ne grave pas les sous-titres dans la vidéo : télécharge le fichier .srt ou .vtt, puis ajoute-le dans CapCut, VLC, YouTube, Premiere ou ton lecteur. Tes sous-titres sont gardés dans ce navigateur.</p>
       </div>
     </section>
         </main>
