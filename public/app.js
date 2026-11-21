@@ -2705,6 +2705,7 @@ buRender();
 const homeSearch = $("homeSearch"), homeEmpty = $("homeEmpty");
 const HS_STOP = new Set("le la les un une des du de au aux en et ou a pour sur mon ma mes ton ta tes comment faire fait je veux voudrais besoin outil outils avec sans cherche trouver".split(" "));
 const HS_KW = {
+      revsheet: "fiche fiches revision reviser cours resume surligner surlignage souligner pdf emoji emojis symbole symboles police stylo cahier memo imprimer",
     subtitles: "sous titres soustitres sous-titre srt vtt video tiktok karaoke legende texte cc transcription capcut youtube",
     planner: "planificateur seances planning semaine sport entrainement calendrier agenda programme jour routine suivi",
   progen: "generateur programme sportif musculation fitness perte poids prise muscle endurance seance routine entrainement coach plan",
@@ -8706,4 +8707,226 @@ const HC_BY = { educatif: 0, medias: 1, createurs: 2, pratique: 3, argent: 4, je
   ];
   $("stBg").value = S.bg; $("stRatio").value = S.ratio; $("stPos").value = S.pos; $("stSize").value = S.size; $("stSizeVal").textContent = S.size; $("stCaps").checked = S.caps;
   renderModels(); renderList(); applyStage(); seek(1);
+})();
+// ---------- Fiches de révision ----------
+(() => {
+  const panel = $("revsheet");
+  if (!panel) return;
+  const KEY = "clippo_revsheets", MAX = 30;
+  const body = $("rfBody"), title = $("rfTitle"), sheet = $("rfSheet"), msg = $("rfMsg");
+  const TEXT_COLORS = ["#1b2340", "#d62828", "#f77f00", "#2a9d4a", "#1d5fd6", "#7b3fe4", "#e0409a"];
+  const HL_COLORS = ["#fff176", "#ffd6a5", "#ffadc8", "#b9f6ca", "#a7e0ff", "#d7c4ff"];
+  const SYMS = {
+    "Maths": "± × ÷ √ ∞ ≠ ≤ ≥ ≈ ≡ π ∑ ∫ ∆ ° ² ³ ⁿ ½ ¼ ¾ % ‰ ∈ ∉ ⊂ ∪ ∩ ∅ ∀ ∃ ∴ ∵ α β γ δ θ λ μ σ φ ω Ω",
+    "Flèches": "→ ← ↑ ↓ ↔ ↕ ⇒ ⇐ ⇔ ⇨ ➜ ➤ ➔ ↩ ↪ ↗ ↘ ↙ ↖ ⟶ ⟵ ⟷ ⤴ ⤵ ▶ ◀ ▲ ▼",
+    "Marques": "✓ ✔ ✗ ✘ ★ ☆ ✦ ✧ ❤ ♥ ♦ ♣ ♠ ● ○ ■ □ ◆ ◇ ① ② ③ ④ ⑤ ⑥ ⑦ ⑧ ⑨ ⑩ ❶ ❷ ❸ © ® ™ § ¶ † ‡ № ☎ ✎ ✂ ✉ ☀ ☁ ☂ ☘ ♻ ⚑ ⚐ ♪ ♫",
+    "Révisions": "📌 📍 📚 📖 📝 ✏️ 🖍️ 🖊️ 💡 ⚠️ ❗ ❓ ✅ ❌ ⭐ 🌟 🔥 🎯 🧠 ⏰ ⏳ 📅 🔍 🏆 🥇 🔑 📊 📈 📉 💯 ➕ ➖ ✖️ ➗ 🔢 🧮 📐 📏 ☑️ 🔔 🚀 📎 🗂️ 📋 🔖 💬 👀 ✨",
+    "Matières": "🧪 ⚗️ 🔬 🧬 🔭 ⚛️ 🌍 🗺️ 🌋 🌱 🌳 🐾 🦠 🧲 ⚡ 🔋 💻 ⌨️ 🖥️ 📡 🏛️ ⚖️ 📜 🏺 ⚔️ 👑 🇫🇷 🇬🇧 🇪🇸 🇩🇪 🎨 🎭 🎵 🎼 🎸 ⚽ 🏀 🏃 🥗 ❤️‍🩹 🫀 🦴 💰 🏦 🛒 📰",
+    "Humeur": "😀 😃 😄 😅 😂 🙂 😉 😍 🤩 😎 🤓 🤔 🧐 😬 😱 😴 😭 😤 🥳 🤯 💪 👍 👎 👏 🙌 🙏 👋 🎉 🍀 🌈 ❤️ 💙 💜 💚 💛 🧡"
+  };
+  const BOXES = {
+    def: ["rf-b-def", "📘 Définition"], imp: ["rf-b-imp", "⚠️ Important"], tip: ["rf-b-tip", "💡 Astuce"], ex: ["rf-b-ex", "✏️ Exemple"]
+  };
+  const STARTER = `<h2>📌 Mon premier titre</h2><p>Écris ton cours ici. <b>Sélectionne</b> un mot pour le <span style="background-color:#fff176">surligner</span>, le <span style="text-decoration-line:underline;text-decoration-style:wavy;text-decoration-color:#e0409a;text-decoration-thickness:2px;text-underline-offset:3px">souligner</span> ou changer sa <span style="font-family:Caveat;font-size:x-large">police</span>.</p><div class="rf-box rf-b-def"><b>📘 Définition</b><br>Un bloc coloré pour les mots à retenir.</div><p><br></p><ul><li>Ajoute des symboles : → ✔ ★ ≠ √</li><li>Et des émojis : 🧠 💡 ✅</li></ul>`;
+
+  let data = { cur: "", list: [] }, saved = null, timer = 0;
+  const uid = () => "f" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+  const say = (t, err) => { msg.textContent = t; msg.classList.toggle("error", !!err); };
+
+  // ---- Nettoyage du HTML (liste blanche) : protège aussi les données importées par la sauvegarde ----
+  const OK_TAGS = new Set(["DIV", "SPAN", "P", "BR", "B", "I", "U", "S", "STRIKE", "STRONG", "EM", "FONT", "H1", "H2", "H3", "UL", "OL", "LI", "MARK", "SUB", "SUP", "BLOCKQUOTE"]);
+  const DROP = new Set(["SCRIPT", "STYLE", "IFRAME", "OBJECT", "EMBED", "TEMPLATE", "NOSCRIPT", "TEXTAREA", "SVG", "MATH", "LINK", "META", "TITLE", "HEAD"]);
+  const OK_CSS = new Set(["color", "background-color", "background", "font-family", "font-size", "font-weight", "font-style", "text-decoration", "text-decoration-line", "text-decoration-style", "text-decoration-color", "text-decoration-thickness", "text-underline-offset", "text-align", "border", "border-radius", "padding", "letter-spacing"]);
+  function cleanStyle(st) {
+    return String(st).split(";").map((d) => d.trim()).filter((d) => {
+      const i = d.indexOf(":");
+      if (i < 1) return false;
+      const prop = d.slice(0, i).trim().toLowerCase(), val = d.slice(i + 1).toLowerCase();
+      return OK_CSS.has(prop) && !/url\(|expression|@import|\\|<|javascript/.test(val);
+    }).join("; ");
+  }
+  function clean(html) {
+    const doc = new DOMParser().parseFromString("<body>" + String(html) + "</body>", "text/html");
+    const out = document.createElement("div");
+    const walk = (src, dst) => {
+      src.childNodes.forEach((n) => {
+        if (n.nodeType === 3) { dst.appendChild(document.createTextNode(n.nodeValue)); return; }
+        if (n.nodeType !== 1) return;
+        if (DROP.has(n.tagName.toUpperCase())) return;
+        if (!OK_TAGS.has(n.tagName)) { walk(n, dst); return; }
+        const el = document.createElement(n.tagName.toLowerCase());
+        const st = n.getAttribute("style"); if (st) { const c = cleanStyle(st); if (c) el.setAttribute("style", c); }
+        const cl = n.getAttribute("class"); if (cl && /^rf-[\w-]+( rf-[\w-]+)*$/.test(cl)) el.setAttribute("class", cl);
+        if (n.tagName === "FONT") {
+          const col = n.getAttribute("color"), face = n.getAttribute("face"), size = n.getAttribute("size");
+          if (col && /^#?[\w]{3,20}$/.test(col)) el.setAttribute("color", col);
+          if (face && /^[\w ,'"-]{1,60}$/.test(face)) el.setAttribute("face", face);
+          if (size && /^[1-7]$/.test(size)) el.setAttribute("size", size);
+        }
+        walk(n, el); dst.appendChild(el);
+      });
+    };
+    walk(doc.body, out);
+    return out.innerHTML;
+  }
+
+  // ---- Données ----
+  function persist() { try { localStorage.setItem(KEY, JSON.stringify(data)); return true; } catch { return false; } }
+  function cur() { return data.list.find((f) => f.id === data.cur) || data.list[0]; }
+  function blank(t) { return { id: uid(), title: t || "Nouvelle fiche", html: "<p><br></p>", bg: "white", orient: "portrait" }; }
+  function load() {
+    try {
+      const d = JSON.parse(localStorage.getItem(KEY) || "null");
+      if (d && Array.isArray(d.list)) {
+        data.list = d.list.filter((f) => f && typeof f.html === "string").slice(0, MAX).map((f) => ({
+          id: String(f.id || uid()), title: String(f.title || "").slice(0, 80), html: clean(f.html),
+          bg: ["white", "cream", "ruled", "grid", "pink", "blue", "green", "yellow", "dark"].includes(f.bg) ? f.bg : "white",
+          orient: f.orient === "landscape" ? "landscape" : "portrait"
+        }));
+        data.cur = String(d.cur || "");
+      }
+    } catch { /* données par défaut */ }
+    if (!data.list.length) { const f = blank("Ma première fiche"); f.html = STARTER; data.list = [f]; }
+    if (!data.list.some((f) => f.id === data.cur)) data.cur = data.list[0].id;
+  }
+  function grab() { // écrit l'état de l'écran dans la fiche courante
+    const f = cur(); if (!f) return;
+    f.title = title.textContent.replace(/\s+/g, " ").trim().slice(0, 80);
+    f.html = clean(body.innerHTML);
+    f.bg = $("rfBg").value; f.orient = $("rfOrient").value;
+  }
+  function saveNow() { clearTimeout(timer); grab(); renderSel(); say(persist() ? "Enregistré." : "Enregistrement impossible : le stockage du navigateur est plein ou bloqué.", !persist()); }
+  function changed() { clearTimeout(timer); say("…"); timer = setTimeout(saveNow, 500); }
+
+  function pageRule(o) {
+    let st = $("rfPage");
+    if (!st) { st = document.createElement("style"); st.id = "rfPage"; document.head.appendChild(st); }
+    st.textContent = `@page { size: A4 ${o}; margin: 0; }`;
+  }
+  function show(f) {
+    data.cur = f.id;
+    title.textContent = f.title; body.innerHTML = f.html || "<p><br></p>";
+    $("rfBg").value = f.bg; $("rfOrient").value = f.orient;
+    sheet.dataset.bg = f.bg; sheet.classList.toggle("land", f.orient === "landscape"); pageRule(f.orient);
+    renderSel(); saved = null;
+  }
+  function renderSel() {
+    const sel = $("rfSel"); sel.textContent = "";
+    data.list.forEach((f) => { const o = document.createElement("option"); o.value = f.id; o.textContent = f.title || "Fiche sans titre"; sel.appendChild(o); });
+    sel.value = data.cur;
+  }
+  $("rfSel").addEventListener("change", (e) => { saveNow(); const f = data.list.find((x) => x.id === e.target.value); if (f) { show(f); persist(); } });
+  $("rfNew").addEventListener("click", () => {
+    saveNow();
+    if (data.list.length >= MAX) { say(`Limite de ${MAX} fiches atteinte.`, true); return; }
+    const f = blank(); data.list.push(f); show(f); persist(); title.focus();
+  });
+  $("rfDel").addEventListener("click", () => {
+    if (!confirm("Supprimer cette fiche ?")) return;
+    data.list = data.list.filter((f) => f.id !== data.cur);
+    if (!data.list.length) data.list = [blank("Ma fiche")];
+    show(data.list[0]); persist(); say("Fiche supprimée.");
+  });
+  $("rfBg").addEventListener("change", (e) => { sheet.dataset.bg = e.target.value; changed(); });
+  $("rfOrient").addEventListener("change", (e) => { sheet.classList.toggle("land", e.target.value === "landscape"); pageRule(e.target.value); changed(); });
+
+  // ---- Sélection et commandes ----
+  document.addEventListener("selectionchange", () => {
+    const s = getSelection();
+    if (s.rangeCount && body.contains(s.anchorNode) && body.contains(s.focusNode)) saved = s.getRangeAt(0).cloneRange();
+  });
+  function restore() {
+    body.focus({ preventScroll: true });
+    const s = getSelection();
+    s.removeAllRanges();
+    if (saved && body.contains(saved.commonAncestorContainer)) s.addRange(saved);
+    else { const r = document.createRange(); r.selectNodeContents(body); r.collapse(false); s.addRange(r); }
+  }
+  function exec(cmd, val) {
+    restore();
+    try { document.execCommand("styleWithCSS", false, true); } catch { /* ignoré */ }
+    document.execCommand(cmd, false, val);
+    changed();
+  }
+  const needText = () => { const s = getSelection(); if (!s.rangeCount || s.isCollapsed) { say("Sélectionne d'abord du texte dans ta fiche.", true); return false; } return true; };
+
+  // Les boutons ne volent pas la sélection
+  $("rfBar").addEventListener("mousedown", (e) => { if (e.target.closest("button")) e.preventDefault(); });
+  $("rfBar").querySelectorAll("[data-cmd]").forEach((b) => b.addEventListener("click", () => exec(b.dataset.cmd)));
+  $("rfFont").addEventListener("change", (e) => { if (e.target.value) { restore(); if (needText()) exec("fontName", e.target.value); else { exec("fontName", e.target.value); } } e.target.value = ""; });
+  $("rfSize").addEventListener("change", (e) => { if (e.target.value) exec("fontSize", e.target.value); e.target.value = ""; });
+  $("rfBlock").addEventListener("change", (e) => { if (e.target.value) exec("formatBlock", "<" + e.target.value + ">"); e.target.value = ""; });
+
+  const mkSw = (host, colors, fn, label) => {
+    colors.forEach((c) => {
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "rf-sw"; b.style.background = c; b.setAttribute("aria-label", label + " " + c); b.title = label;
+      b.addEventListener("click", () => fn(c)); host.appendChild(b);
+    });
+  };
+  mkSw($("rfColors"), TEXT_COLORS, (c) => exec("foreColor", c), "Couleur du texte");
+  mkSw($("rfHl"), HL_COLORS, (c) => exec("hiliteColor", c), "Surligner en");
+  $("rfColor").addEventListener("input", (e) => exec("foreColor", e.target.value));
+  $("rfHlOff").addEventListener("click", () => exec("hiliteColor", "transparent"));
+
+  // Soulignement stylé et encadré : on enveloppe la sélection (action annulable avec ↶)
+  function wrapSel(style) {
+    restore();
+    if (!needText()) return;
+    const r = getSelection().getRangeAt(0), tmp = document.createElement("div");
+    tmp.appendChild(r.cloneContents());
+    document.execCommand("insertHTML", false, `<span style="${style}">${tmp.innerHTML}</span>`);
+    changed();
+  }
+  $("rfUlBtn").addEventListener("click", () => wrapSel(`text-decoration-line:underline;text-decoration-style:${$("rfUl").value};text-decoration-color:${$("rfUlColor").value};text-decoration-thickness:2px;text-underline-offset:3px`));
+  $("rfBox").addEventListener("click", () => wrapSel(`border:2px solid ${$("rfUlColor").value};border-radius:6px;padding:0 4px`));
+
+  // Blocs colorés
+  $("rfBar").querySelectorAll("[data-box]").forEach((b) => b.addEventListener("click", () => {
+    const [cls, label] = BOXES[b.dataset.box];
+    restore();
+    document.execCommand("insertHTML", false, `<div class="rf-box ${cls}"><b>${label}</b><br>Écris ici…</div><p><br></p>`);
+    changed();
+  }));
+
+  // Symboles et émojis
+  let catName = "Révisions";
+  function renderSyms() {
+    const cats = $("rfCats"), grid = $("rfSyms");
+    cats.textContent = ""; grid.textContent = "";
+    Object.keys(SYMS).forEach((k) => {
+      const b = document.createElement("button");
+      b.type = "button"; b.textContent = k; b.className = k === catName ? "active" : ""; b.setAttribute("role", "tab"); b.setAttribute("aria-selected", String(k === catName));
+      b.addEventListener("click", () => { catName = k; renderSyms(); });
+      cats.appendChild(b);
+    });
+    SYMS[catName].split(" ").forEach((s) => {
+      const b = document.createElement("button");
+      b.type = "button"; b.textContent = s; b.setAttribute("aria-label", "Insérer " + s);
+      b.addEventListener("mousedown", (e) => e.preventDefault());
+      b.addEventListener("click", () => { restore(); document.execCommand("insertText", false, s); changed(); });
+      grid.appendChild(b);
+    });
+  }
+
+  // Saisie : titre sur une ligne, collage en texte brut, pas de glisser-déposer de contenu externe
+  title.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); body.focus(); } });
+  const plain = (e) => { e.preventDefault(); const t = (e.clipboardData || window.clipboardData).getData("text/plain"); document.execCommand("insertText", false, e.target === title ? t.replace(/\s+/g, " ") : t); };
+  title.addEventListener("paste", plain); body.addEventListener("paste", plain);
+  body.addEventListener("drop", (e) => e.preventDefault()); title.addEventListener("drop", (e) => e.preventDefault());
+  body.addEventListener("input", changed); title.addEventListener("input", changed);
+  window.addEventListener("pagehide", () => { try { grab(); persist(); } catch { /* ignoré */ } });
+
+  // PDF : on imprime uniquement la fiche (règles @media print dans le CSS)
+  $("rfPdf").addEventListener("click", () => {
+    saveNow();
+    const old = document.title;
+    document.title = (title.textContent.trim() || "Fiche de révision") + " - Clippo";
+    const back = () => { document.title = old; window.removeEventListener("afterprint", back); };
+    window.addEventListener("afterprint", back);
+    setTimeout(() => { window.print(); }, 60);
+  });
+
+  load(); show(cur()); renderSyms(); say("");
+  if (window.innerWidth < 700) { const d = panel.querySelector(".rf-sym"); if (d) d.open = false; }
 })();
