@@ -4172,8 +4172,7 @@ document.addEventListener("visibilitychange", () => { if (!document.hidden) spRe
 // ---------- Podium des outils les plus utilisés ----------
 const podBox = $("podBox");
 if (podBox) {
-  const POD_KEY = "clippo_usage", POD_REC_KEY = "clippo_recent", POD_REC_MAX = 8, POD_REC_SHOW = 5;
-  const POD_MEDALS = ["🥇", "🥈", "🥉"];
+  const POD_REC_KEY = "clippo_recent", POD_REC_MAX = 8, POD_REC_SHOW = 5;
   const podSearch = document.getElementById("homeSearch");
   const podTools = {};
   document.querySelectorAll("#home .tool-card[data-go]").forEach((c) => {
@@ -4183,19 +4182,6 @@ if (podBox) {
     podTools[id] = { name: name ? name.textContent.trim() : id, icon: ico ? ico.textContent.trim() : "🧰" };
   });
 
-  function podLoadUsage() {
-    try {
-      const o = JSON.parse(localStorage.getItem(POD_KEY) || "{}");
-      const out = {};
-      if (o && typeof o === "object" && !Array.isArray(o)) {
-        Object.keys(o).forEach((id) => {
-          const v = o[id];
-          if (podTools[id] && Array.isArray(v) && Number(v[0]) > 0) out[id] = [Math.min(Math.floor(Number(v[0])), 999999), Number(v[1]) || 0];
-        });
-      }
-      return out;
-    } catch { return {}; }
-  }
   function podLoadRecent() {
     try {
       const d = JSON.parse(localStorage.getItem(POD_REC_KEY) || "[]");
@@ -4204,8 +4190,77 @@ if (podBox) {
   }
   function podSave(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* stockage indisponible */ } }
 
-  let podUsage = podLoadUsage(), podRecent = podLoadRecent(), podLast = { id: "", t: 0 };
+  let podRecent = podLoadRecent(), podLast = { id: "", t: 0 };
   try { localStorage.removeItem("clippo_favs"); } catch { /* ignoré */ }
+
+  // ----- Favoris : étoile sur les cartes de l'accueil et dans chaque outil -----
+  const FAV_KEY = "clippo_favtabs", FAV_MAX = 12;
+  let favNote = "";
+  function favLoad() {
+    try {
+      const d = JSON.parse(localStorage.getItem(FAV_KEY) || "[]");
+      return Array.isArray(d) ? [...new Set(d.map(String))].filter((id) => podTools[id]).slice(0, FAV_MAX) : [];
+    } catch { return []; }
+  }
+  let favs = favLoad();
+  function favSync() {
+    document.querySelectorAll("[data-favid]").forEach((el) => {
+      const on = favs.includes(el.dataset.favid);
+      el.classList.toggle("on", on);
+      el.setAttribute("aria-pressed", String(on));
+      if (el.classList.contains("fav-btn")) el.textContent = on ? "★ Dans tes favoris" : "☆ Ajouter aux favoris";
+      else el.textContent = on ? "★" : "☆";
+      el.title = on ? "Retirer des favoris" : "Ajouter aux favoris";
+    });
+  }
+  function favToggle(id) {
+    favNote = "";
+    if (favs.includes(id)) favs = favs.filter((x) => x !== id);
+    else if (favs.length >= FAV_MAX) favNote = `Tu as déjà ${FAV_MAX} favoris : retires-en un pour en ajouter un autre.`;
+    else favs = [...favs, id];
+    podSave(FAV_KEY, favs);
+    favSync(); podRender();
+  }
+  function favRender() {
+    const grid = $("favGrid");
+    grid.textContent = "";
+    favs.forEach((id) => {
+      const t = podTools[id];
+      const item = document.createElement("div");
+      item.className = "fav-item";
+      const open = document.createElement("button");
+      open.type = "button"; open.className = "fav-open";
+      const ico = document.createElement("span"); ico.className = "fav-ico"; ico.textContent = t.icon; ico.setAttribute("aria-hidden", "true");
+      const nm = document.createElement("span"); nm.className = "fav-name"; nm.textContent = t.name;
+      open.append(ico, nm);
+      open.addEventListener("click", () => podOpen(id));
+      const x = document.createElement("button");
+      x.type = "button"; x.className = "fav-x"; x.textContent = "✕"; x.setAttribute("aria-label", "Retirer " + t.name + " des favoris"); x.title = "Retirer des favoris";
+      x.addEventListener("click", () => favToggle(id));
+      item.append(open, x);
+      grid.appendChild(item);
+    });
+    $("podSub").textContent = favNote || (favs.length ? "Clique sur un outil pour l'ouvrir, sur ✕ pour le retirer." : "Aucun favori pour l'instant : appuie sur ☆ sur un outil pour le retrouver ici.");
+  }
+  document.querySelectorAll("#home .tool-card[data-go]").forEach((card) => {
+    const id = card.dataset.go;
+    const star = document.createElement("span");
+    star.className = "fav-star"; star.dataset.favid = id; star.setAttribute("role", "button"); star.tabIndex = 0;
+    star.setAttribute("aria-label", "Favori : " + (podTools[id] ? podTools[id].name : id));
+    const act = (e) => { e.preventDefault(); e.stopPropagation(); favToggle(id); };
+    star.addEventListener("click", act);
+    star.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") act(e); });
+    card.appendChild(star);
+  });
+  document.querySelectorAll(".panel").forEach((p) => {
+    if (!podTools[p.id] || p.id === "home") return;
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "fav-btn"; b.dataset.favid = p.id;
+    b.addEventListener("click", () => favToggle(p.id));
+    const anchor = p.querySelector(":scope > .sub") || p.querySelector(":scope > h1");
+    if (anchor) anchor.after(b); else p.insertBefore(b, p.firstChild);
+  });
+  favSync();
 
   function podOpen(id) {
     const tab = document.querySelector(`.tab[data-tab="${id}"]`);
@@ -4226,53 +4281,10 @@ if (podBox) {
     b.addEventListener("click", () => podOpen(id));
     return b;
   }
-  function podTop() {
-    return Object.keys(podUsage).sort((a, b) => podUsage[b][0] - podUsage[a][0] || podUsage[b][1] - podUsage[a][1]).slice(0, 3);
-  }
-
   function podRender() {
     const searching = !!(podSearch && podSearch.value.trim());
     podBox.hidden = searching;
-    const top = podTop();
-    const stage = $("podium");
-    stage.innerHTML = "";
-    [1, 0, 2].forEach((i) => { // ordre visuel : 2e, 1er, 3e
-      const id = top[i];
-      const col = document.createElement("div");
-      col.className = "pod-col r" + (i + 1) + (id ? "" : " empty");
-      const head = document.createElement(id ? "button" : "div");
-      head.className = "pod-tool";
-      const medal = document.createElement("span");
-      medal.className = "pod-medal";
-      medal.textContent = POD_MEDALS[i];
-      medal.setAttribute("aria-hidden", "true");
-      const ico = document.createElement("span");
-      ico.className = "pod-ico";
-      ico.setAttribute("aria-hidden", "true");
-      const name = document.createElement("strong");
-      const meta = document.createElement("small");
-      if (id) {
-        head.type = "button";
-        head.setAttribute("aria-label", `${i + 1}. ${podTools[id].name}`);
-        ico.textContent = podTools[id].icon;
-        name.textContent = podTools[id].name;
-        meta.textContent = "🔥 " + podUsage[id][0];
-        head.addEventListener("click", () => podOpen(id));
-      } else {
-        ico.textContent = "?";
-        name.textContent = "Libre";
-        meta.textContent = "\u00a0";
-      }
-      head.append(medal, ico, name, meta);
-      const block = document.createElement("div");
-      block.className = "pod-block";
-      block.setAttribute("aria-hidden", "true");
-      block.textContent = String(i + 1);
-      col.append(head, block);
-      stage.appendChild(col);
-    });
-    $("podSub").textContent = top.length ? "Basé sur tes ouvertures d'outils" : "Ouvre des outils pour remplir ton podium";
-    $("podReset").hidden = !top.length;
+    favRender();
 
     const recEl = $("podRec");
     recEl.innerHTML = "";
@@ -4286,13 +4298,21 @@ if (podBox) {
     const now = Date.now();
     if (podLast.id === id && now - podLast.t < 4000) return; // évite de compter deux fois le même clic
     podLast = { id, t: now };
-    const u = podUsage[id] || [0, 0];
-    podUsage[id] = [Math.min(u[0] + 1, 999999), now];
     podRecent = [id, ...podRecent.filter((x) => x !== id)].slice(0, POD_REC_MAX);
-    podSave(POD_KEY, podUsage);
     podSave(POD_REC_KEY, podRecent);
     podRender();
   }
+
+  $("podClear").addEventListener("click", () => { podRecent = []; podSave(POD_REC_KEY, podRecent); podRender(); });
+  if (podSearch) podSearch.addEventListener("input", podRender);
+
+  // Chaque ouverture d'outil est comptée (menu, cartes, raccourcis, liens directs)
+  const podOpenTab = openTab;
+  openTab = (id) => { podOpenTab(id); podTrack(id); };
+  const podStart = location.hash.slice(1);
+  if (podTools[podStart]) podTrack(podStart);
+  podRender();
+}
 
   $("podClear").addEventListener("click", () => { podRecent = []; podSave(POD_REC_KEY, podRecent); podRender(); });
   $("podReset").addEventListener("click", () => {
