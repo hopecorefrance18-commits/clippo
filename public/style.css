@@ -3457,3 +3457,6 @@ input[type="checkbox"], input[type="radio"], input[type="range"] { accent-color:
 .fc-io > summary ~ * { margin-top: 12px; }
 .fc-io > summary ~ .st-opts, .fc-io > summary ~ .fc-iobtns, .fc-io > summary ~ .st-addbtns { margin-top: 14px; }
 .rf-sym > summary ~ .rf-symgrid { margin-top: 10px; }
+
+/* --- Récemment utilisés : marge à gauche sur mobile --- */
+@media (max-width: 700px) { .pod-row { scroll-padding-inline: 14px; } }
