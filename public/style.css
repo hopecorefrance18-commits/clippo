@@ -3409,3 +3409,37 @@ input[type="checkbox"], input[type="radio"], input[type="range"] { accent-color:
 .fav-btn.on { color: #1b1300; background: #ffd35a; border-color: #ffd35a; }
 #home .fav-btn { display: none; }
 @media (max-width: 700px) { .fav-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .fav-open { padding: 10px 34px 10px 10px; gap: 8px; } .fav-ico { font-size: 1.3rem; } }
+
+/* --- Fond bleu animé --- */
+.bg::before, .bg::after { content: ""; position: absolute; inset: -30%; pointer-events: none; will-change: transform; }
+.bg::before {
+  background:
+    radial-gradient(42% 38% at 22% 28%, rgba(31, 123, 255, .60), transparent 70%),
+    radial-gradient(38% 36% at 78% 72%, rgba(41, 182, 255, .48), transparent 70%),
+    radial-gradient(30% 30% at 62% 18%, rgba(111, 211, 255, .30), transparent 70%);
+  animation: bgFlow 26s ease-in-out infinite alternate, bgHue 18s ease-in-out infinite alternate;
+}
+.bg::after {
+  background:
+    radial-gradient(34% 32% at 80% 24%, rgba(11, 99, 255, .45), transparent 70%),
+    radial-gradient(36% 34% at 18% 78%, rgba(60, 150, 255, .38), transparent 70%);
+  animation: bgFlow2 32s ease-in-out infinite alternate;
+}
+.blob { animation-duration: 14s, 17s, 20s; }
+.b1 { animation: drift1 14s ease-in-out infinite alternate, blobPulse 7s ease-in-out infinite alternate; }
+.b2 { animation: drift2 17s ease-in-out infinite alternate, blobPulse 9s ease-in-out infinite alternate-reverse; }
+.b3 { animation: drift3 20s ease-in-out infinite alternate, blobPulse 8s ease-in-out infinite alternate; }
+@keyframes bgFlow {
+  0% { transform: translate3d(-6%, -4%, 0) rotate(0deg) scale(1); }
+  50% { transform: translate3d(5%, 6%, 0) rotate(8deg) scale(1.12); }
+  100% { transform: translate3d(8%, -5%, 0) rotate(-6deg) scale(1.05); }
+}
+@keyframes bgFlow2 {
+  0% { transform: translate3d(6%, 5%, 0) rotate(0deg) scale(1.05); }
+  50% { transform: translate3d(-7%, -3%, 0) rotate(-10deg) scale(1); }
+  100% { transform: translate3d(-3%, 7%, 0) rotate(6deg) scale(1.15); }
+}
+@keyframes bgHue { from { filter: hue-rotate(-10deg) saturate(1); } to { filter: hue-rotate(12deg) saturate(1.25); } }
+@keyframes blobPulse { from { opacity: .42; } to { opacity: .7; } }
+@media (max-width: 700px) { .bg::before, .bg::after { inset: -20%; } }
+@media (prefers-reduced-motion: reduce) { .bg::before, .bg::after, .blob { animation: none !important; } }
