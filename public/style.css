@@ -3452,3 +3452,8 @@ input[type="checkbox"], input[type="radio"], input[type="range"] { accent-color:
   .home-tools .tool-card > .fav-star { top: 50%; right: 12px; width: 36px !important; height: 36px !important; transform: translateY(-50%); }
   .home-tools .tool-card > .fav-star:hover { transform: translateY(-50%) scale(1.1); }
 }
+
+/* --- Blocs dépliables : espacement entre les éléments --- */
+.fc-io > summary ~ * { margin-top: 12px; }
+.fc-io > summary ~ .st-opts, .fc-io > summary ~ .fc-iobtns, .fc-io > summary ~ .st-addbtns { margin-top: 14px; }
+.rf-sym > summary ~ .rf-symgrid { margin-top: 10px; }
