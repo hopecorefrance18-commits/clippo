@@ -3443,3 +3443,12 @@ input[type="checkbox"], input[type="radio"], input[type="range"] { accent-color:
 @keyframes blobPulse { from { opacity: .42; } to { opacity: .7; } }
 @media (max-width: 700px) { .bg::before, .bg::after { inset: -20%; } }
 @media (prefers-reduced-motion: reduce) { .bg::before, .bg::after, .blob { animation: none !important; } }
+
+/* --- Favoris : étoile bien placée (PC et mobile) --- */
+.home-tools .tool-card > .fav-star { position: absolute; grid-column: auto; grid-row: auto; align-self: auto; justify-self: auto; overflow: visible; -webkit-line-clamp: unset; line-height: 1; }
+@media (max-width: 700px) {
+  .tool-card { padding-right: 58px !important; }
+  .home-tools .tool-card > .tc-go { display: none !important; }
+  .home-tools .tool-card > .fav-star { top: 50%; right: 12px; width: 36px !important; height: 36px !important; transform: translateY(-50%); }
+  .home-tools .tool-card > .fav-star:hover { transform: translateY(-50%) scale(1.1); }
+}
