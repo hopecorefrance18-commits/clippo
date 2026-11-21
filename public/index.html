@@ -56,6 +56,7 @@
                     <button class="tab" data-tab="studyplan">Planning</button>
                     <button class="tab" data-tab="gradeconv">Notes</button>
                     <button class="tab" data-tab="mindmap">Cartes mentales</button>
+                              <button class="tab" data-tab="revsheet">Fiches de révision</button>
         
         </div>
         <div class="subgroup" data-cat="media" hidden>
@@ -239,6 +240,7 @@
                       <button class="tool-card" data-go="studyplan"><i class="tc-ico">🗓️</i><strong>Planning de révisions</strong><span>Répartis tes séances jusqu'au jour de l'examen.</span><em class="tc-go">→</em></button>
                       <button class="tool-card" data-go="gradeconv"><i class="tc-ico">🔄</i><strong>Convertisseur de notes</strong><span>Passe une note de /20 à /10, /100 ou en pourcentage.</span><em class="tc-go">→</em></button>
                      <button class="tool-card" data-go="mindmap"><i class="tc-ico">🧠</i><strong>Créateur de cartes mentales</strong><span>Organise tes idées en branches et télécharge ta carte.</span><em class="tc-go">→</em></button>
+                      <button class="tool-card" data-go="revsheet"><i class="tc-ico">📝</i><strong>Fiches de révision</strong><span>Surligne, souligne, ajoute des émojis, puis télécharge en PDF.</span><em class="tc-go">→</em></button>
           </div>
         </div>
 
@@ -2797,6 +2799,120 @@ Hugo</textarea>
           <button id="stDl" class="ghost-btn" type="button">Télécharger</button>
         </div>
         <p class="gr-note">Clippo ne grave pas les sous-titres dans la vidéo : télécharge le fichier .srt ou .vtt, puis ajoute-le dans CapCut, VLC, YouTube, Premiere ou ton lecteur. Tes sous-titres sont gardés dans ce navigateur.</p>
+      </div>
+    </section>
+              <section id="revsheet" class="panel">
+      <h1>Crée tes fiches de révision.</h1>
+      <p class="sub">Écris ton cours, surligne, souligne, change de police, ajoute des symboles et des émojis, puis télécharge ta fiche en PDF. Tes fiches restent dans ton navigateur.</p>
+
+      <div class="card">
+        <div class="rf-top">
+          <label class="select"><span>Mes fiches</span><select id="rfSel"></select></label>
+          <label class="select"><span>Fond de la fiche</span>
+            <select id="rfBg">
+              <option value="white">Blanc</option><option value="cream">Papier crème</option><option value="ruled">Cahier (lignes)</option><option value="grid">Petits carreaux</option>
+              <option value="pink">Rose pastel</option><option value="blue">Bleu pastel</option><option value="green">Vert pastel</option><option value="yellow">Jaune post-it</option><option value="dark">Nuit</option>
+            </select>
+          </label>
+          <label class="select"><span>Format</span>
+            <select id="rfOrient"><option value="portrait">A4 portrait</option><option value="landscape">A4 paysage</option></select>
+          </label>
+          <div class="rf-topbtns">
+            <button id="rfNew" class="ghost-btn" type="button">＋ Nouvelle</button>
+            <button id="rfDel" class="ghost-btn" type="button">Supprimer</button>
+          </div>
+        </div>
+
+        <div class="rf-bar" id="rfBar" role="toolbar" aria-label="Mise en forme">
+          <div class="rf-grp" aria-label="Texte">
+            <select id="rfFont" aria-label="Police">
+              <option value="">Police…</option>
+              <option value="DM Sans" style="font-family:'DM Sans'">Moderne</option>
+              <option value="Bricolage Grotesque" style="font-family:'Bricolage Grotesque'">Titre</option>
+              <option value="Caveat" style="font-family:'Caveat'">Manuscrit</option>
+              <option value="Patrick Hand" style="font-family:'Patrick Hand'">Écriture d'écolier</option>
+              <option value="Indie Flower" style="font-family:'Indie Flower'">Cahier</option>
+              <option value="Shadows Into Light" style="font-family:'Shadows Into Light'">Crayon</option>
+              <option value="Permanent Marker" style="font-family:'Permanent Marker'">Marqueur</option>
+              <option value="Pacifico" style="font-family:'Pacifico'">Calligraphie</option>
+              <option value="Lora" style="font-family:'Lora'">Livre</option>
+              <option value="Oswald" style="font-family:'Oswald'">Affiche</option>
+              <option value="Courier Prime" style="font-family:'Courier Prime'">Machine à écrire</option>
+              <option value="Georgia" style="font-family:Georgia">Georgia</option>
+            </select>
+            <select id="rfSize" aria-label="Taille">
+              <option value="">Taille…</option><option value="1">Très petit</option><option value="2">Petit</option><option value="3">Normal</option><option value="4">Grand</option><option value="5">Très grand</option><option value="6">Énorme</option><option value="7">Géant</option>
+            </select>
+            <button type="button" data-cmd="bold" title="Gras" aria-label="Gras"><b>G</b></button>
+            <button type="button" data-cmd="italic" title="Italique" aria-label="Italique"><i>I</i></button>
+            <button type="button" data-cmd="underline" title="Souligné" aria-label="Souligné"><u>S</u></button>
+            <button type="button" data-cmd="strikeThrough" title="Barré" aria-label="Barré"><s>B</s></button>
+          </div>
+
+          <div class="rf-grp" aria-label="Couleur du texte">
+            <span class="rf-lab">Couleur</span>
+            <span id="rfColors" class="rf-sws"></span>
+            <input id="rfColor" type="color" value="#d62828" aria-label="Autre couleur de texte">
+          </div>
+
+          <div class="rf-grp" aria-label="Surligner">
+            <span class="rf-lab">Surligner</span>
+            <span id="rfHl" class="rf-sws"></span>
+            <button type="button" id="rfHlOff" title="Enlever le surlignage" aria-label="Enlever le surlignage">✖</button>
+          </div>
+
+          <div class="rf-grp" aria-label="Souligner">
+            <span class="rf-lab">Souligner</span>
+            <select id="rfUl" aria-label="Style de soulignement">
+              <option value="solid">Trait</option><option value="double">Double</option><option value="wavy">Ondulé</option><option value="dotted">Pointillé</option><option value="dashed">Tirets</option>
+            </select>
+            <input id="rfUlColor" type="color" value="#e0409a" aria-label="Couleur du soulignement">
+            <button type="button" id="rfUlBtn" class="rf-wide">Souligner</button>
+            <button type="button" id="rfBox" class="rf-wide" title="Encadrer le texte sélectionné">Encadrer</button>
+          </div>
+
+          <div class="rf-grp" aria-label="Paragraphe">
+            <select id="rfBlock" aria-label="Type de texte">
+              <option value="">Type…</option><option value="p">Paragraphe</option><option value="h1">Grand titre</option><option value="h2">Titre</option><option value="h3">Sous-titre</option>
+            </select>
+            <button type="button" data-cmd="justifyLeft" title="Aligner à gauche" aria-label="Aligner à gauche">⯇</button>
+            <button type="button" data-cmd="justifyCenter" title="Centrer" aria-label="Centrer">≡</button>
+            <button type="button" data-cmd="justifyRight" title="Aligner à droite" aria-label="Aligner à droite">⯈</button>
+            <button type="button" data-cmd="insertUnorderedList" title="Liste à puces" aria-label="Liste à puces">•≡</button>
+            <button type="button" data-cmd="insertOrderedList" title="Liste numérotée" aria-label="Liste numérotée">1.</button>
+          </div>
+
+          <div class="rf-grp" aria-label="Blocs">
+            <span class="rf-lab">Blocs</span>
+            <button type="button" class="rf-wide" data-box="def">📘 Définition</button>
+            <button type="button" class="rf-wide" data-box="imp">⚠️ Important</button>
+            <button type="button" class="rf-wide" data-box="tip">💡 Astuce</button>
+            <button type="button" class="rf-wide" data-box="ex">✏️ Exemple</button>
+          </div>
+
+          <div class="rf-grp" aria-label="Annuler">
+            <button type="button" data-cmd="undo" title="Annuler" aria-label="Annuler">↶</button>
+            <button type="button" data-cmd="redo" title="Rétablir" aria-label="Rétablir">↷</button>
+            <button type="button" data-cmd="removeFormat" class="rf-wide" title="Enlever la mise en forme">Effacer le style</button>
+          </div>
+        </div>
+
+        <details class="fc-io rf-sym" open>
+          <summary>😀 Symboles et émojis (clique pour les ajouter dans ta fiche)</summary>
+          <div id="rfCats" class="rf-cats" role="tablist" aria-label="Catégories de symboles"></div>
+          <div id="rfSyms" class="rf-symgrid"></div>
+        </details>
+
+        <div id="rfSheet" class="rf-sheet" data-bg="white">
+          <h2 id="rfTitle" class="rf-title" contenteditable="true" data-ph="Titre de la fiche" spellcheck="false" role="textbox" aria-label="Titre de la fiche"></h2>
+          <div id="rfBody" class="rf-body" contenteditable="true" spellcheck="true" role="textbox" aria-multiline="true" aria-label="Contenu de la fiche"></div>
+        </div>
+
+        <p id="rfMsg" class="status" role="status"></p>
+        <div class="row rf-actions">
+          <button id="rfPdf" class="primary" type="button">📄 Télécharger en PDF</button>
+        </div>
+        <p class="gr-note">Pour le PDF, une fenêtre d'impression s'ouvre : choisis « Enregistrer au format PDF » (ou « Enregistrer en PDF »), puis, si tu les vois, décoche les options « En-têtes et pieds de page » et coche « Graphiques d'arrière-plan » pour garder les couleurs. Seule la fiche est imprimée. Tes fiches sont enregistrées automatiquement dans ce navigateur.</p>
       </div>
     </section>
         </main>
