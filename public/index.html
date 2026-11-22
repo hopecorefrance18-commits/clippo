@@ -57,6 +57,7 @@
                     <button class="tab" data-tab="gradeconv">Notes</button>
                     <button class="tab" data-tab="mindmap">Cartes mentales</button>
                               <button class="tab" data-tab="revsheet">Fiches de révision</button>
+          <button class="tab" data-tab="revquiz">Quiz</button>
         
         </div>
         <div class="subgroup" data-cat="media" hidden>
@@ -240,6 +241,7 @@
                       <button class="tool-card" data-go="gradeconv"><i class="tc-ico">🔄</i><strong>Convertisseur de notes</strong><span>Passe une note de /20 à /10, /100 ou en pourcentage.</span><em class="tc-go">→</em></button>
                      <button class="tool-card" data-go="mindmap"><i class="tc-ico">🧠</i><strong>Créateur de cartes mentales</strong><span>Organise tes idées en branches et télécharge ta carte.</span><em class="tc-go">→</em></button>
                       <button class="tool-card" data-go="revsheet"><i class="tc-ico">📝</i><strong>Fiches de révision</strong><span>Surligne, souligne, ajoute des émojis, puis télécharge en PDF.</span><em class="tc-go">→</em></button>
+        <button class="tool-card" data-go="revquiz"><i class="tc-ico">🧠</i><strong>Quiz de révision</strong><span>Un QCM ou des questions libres générés depuis ta fiche.</span></button>
           </div>
         </div>
 
@@ -2912,6 +2914,75 @@ Hugo</textarea>
           <button id="rfPdf" class="primary" type="button">📄 Télécharger en PDF</button>
         </div>
         <p class="gr-note">Pour le PDF, une fenêtre d'impression s'ouvre : choisis « Enregistrer au format PDF » (ou « Enregistrer en PDF »), puis, si tu les vois, décoche les options « En-têtes et pieds de page » et coche « Graphiques d'arrière-plan » pour garder les couleurs. Seule la fiche est imprimée. Tes fiches sont enregistrées automatiquement dans ce navigateur.</p>
+      </div>
+    </section>
+              <!-- Quiz de révision -->
+    <section id="revquiz" class="panel">
+      <h1>Teste-toi sur ta fiche.</h1>
+      <p class="sub">Clippo lit ta fiche de révision et te crée un quiz : QCM, réponse libre ou les deux. Tout reste sur ton appareil.</p>
+
+      <div class="card">
+        <div id="rqSetup">
+          <div class="rq-grid">
+            <label class="select"><span>Ma fiche</span><select id="rqSel"></select></label>
+            <div class="rq-field"><span class="rq-lab">Type de questions</span>
+              <div class="chips" id="rqMode">
+                <button class="chip active" data-v="mix" type="button">🎲 Mélangé</button>
+                <button class="chip" data-v="mcq" type="button">🔘 QCM</button>
+                <button class="chip" data-v="free" type="button">✍️ Réponse libre</button>
+              </div>
+            </div>
+            <div class="rq-field"><span class="rq-lab">Nombre de questions</span>
+              <div class="chips" id="rqCount">
+                <button class="chip" data-v="5" type="button">5</button>
+                <button class="chip active" data-v="10" type="button">10</button>
+                <button class="chip" data-v="15" type="button">15</button>
+                <button class="chip" data-v="0" type="button">Toutes</button>
+              </div>
+            </div>
+          </div>
+          <p id="rqInfo" class="rq-info"></p>
+          <div class="row rq-actions">
+            <button id="rqStart" class="primary" type="button">▶ Lancer le quiz</button>
+            <button id="rqEdit" class="ghost-btn" type="button">✏️ Modifier la fiche</button>
+          </div>
+          <p id="rqBest" class="rq-best"></p>
+          <p class="gr-note">Astuce : les questions sont plus précises si ta fiche contient des définitions écrites « Mot : explication », des mots surlignés, en gras ou soulignés, ou des encadrés Définition.</p>
+        </div>
+
+        <div id="rqPlay" hidden>
+          <div class="rq-head"><span id="rqCnt">Question 1 / 10</span><span id="rqScore">0 juste</span></div>
+          <div class="rq-bar"><i id="rqBarFill"></i></div>
+          <p id="rqKind" class="rq-kind"></p>
+          <h2 id="rqQ" class="rq-q"></h2>
+          <div id="rqOpts" class="rq-opts"></div>
+          <div id="rqFree" class="rq-free" hidden>
+            <input id="rqIn" type="text" placeholder="Écris ta réponse…" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Ta réponse">
+            <button id="rqCheck" class="primary" type="button">Valider</button>
+          </div>
+          <div id="rqFb" class="rq-fb" role="status" hidden></div>
+          <div class="row rq-actions">
+            <button id="rqForce" class="ghost-btn" type="button" hidden>👍 Compter comme juste</button>
+            <button id="rqNext" class="primary" type="button" hidden>Suivante →</button>
+            <button id="rqQuit" class="ghost-btn" type="button">Arrêter</button>
+          </div>
+        </div>
+
+        <div id="rqEnd" hidden>
+          <div class="rq-final">
+            <div id="rqEmoji" class="rq-emoji">🏆</div>
+            <h2 id="rqFinalScore"></h2>
+            <p id="rqFinalMsg" class="sub"></p>
+          </div>
+          <div id="rqMiss" class="rq-miss"></div>
+          <div class="row rq-actions">
+            <button id="rqAgain" class="primary" type="button">🔁 Rejouer</button>
+            <button id="rqRetry" class="ghost-btn" type="button">🎯 Refaire mes erreurs</button>
+            <button id="rqToFc" class="ghost-btn" type="button">🃏 Erreurs → flashcards</button>
+            <button id="rqBack" class="ghost-btn" type="button">← Changer de réglages</button>
+          </div>
+          <p id="rqEndMsg" class="status" role="status"></p>
+        </div>
       </div>
     </section>
         </main>
