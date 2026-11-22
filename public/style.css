@@ -3460,3 +3460,55 @@ input[type="checkbox"], input[type="radio"], input[type="range"] { accent-color:
 
 /* --- Récemment utilisés : marge à gauche sur mobile --- */
 @media (max-width: 700px) { .pod-row { scroll-padding-inline: 14px; } }
+
+/* ---------- Quiz de révision ---------- */
+.rq-grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.4fr) minmax(0, 1fr); gap: 16px; align-items: start; margin-bottom: 14px; }
+.rq-field { display: grid; gap: 8px; }
+.rq-lab { color: var(--muted); font-size: .85rem; font-weight: 600; }
+.rq-info { margin: 0 0 14px; padding: 10px 14px; border-radius: 12px; background: rgba(41, 182, 255, .1); color: var(--aqua); font-weight: 500; }
+.rq-info:empty { display: none; }
+.rq-info.warn { background: rgba(255, 216, 77, .1); color: var(--sun); }
+.rq-best { margin: 12px 0 0; color: var(--muted); font-size: .9rem; }
+.rq-best:empty { display: none; }
+.rq-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+.rq-actions .primary { margin-left: 0; }
+.rq-head { display: flex; justify-content: space-between; gap: 10px; color: var(--muted); font-weight: 600; font-size: .92rem; margin-bottom: 8px; }
+.rq-bar { height: 8px; border-radius: 99px; background: var(--ink-2); overflow: hidden; margin-bottom: 18px; }
+.rq-bar i { display: block; height: 100%; width: 0; border-radius: 99px; background: linear-gradient(90deg, #0b63ff, #29b6ff); transition: width .35s ease; }
+.rq-kind { margin: 0 0 6px; color: var(--aqua); font-size: .85rem; font-weight: 700; }
+.rq-q { font: 700 clamp(1.15rem, 2.4vw, 1.5rem)/1.35 "DM Sans", sans-serif; margin: 0 0 16px; overflow-wrap: anywhere; }
+.rq-opts { display: grid; gap: 10px; }
+.rq-opt { all: unset; box-sizing: border-box; display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 12px; align-items: center; cursor: pointer; padding: 12px 14px; border-radius: 14px; background: var(--ink-2); box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .08); color: var(--paper); font: 500 1rem/1.4 "DM Sans", sans-serif; overflow-wrap: anywhere; transition: box-shadow .15s, background .15s, transform .1s; }
+.rq-opt:hover:not(:disabled) { box-shadow: inset 0 0 0 2px var(--aqua); transform: translateY(-1px); }
+.rq-opt:focus-visible { outline: 3px solid var(--sun); outline-offset: 2px; }
+.rq-opt kbd { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; background: rgba(255, 255, 255, .1); font: 700 .85rem "DM Sans", sans-serif; }
+.rq-opt:disabled { cursor: default; opacity: .75; }
+.rq-opt.right { opacity: 1; background: rgba(46, 230, 140, .16); box-shadow: inset 0 0 0 2px #2ee68c; }
+.rq-opt.wrong { opacity: 1; background: rgba(255, 80, 110, .16); box-shadow: inset 0 0 0 2px #ff506e; }
+.rq-free { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; }
+.rq-free input { min-width: 0; }
+.rq-free .primary { margin: 0; }
+.rq-fb { display: grid; gap: 4px; margin-top: 14px; padding: 12px 14px; border-radius: 14px; line-height: 1.4; overflow-wrap: anywhere; }
+.rq-fb small { color: var(--muted); }
+.rq-fb.ok { background: rgba(46, 230, 140, .14); }
+.rq-fb.near { background: rgba(255, 216, 77, .14); }
+.rq-fb.ko { background: rgba(255, 80, 110, .14); }
+.rq-final { text-align: center; padding: 10px 0 6px; }
+.rq-emoji { font-size: 3.2rem; line-height: 1.1; }
+.rq-final h2 { margin: 6px 0; font-size: clamp(1.5rem, 4vw, 2.2rem); }
+.rq-miss { display: grid; gap: 10px; margin-top: 12px; }
+.rq-miss h3 { margin: 0; font-size: 1.05rem; }
+.rq-m { display: grid; gap: 4px; padding: 12px 14px; border-radius: 14px; background: var(--ink-2); overflow-wrap: anywhere; }
+.rq-m span { color: #2ee68c; }
+.rq-m em { color: var(--muted); font-style: normal; font-size: .9rem; }
+@media (max-width: 700px) {
+  .rq-grid { grid-template-columns: minmax(0, 1fr); }
+  .rq-free { grid-template-columns: minmax(0, 1fr); }
+  .rq-free .primary { width: 100%; }
+  .rq-actions { display: grid; grid-template-columns: minmax(0, 1fr); }
+  .rq-actions .primary, .rq-actions .ghost-btn { width: 100%; margin: 0; }
+}
+.rq-actions { margin-bottom: 16px; }
+.rq-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.rq-grid .rq-field:last-child { grid-column: 1 / -1; }
+@media (max-width: 700px) { .rq-grid { grid-template-columns: minmax(0, 1fr); } }
