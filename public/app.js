@@ -2705,6 +2705,7 @@ buRender();
 const homeSearch = $("homeSearch"), homeEmpty = $("homeEmpty");
 const HS_STOP = new Set("le la les un une des du de au aux en et ou a pour sur mon ma mes ton ta tes comment faire fait je veux voudrais besoin outil outils avec sans cherche trouver".split(" "));
 const HS_KW = {
+      revquiz: "quiz qcm questionnaire question reponse libre test teste toi reviser revision fiche controle evaluation interro examen apprendre memoriser",
       revsheet: "fiche fiches revision reviser cours resume surligner surlignage souligner pdf emoji emojis symbole symboles police stylo cahier memo imprimer",
     subtitles: "sous titres soustitres sous-titre srt vtt video tiktok karaoke legende texte cc transcription capcut youtube",
     planner: "planificateur seances planning semaine sport entrainement calendrier agenda programme jour routine suivi",
@@ -7932,6 +7933,380 @@ const HC_BY = { educatif: 0, medias: 1, createurs: 2, pratique: 3, argent: 4, je
   grid.classList.add("is-marquee-grid");
   check();
   requestAnimationFrame(tick);
+})();
+// ---------- Quiz de révision ----------
+(() => {
+  const panel = $("revquiz");
+  if (!panel) return;
+  const SRC_KEY = "clippo_revsheets", STAT_KEY = "clippo_quizstats";
+  const sel = $("rqSel"), info = $("rqInfo"), best = $("rqBest");
+  const setup = $("rqSetup"), play = $("rqPlay"), end = $("rqEnd");
+  const optsBox = $("rqOpts"), freeBox = $("rqFree"), input = $("rqIn"), fb = $("rqFb");
+  const nextBtn = $("rqNext"), forceBtn = $("rqForce"), checkBtn = $("rqCheck");
+  let mode = "mix", count = 10, facts = [], quiz = [], qi = 0, results = [], answered = false, lastLen = 0, lastSet = null;
+
+  const STOP = new Set("le la les un une des du de d l et ou mais donc or ni car que qui quoi dont ou au aux ce cet cette ces se sa son ses leur leurs en dans sur sous par pour avec sans est sont etre a ont avoir il elle ils elles on nous vous je tu y ne pas plus tres aussi comme quand lorsque si alors cela ca ceci c s n m t qu the of and to in is are".split(" "));
+  const LABELS = new Set(["exemple", "exemples", "ex", "astuce", "important", "definition", "remarque", "note", "attention", "a retenir", "retenir", "rappel", "conseil", "formule", "propriete", "regle"]);
+  const PRON = new Set(["il", "elle", "ils", "elles", "on", "ce", "cela", "ca", "ceci", "nous", "je", "tu", "vous", "c", "ici", "cette", "ces", "cet"]);
+  const norm = (s) => (typeof fcNorm === "function" ? fcNorm(s) : s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, " ").trim());
+  const shuffle = (a) => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  const clean = (s) => s.replace(/[\p{Extended_Pictographic}️‍]/gu, "").replace(/\s+/g, " ").trim();
+  const lead = (s) => s.replace(/^[^\p{L}\p{N}«"(]+/u, "").trim();
+  const clip = (s, n) => (s.length > n ? s.slice(0, n - 1).trimEnd() + "…" : s);
+  const words = (s) => s.split(/\s+/).filter(Boolean);
+
+  // ----- lecture des fiches -----
+  function readSheets() {
+    try {
+      const d = JSON.parse(localStorage.getItem(SRC_KEY) || "null");
+      if (d && Array.isArray(d.list)) return { cur: d.cur, list: d.list.filter((x) => x && typeof x.html === "string") };
+    } catch { /* ignoré */ }
+    return { cur: null, list: [] };
+  }
+  function flush() { try { window.dispatchEvent(new Event("pagehide")); } catch { /* ignoré */ } }
+
+  // ----- HTML de la fiche -> lignes avec mots mis en valeur -----
+  function toLines(html) {
+    const doc = new DOMParser().parseFromString(html || "", "text/html");
+    const lines = [];
+    let cur = null;
+    const open = (box) => { cur = { t: "", em: [], box: box || null, head: false }; lines.push(cur); };
+    const isEm = (el) => {
+      const tag = el.tagName, st = el.getAttribute("style") || "";
+      return tag === "B" || tag === "STRONG" || tag === "U" || tag === "MARK" || /background/i.test(st) || /underline/i.test(st) || /border/i.test(st);
+    };
+    const walk = (node, box, em) => {
+      if (node.nodeType === 3) {
+        if (!cur) open(box);
+        const t = node.nodeValue.replace(/\s+/g, " ");
+        if (em && t.trim()) { if (cur._emOpen) cur.em[cur.em.length - 1] += t; else cur.em.push(t); cur._emOpen = true; } else if (t.trim()) cur._emOpen = false;
+        cur.t += t; return;
+      }
+      if (node.nodeType !== 1) return;
+      const tag = node.tagName;
+      if (tag === "BR") { cur = null; return; }
+      if (tag === "SCRIPT" || tag === "STYLE") return;
+      const block = /^(DIV|P|LI|H1|H2|H3|H4|UL|OL|BLOCKQUOTE|TABLE|TR)$/.test(tag);
+      let b = box;
+      if (node.classList && node.classList.contains("rf-box")) b = node.classList.contains("rf-b-def") ? "def" : "box";
+      if (block) cur = null;
+      if (/^H[1-4]$/.test(tag)) { open(b); cur.head = true; }
+      const e = em || isEm(node);
+      node.childNodes.forEach((c) => { if (c.nodeType === 1 && /^(BR)$/.test(c.tagName)) cur = null; else walk(c, b, e); });
+      if (block) cur = null;
+    };
+    walk(doc.body, null, false);
+    return lines.map((l) => {
+      const t = clean(lead(l.t));
+      const ems = l.em.map((x) => clean(x)).filter((x) => x.length >= 2);
+      return { t, em: ems, box: l.box, head: l.head };
+    }).filter((l) => l.t.length > 1);
+  }
+
+  // ----- lignes -> faits (définitions et phrases à trous) -----
+  function extract(html) {
+    const lines = toLines(html), out = [], seen = new Set(), weak = [];
+    const add = (f, arr) => { const k = norm(f.type === "def" ? f.term : f.text); if (!k || seen.has(k)) return; seen.add(k); (arr || out).push(f); };
+    lines.forEach((l) => {
+      const t = l.t;
+      if (LABELS.has(norm(t))) return;
+      let m = t.match(/^(.{3,60}?)\s*(?::|=|→|➜|⇒|—|–| - )\s*(.{6,})$/u);
+      if (m) {
+        const term = clean(lead(m[1])), def = m[2].trim();
+        if (term && !LABELS.has(norm(term)) && words(term).length <= 7 && /\p{L}/u.test(term) && (words(def).length >= 2 || def.length >= 8) && !/^\d+$/.test(term)) {
+          add({ type: "def", term, def, src: t }); return;
+        }
+        if (LABELS.has(norm(term)) && def.length >= 12) { // « Exemple : … » ne donne pas de question de définition
+          if (words(def).length >= 5) addCloze(def, [], weak);
+          return;
+        }
+      }
+      m = t.match(/^(.{2,50}?)\s+(?:est|sont|désigne|désignent|signifie|correspond à|représente|se définit comme|c'est)\s+(.{8,})$/iu);
+      if (m && !l.head) {
+        const term = clean(m[1]), wc = words(term).length;
+        if (wc <= 4 && !PRON.has(norm(term).split(" ")[0]) && term.length >= 3 && (l.box === "def" || wc <= 3 || l.em.some((e) => norm(term).includes(norm(e))))) {
+          add({ type: "def", term, def: m[2].trim(), src: t }); return;
+        }
+      }
+      if (l.head || words(t).length < 5) return;
+      addCloze(t, l.em, weak);
+    });
+    function addCloze(text, ems, arr) {
+      const cand = ems.filter((e) => words(e).length <= 4 && e.length <= 40 && norm(e) !== norm(text) && text.includes(e));
+      if (cand.length) { const a = cand[0]; add({ type: "cloze", text: text.replace(a, "_____"), answer: a, src: text }); return; }
+      const ws = words(text).map((w) => w.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, "")).filter((w) => w.length >= 6 && !STOP.has(norm(w)));
+      if (ws.length && words(text).length >= 6) {
+        const a = ws.sort((x, y) => y.length - x.length)[0];
+        add({ type: "cloze", text: text.replace(a, "_____"), answer: a, src: text, weak: true }, arr);
+      }
+    }
+    return out.concat(weak).slice(0, 80);
+  }
+
+  // ----- fabrication des questions -----
+  function pickDistractors(correct, pool, n, like) {
+    const key = norm(correct), seenK = new Set([key]), res = [];
+    const sorted = shuffle(pool).sort((a, b) => Math.abs(a.length - like) - Math.abs(b.length - like) + (Math.random() - 0.5) * 6);
+    for (const p of sorted) { const k = norm(p); if (!k || seenK.has(k)) continue; seenK.add(k); res.push(p); if (res.length >= n) break; }
+    return res;
+  }
+  function build(factsPool, n, qmode) {
+    const terms = [], defs = [];
+    factsPool.forEach((f) => { if (f.type === "def") { terms.push(f.term); defs.push(f.def); } else terms.push(f.answer); });
+    const chosen = shuffle(factsPool.filter((f) => !f.weak)).concat(shuffle(factsPool.filter((f) => f.weak)));
+    const pickN = n > 0 ? Math.min(n, chosen.length) : chosen.length;
+    const list = shuffle(chosen.slice(0, pickN));
+    return list.map((f) => {
+      let kind = qmode === "mcq" ? "mcq" : qmode === "free" ? "free" : (Math.random() < 0.5 ? "mcq" : "free");
+      if (f.type === "def") {
+        const dir = Math.random() < 0.5 ? "td" : "dt"; // terme -> définition, ou définition -> terme
+        if (dir === "td") {
+          const q = { kind, f, prompt: "Quelle est la définition de « " + f.term + " » ?", sub: "Définition", expected: f.def, grade: "kw" };
+          if (kind === "mcq") {
+            const d = pickDistractors(f.def, defs, 3, f.def.length);
+            if (d.length < 1) { q.kind = "free"; } else { q.options = shuffle([f.def, ...d]); }
+          }
+          return q;
+        }
+        const q = { kind, f, prompt: "De quoi parle-t-on ?  « " + clip(f.def, 220) + " »", sub: "Retrouve le mot", expected: f.term, grade: "exact" };
+        if (kind === "mcq") {
+          const d = pickDistractors(f.term, terms, 3, f.term.length);
+          if (d.length < 1) q.kind = "free"; else q.options = shuffle([f.term, ...d]);
+        }
+        return q;
+      }
+      const q = { kind, f, prompt: f.text, sub: "Complète la phrase", expected: f.answer, grade: "exact" };
+      if (kind === "mcq") {
+        const d = pickDistractors(f.answer, terms, 3, f.answer.length);
+        if (d.length < 1) q.kind = "free"; else q.options = shuffle([f.answer, ...d]);
+      }
+      return q;
+    });
+  }
+
+  // ----- correction -----
+  function keywords(s) { return [...new Set(norm(s).split(" ").filter((w) => w.length >= 4 && !STOP.has(w)))]; }
+  function grade(q, given) {
+    const g = norm(given);
+    if (!g) return { ok: false, near: false };
+    if (q.grade === "exact") {
+      const ok = fcIsRight(q.expected, given) || (norm(q.expected).length >= 4 && ` ${g} `.includes(` ${norm(q.expected)} `) && g.split(" ").length <= norm(q.expected).split(" ").length + 2);
+      return { ok, near: false };
+    }
+    const kw = keywords(q.expected);
+    if (!kw.length) return { ok: fcIsRight(q.expected, given), near: false };
+    const hit = kw.filter((w) => g.includes(w.length > 6 ? w.slice(0, w.length - 2) : w)).length, r = hit / kw.length;
+    return { ok: r >= 0.6, near: r >= 0.35 && r < 0.6 };
+  }
+
+  // ----- écrans -----
+  function show(which) { setup.hidden = which !== "setup"; play.hidden = which !== "play"; end.hidden = which !== "end"; }
+  function fiche() { const d = readSheets(); return d.list.find((x) => x.id === sel.value) || d.list[0] || null; }
+  function stats() { try { const d = JSON.parse(localStorage.getItem(STAT_KEY) || "{}"); return d && typeof d === "object" ? d : {}; } catch { return {}; } }
+  function saveStat(id, pct) {
+    const d = stats(); const s = d[id] || { best: 0, plays: 0 };
+    s.plays += 1; s.best = Math.max(s.best, pct); s.last = pct; d[id] = s;
+    try { localStorage.setItem(STAT_KEY, JSON.stringify(d)); } catch { /* ignoré */ }
+  }
+
+  function refresh() {
+    flush();
+    const d = readSheets(), keep = sel.value;
+    sel.innerHTML = "";
+    d.list.forEach((x, i) => { const o = document.createElement("option"); o.value = x.id; o.textContent = (x.title || "").trim() || "Fiche " + (i + 1); sel.appendChild(o); });
+    const want = lastSet || keep || d.cur;
+    if (want && d.list.some((x) => x.id === want)) sel.value = want;
+    lastSet = null;
+    if (!d.list.length) { info.textContent = "Tu n'as pas encore de fiche. Crée-en une dans l'onglet « Fiches de révision »."; info.className = "rq-info warn"; $("rqStart").disabled = true; best.textContent = ""; return; }
+    updateInfo();
+  }
+  function updateInfo() {
+    const f = fiche();
+    facts = f ? extract(f.html) : [];
+    const strong = facts.filter((x) => !x.weak).length;
+    $("rqStart").disabled = facts.length < 1;
+    if (!facts.length) {
+      info.className = "rq-info warn";
+      info.textContent = "Cette fiche est trop courte pour faire un quiz. Écris quelques phrases ou des définitions (« Mot : explication ») dans l'onglet « Fiches de révision ».";
+    } else {
+      info.className = "rq-info";
+      info.textContent = "📚 " + facts.length + " question" + (facts.length > 1 ? "s" : "") + " possible" + (facts.length > 1 ? "s" : "") + " sur cette fiche" + (strong < facts.length ? " (dont " + (facts.length - strong) + " plus libre" + (facts.length - strong > 1 ? "s" : "") + ")" : "") + ".";
+    }
+    const st = f ? stats()[f.id] : null;
+    best.textContent = st ? "🏅 Meilleur score : " + st.best + " %  ·  Dernier : " + st.last + " %  ·  " + st.plays + " partie" + (st.plays > 1 ? "s" : "") : "";
+  }
+
+  function start(questions) {
+    quiz = questions; qi = 0; results = [];
+    if (!quiz.length) return;
+    show("play"); renderQ();
+  }
+  function renderQ() {
+    const q = quiz[qi]; answered = false;
+    $("rqCnt").textContent = "Question " + (qi + 1) + " / " + quiz.length;
+    $("rqScore").textContent = results.filter((r) => r.ok).length + " juste" + (results.filter((r) => r.ok).length > 1 ? "s" : "");
+    $("rqBarFill").style.width = (qi / quiz.length) * 100 + "%";
+    $("rqKind").textContent = (q.kind === "mcq" ? "🔘 QCM · " : "✍️ Réponse libre · ") + q.sub;
+    $("rqQ").textContent = q.prompt;
+    fb.hidden = true; fb.className = "rq-fb"; fb.textContent = "";
+    nextBtn.hidden = true; forceBtn.hidden = true;
+    optsBox.innerHTML = "";
+    if (q.kind === "mcq") {
+      freeBox.hidden = true; optsBox.hidden = false;
+      q.options.forEach((o, i) => {
+        const b = document.createElement("button");
+        b.type = "button"; b.className = "rq-opt"; b.dataset.i = String(i);
+        const k = document.createElement("kbd"); k.textContent = String(i + 1);
+        const sp = document.createElement("span"); sp.textContent = o;
+        b.append(k, sp);
+        b.addEventListener("click", () => pickOpt(i));
+        optsBox.appendChild(b);
+      });
+    } else {
+      optsBox.hidden = true; freeBox.hidden = false;
+      input.value = ""; input.disabled = false; checkBtn.disabled = false;
+      setTimeout(() => { try { input.focus({ preventScroll: true }); } catch { /* ignoré */ } }, 30);
+    }
+  }
+  function record(q, given, ok, near) {
+    answered = true;
+    results.push({ q, given, ok });
+    const good = ok;
+    fb.hidden = false;
+    fb.className = "rq-fb " + (good ? "ok" : near ? "near" : "ko");
+    fb.textContent = "";
+    const h = document.createElement("strong");
+    h.textContent = good ? "✅ Bonne réponse !" : near ? "🟡 Presque !" : "❌ Raté";
+    fb.appendChild(h);
+    if (!good) {
+      const p = document.createElement("span"); p.textContent = "Réponse attendue : " + q.expected; fb.appendChild(p);
+      forceBtn.hidden = q.kind === "mcq";
+    }
+    if (q.f && q.f.src && q.f.src !== q.expected) { const s = document.createElement("small"); s.textContent = "Dans ta fiche : " + clip(q.f.src, 200); fb.appendChild(s); }
+    $("rqScore").textContent = results.filter((r) => r.ok).length + " juste" + (results.filter((r) => r.ok).length > 1 ? "s" : "");
+    $("rqBarFill").style.width = ((qi + 1) / quiz.length) * 100 + "%";
+    nextBtn.hidden = false; nextBtn.textContent = qi + 1 >= quiz.length ? "Voir mon score 🏁" : "Suivante →";
+    setTimeout(() => { try { nextBtn.focus({ preventScroll: true }); } catch { /* ignoré */ } }, 30);
+  }
+  function pickOpt(i) {
+    if (answered) return;
+    const q = quiz[qi], right = q.options.indexOf(q.expected);
+    optsBox.querySelectorAll(".rq-opt").forEach((b, k) => { b.disabled = true; b.classList.toggle("right", k === right); b.classList.toggle("wrong", k === i && k !== right); });
+    record(q, q.options[i], i === right, false);
+  }
+  function submitFree() {
+    if (answered) return;
+    const q = quiz[qi], given = input.value.trim();
+    if (!given) { input.focus(); return; }
+    input.disabled = true; checkBtn.disabled = true;
+    const g = grade(q, given);
+    record(q, given, g.ok, g.near);
+  }
+  function next() {
+    if (!answered) return;
+    if (qi + 1 >= quiz.length) return finish();
+    qi += 1; renderQ();
+  }
+  function finish() {
+    const ok = results.filter((r) => r.ok).length, n = results.length, pct = n ? Math.round((ok / n) * 100) : 0;
+    const f = fiche(); if (f) saveStat(f.id, pct);
+    show("end");
+    $("rqEmoji").textContent = pct === 100 ? "🏆" : pct >= 80 ? "🎉" : pct >= 50 ? "💪" : "📖";
+    $("rqFinalScore").textContent = ok + " / " + n + "  (" + pct + " %)";
+    $("rqFinalMsg").textContent = pct === 100 ? "Sans faute, bravo !" : pct >= 80 ? "Très bien, tu maîtrises ta fiche." : pct >= 50 ? "C'est bien parti, relis les erreurs et recommence." : "Pas de panique : relis ta fiche puis retente ta chance.";
+    const miss = results.filter((r) => !r.ok), box = $("rqMiss");
+    box.innerHTML = "";
+    $("rqRetry").hidden = !miss.length; $("rqToFc").hidden = !miss.length;
+    $("rqEndMsg").textContent = "";
+    if (miss.length) {
+      const h = document.createElement("h3"); h.textContent = "À revoir (" + miss.length + ")"; box.appendChild(h);
+      miss.forEach((r) => {
+        const d = document.createElement("div"); d.className = "rq-m";
+        const q = document.createElement("b"); q.textContent = clip(r.q.prompt, 160);
+        const a = document.createElement("span"); a.textContent = "✔ " + clip(r.q.expected, 200);
+        d.append(q, a);
+        if (r.given) { const g = document.createElement("em"); g.textContent = "Ta réponse : " + clip(r.given, 120); d.appendChild(g); }
+        box.appendChild(d);
+      });
+    }
+    $("rqBarFill").style.width = "100%";
+  }
+
+  // ----- erreurs -> flashcards -----
+  function toFlashcards() {
+    const miss = results.filter((r) => !r.ok);
+    if (!miss.length) return;
+    try {
+      const deck = (fiche() && (fiche().title || "").trim().slice(0, 30)) || "Quiz";
+      const have = new Set(fcCards.map((c) => norm(c.q)));
+      let added = 0;
+      miss.forEach((r) => {
+        const f = r.q.f; let q, a;
+        if (f.type === "def") { q = f.term; a = f.def; } else { q = f.text; a = f.answer; }
+        if (have.has(norm(q)) || fcCards.length >= FC_MAX) return;
+        have.add(norm(q));
+        fcCards.unshift({ id: "q" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), q: q.slice(0, 200), a: a.slice(0, 300), known: false, star: false, deck, box: 1, due: 0 });
+        added += 1;
+      });
+      fcSave(); fcRender();
+      $("rqEndMsg").textContent = added ? "🃏 " + added + " flashcard" + (added > 1 ? "s ajoutées" : " ajoutée") + " dans le paquet « " + deck + " »." : "Ces cartes sont déjà dans tes flashcards.";
+    } catch { $("rqEndMsg").textContent = "Impossible d'ajouter les flashcards."; }
+  }
+
+  // ----- événements -----
+  [["rqMode", (v) => { mode = v; }], ["rqCount", (v) => { count = parseInt(v, 10) || 0; }]].forEach(([id, fn]) => {
+    $(id).querySelectorAll(".chip").forEach((c) => c.addEventListener("click", () => {
+      $(id).querySelectorAll(".chip").forEach((x) => x.classList.toggle("active", x === c)); fn(c.dataset.v);
+    }));
+  });
+  sel.addEventListener("change", updateInfo);
+  $("rqStart").addEventListener("click", () => { const f = fiche(); if (!f) return; facts = extract(f.html); start(build(facts, count, mode)); });
+  $("rqEdit").addEventListener("click", () => { const f = fiche(); const rs = $("rfSel"); if (f && rs) { rs.value = f.id; rs.dispatchEvent(new Event("change")); } openTab("revsheet"); });
+  checkBtn.addEventListener("click", submitFree);
+  input.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); submitFree(); } });
+  nextBtn.addEventListener("click", next);
+  forceBtn.addEventListener("click", () => {
+    const r = results[results.length - 1]; if (!r || r.ok) return;
+    r.ok = true; forceBtn.hidden = true;
+    fb.className = "rq-fb ok"; fb.firstChild.textContent = "✅ Compté comme juste";
+    $("rqScore").textContent = results.filter((x) => x.ok).length + " justes";
+  });
+  $("rqQuit").addEventListener("click", () => { if (results.length >= 2) finish(); else { show("setup"); refresh(); } });
+  $("rqAgain").addEventListener("click", () => { const f = fiche(); if (f) start(build(extract(f.html), count, mode)); });
+  $("rqRetry").addEventListener("click", () => {
+    const miss = results.filter((r) => !r.ok).map((r) => r.q.f);
+    if (miss.length) start(build(miss, 0, mode));
+  });
+  $("rqToFc").addEventListener("click", toFlashcards);
+  $("rqBack").addEventListener("click", () => { show("setup"); refresh(); });
+  document.addEventListener("keydown", (e) => {
+    if (!panel.classList.contains("active") || play.hidden) return;
+    if (e.target === input) return;
+    if (e.key >= "1" && e.key <= "9" && !answered && quiz[qi] && quiz[qi].kind === "mcq") { const i = parseInt(e.key, 10) - 1; if (i < quiz[qi].options.length) pickOpt(i); }
+    else if (e.key === "Enter" && answered) { e.preventDefault(); next(); }
+  });
+
+  // bouton « Faire un quiz » dans l'onglet Fiches
+  const acts = document.querySelector("#revsheet .rf-actions");
+  if (acts && !$("rfQuiz")) {
+    const b = document.createElement("button");
+    b.id = "rfQuiz"; b.type = "button"; b.className = "ghost-btn"; b.textContent = "🧠 Faire un quiz sur cette fiche";
+    b.addEventListener("click", () => {
+      flush();
+      try { const d = JSON.parse(localStorage.getItem(SRC_KEY) || "null"); if (d && d.cur) lastSet = d.cur; } catch { /* ignoré */ }
+      show("setup"); openTab("revquiz");
+    });
+    acts.appendChild(b);
+  }
+
+  // à chaque ouverture de l'onglet : relit les fiches
+  let wasActive = false;
+  new MutationObserver(() => {
+    const on = panel.classList.contains("active");
+    if (on && !wasActive && play.hidden) { show(end.hidden ? "setup" : "end"); if (end.hidden) refresh(); }
+    wasActive = on;
+  }).observe(panel, { attributes: true, attributeFilter: ["class"] });
+  refresh();
 })();
 // ---------- Chronomètre d'entraînement ----------
 (() => {
