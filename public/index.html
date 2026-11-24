@@ -2910,27 +2910,143 @@ Hugo</textarea>
           <summary>😀 Symboles et émojis (clique pour les ajouter dans ta fiche)</summary>
           <div id="rfCats" class="rf-cats" role="tablist" aria-label="Catégories de symboles"></div>
           <div id="rfSyms" class="rf-symgrid"></div>
+               <details id="rfSend" class="rf-send">
+          <summary>📲 Mettre mes fiches sur mon téléphone</summary>
+          <p class="gr-note">1. Ici, crée un code. 2. Envoie-le-toi (WhatsApp, mail, notes…). 3. Sur ton téléphone, ouvre le lien, ou colle le code dans « J'ai un code ».</p>
+          <div class="rf-send-row">
+            <label class="select"><span>Quelles fiches ?</span>
+              <select id="txScope"><option value="one">Cette fiche</option><option value="all">Toutes mes fiches</option></select>
+            </label>
+            <button id="txMake" class="primary" type="button">Créer mon code</button>
+          </div>
+          <div id="txOut" hidden>
+            <textarea id="txCode" readonly rows="4" aria-label="Ton code" spellcheck="false"></textarea>
+            <div class="rf-send-row">
+              <button id="txCopyCode" class="ghost-btn" type="button">📋 Copier le code</button>
+              <button id="txCopyLink" class="ghost-btn" type="button">🔗 Copier le lien</button>
+            </div>
+          </div>
+          <h4 class="rf-send-h">J'ai un code</h4>
+          <textarea id="txIn" rows="3" placeholder="Colle ici ton code (ou le lien) …" aria-label="Code à importer" spellcheck="false"></textarea>
+          <div class="rf-send-row"><button id="txImport" class="primary" type="button">Importer mes fiches</button></div>
+          <p id="txMsg" class="status" role="status"></p>
         </details>
+        <script>
+        /* Fiches -> téléphone : ce bloc fonctionne tout seul (rien à ajouter dans app.js) */
+        (function () {
+          var $ = function (i) { return document.getElementById(i); };
+          var PRE = "CLP1-", KEY = "clippo_revsheets", START = location.hash;
+          var msg = $("txMsg");
+          function say(t, err) { msg.textContent = t; msg.classList.toggle("error", !!err); }
+          function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+          function b64(bytes) { var s = ""; for (var i = 0; i < bytes.length; i += 8192) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 8192)); return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""); }
+          function unb64(str) { var s = str.replace(/-/g, "+").replace(/_/g, "/"); var bin = atob(s + "=".repeat((4 - s.length % 4) % 4)); var o = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) o[i] = bin.charCodeAt(i); return o; }
+          async function pipe(bytes, stream) { return new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(stream)).arrayBuffer()); }
+          function stored() {
+            try { window.dispatchEvent(new Event("pagehide")); } catch (e) {} /* force l'enregistrement de la fiche en cours */
+            try { var d = JSON.parse(localStorage.getItem(KEY) || "null"); return d && Array.isArray(d.list) ? d : { cur: "", list: [] }; } catch (e) { return { cur: "", list: [] }; }
+          }
+          function plain(h) { var d = new DOMParser().parseFromString("<body>" + h + "</body>", "text/html"); return d.body.textContent.replace(/\s+/g, " ").trim(); }
+          /* nettoyage strict avant d'afficher du contenu reçu */
+          var TAGS = "DIV SPAN P BR B I U S STRIKE STRONG EM FONT H1 H2 H3 UL OL LI MARK SUB SUP BLOCKQUOTE".split(" ");
+          function safe(html) {
+            var doc = new DOMParser().parseFromString("<body>" + html + "</body>", "text/html"), out = document.createElement("div");
+            (function walk(src, dst) {
+              src.childNodes.forEach(function (n) {
+                if (n.nodeType === 3) { dst.appendChild(document.createTextNode(n.nodeValue)); return; }
+                if (n.nodeType !== 1) return;
+                var t = n.tagName.toUpperCase();
+                if (/^(SCRIPT|STYLE|IFRAME|OBJECT|EMBED|TEMPLATE|NOSCRIPT|TEXTAREA|SVG|MATH|LINK|META|TITLE|HEAD)$/.test(t)) return;
+                if (TAGS.indexOf(t) < 0) { walk(n, dst); return; }
+                var el = document.createElement(t.toLowerCase());
+                var st = n.getAttribute("style");
+                if (st && !/url\(|expression|@import|\\|<|javascript/i.test(st)) el.setAttribute("style", st);
+                var cl = n.getAttribute("class"); if (cl && /^rf-[\w-]+( rf-[\w-]+)*$/.test(cl)) el.setAttribute("class", cl);
+                if (t === "FONT") { ["color", "face", "size"].forEach(function (a) { var v = n.getAttribute(a); if (v && /^[#\w ,'"-]{1,60}$/.test(v)) el.setAttribute(a, v); }); }
+                walk(n, el); dst.appendChild(el);
+              });
+            })(doc.body, out);
+            return out.innerHTML;
+          }
+          async function encode(sheets) {
+            var bytes = new TextEncoder().encode(JSON.stringify({ v: 1, s: sheets.map(function (f) { return { t: f.title, h: f.html, b: f.bg, o: f.orient }; }) }));
+            if ("CompressionStream" in window) return PRE + "z" + b64(await pipe(bytes, new CompressionStream("deflate-raw")));
+            return PRE + "r" + b64(bytes);
+          }
+          async function decode(code) {
+            var c = String(code).trim(), k = c.indexOf("fiches="); if (k >= 0) c = c.slice(k + 7);
+            c = c.replace(/\s+/g, "");
+            if (c.length > 3000000 || c.indexOf(PRE) !== 0) throw new Error("fmt");
+            var kind = c.charAt(PRE.length), raw = unb64(c.slice(PRE.length + 1)), bytes;
+            if (kind === "z") { if (!("DecompressionStream" in window)) throw new Error("nodec"); bytes = await pipe(raw, new DecompressionStream("deflate-raw")); if (bytes.length > 6000000) throw new Error("fmt"); }
+            else if (kind === "r") bytes = raw; else throw new Error("fmt");
+            var d = JSON.parse(new TextDecoder().decode(bytes));
+            if (!d || !Array.isArray(d.s)) throw new Error("fmt");
+            return d.s.slice(0, 30).filter(function (x) { return x && typeof x.h === "string"; }).map(function (x) { return { title: String(x.t || "").slice(0, 80), html: x.h, bg: x.b, orient: x.o }; });
+          }
 
-        <div id="rfSheet" class="rf-sheet" data-bg="white">
-          <h2 id="rfTitle" class="rf-title" contenteditable="true" data-ph="Titre de la fiche" spellcheck="false" role="textbox" aria-label="Titre de la fiche"></h2>
-          <div id="rfBody" class="rf-body" contenteditable="true" spellcheck="true" role="textbox" aria-multiline="true" aria-label="Contenu de la fiche"></div>
-        </div>
+          var link = "";
+          $("txMake").addEventListener("click", async function () {
+            try {
+              var d = stored(), cur = $("rfSel") ? $("rfSel").value : d.cur;
+              var sheets = $("txScope").value === "all" ? d.list : d.list.filter(function (f) { return f.id === cur; });
+              if (!sheets.length) { say("Aucune fiche à envoyer : écris d'abord dans une fiche.", true); return; }
+              var code = await encode(sheets);
+              link = location.origin + location.pathname + "#fiches=" + code;
+              $("txCode").value = code; $("txOut").hidden = false; $("txCopyLink").hidden = link.length > 8000;
+              say(sheets.length + " fiche" + (sheets.length > 1 ? "s" : "") + " prête" + (sheets.length > 1 ? "s" : "") + " ! " + (link.length > 8000 ? "Le lien serait trop long : envoie le code." : "Copie le lien ou le code."));
+            } catch (e) { say("Impossible de créer le code (" + (e && e.message || "erreur") + ").", true); }
+          });
+          async function copy(text, ok) {
+            try { await navigator.clipboard.writeText(text); say(ok); }
+            catch (e) { $("txCode").focus(); $("txCode").select(); say("Sélectionné : fais « Copier » avec ton clavier ou ton doigt."); }
+          }
+          $("txCopyCode").addEventListener("click", function () { copy($("txCode").value, "Code copié ✅"); });
+          $("txCopyLink").addEventListener("click", function () { copy(link, "Lien copié ✅"); });
 
-        <p id="rfMsg" class="status" role="status"></p>
-        <div class="row rf-actions">
-          <button id="rfPdf" class="primary" type="button">📄 Télécharger en PDF</button>
-        </div>
-               <p class="gr-note">Pour le PDF, une fenêtre d'impression s'ouvre : choisis « Enregistrer au format PDF » (ou « Enregistrer en PDF »), puis, si tu les vois, décoche les options « En-têtes et pieds de page » et coche « Graphiques d'arrière-plan » pour garder les couleurs. Seule la fiche est imprimée. Tes fiches sont enregistrées automatiquement dans ce navigateur.</p>
-              <p id="rfMsg" class="status" role="status"></p>
-        <div class="row rf-actions">
-          <button id="rfPdf" class="primary" type="button">📄 Télécharger en PDF</button>
-        </div>
-        <p class="gr-note">Pour le PDF, une fenêtre d'impression s'ouvre : …</p>
-
-        <details id="rfSend" class="rf-send">
-          …tout le bloc que je t'ai donné…
-        </details>
+          /* l'import passe par l'écran de la fiche (comme si tu la tapais) : l'onglet Fiches la sauvegarde ensuite lui-même */
+          function fill(s) {
+            $("rfTitle").textContent = s.title;
+            $("rfBody").innerHTML = safe(s.html);
+            var bg = $("rfBg"), or = $("rfOrient");
+            bg.value = ["white", "cream", "ruled", "grid", "pink", "blue", "green", "yellow", "dark"].indexOf(s.bg) >= 0 ? s.bg : "white"; bg.dispatchEvent(new Event("change"));
+            or.value = s.orient === "landscape" ? "landscape" : "portrait"; or.dispatchEvent(new Event("change"));
+            $("rfBody").dispatchEvent(new Event("input", { bubbles: true }));
+          }
+          async function doImport(code, fromLink) {
+            try {
+              var sheets = await decode(code);
+              if (!sheets.length) throw new Error("fmt");
+              if (!$("rfNew") || !$("rfBody") || !$("rfTitle") || !$("rfSel")) throw new Error("dom");
+              var d = stored(), n = 0, list = d.list.slice();
+              for (var i = 0; i < sheets.length; i++) {
+                var s = sheets[i], h = plain(s.html);
+                if (list.some(function (f) { return (f.title || "") === s.title && plain(f.html) === h; })) continue;
+                var starter = list.length === 1 && list[0].title === "Ma première fiche" && plain(list[0].html).indexOf("Écris ton cours ici") >= 0;
+                if (!starter) { var before = $("rfSel").options.length; $("rfNew").click(); if ($("rfSel").options.length <= before) break; /* limite atteinte */ }
+                fill(s); n++;
+                list = starter ? [{ title: s.title, html: s.html }] : list.concat([{ title: s.title, html: s.html }]);
+                await sleep(750);
+              }
+              await sleep(300); stored();
+              details.open = true;
+              say(n ? "✅ " + n + " fiche" + (n > 1 ? "s ajoutées" : " ajoutée") + " sur cet appareil." : "Ces fiches sont déjà sur cet appareil.");
+              if (fromLink) { var tab = document.querySelector('.tab[data-tab="revsheet"]'); if (tab) tab.click(); }
+              return true;
+            } catch (e) {
+              details.open = true;
+              say(e && e.message === "nodec" ? "Ton navigateur est trop ancien pour lire ce code." : e && e.message === "dom" ? "L'onglet Fiches n'est pas complet sur cette page." : "Code invalide : copie-le en entier, de « CLP1- » jusqu'à la fin.", true);
+              return false;
+            }
+          }
+          var details = $("rfSend");
+          $("txImport").addEventListener("click", async function () { var b = $("txImport"); b.disabled = true; if (await doImport($("txIn").value, false)) $("txIn").value = ""; b.disabled = false; });
+          if (START.indexOf("#fiches=") === 0) {
+            var go = function () { setTimeout(function () { doImport(START.slice(1), true); }, 400); };
+            if (document.readyState === "complete") go(); else window.addEventListener("load", go);
+          }
+        })();
+        </script>
 
       </div>          <!-- ferme la carte -->
     </section>         <!-- ferme l'onglet Fiches -->
