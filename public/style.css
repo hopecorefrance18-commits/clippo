@@ -3526,3 +3526,54 @@ input[type="checkbox"], input[type="radio"], input[type="range"] { accent-color:
 .rf-send-h { margin: 18px 0 0; font-size: 1rem; }
 #txOut > .rf-send-row { margin-top: 10px; }
 @media (max-width: 700px) { .rf-send-row .primary, .rf-send-row .ghost-btn { width: 100%; } }
+
+/* ---------- Animations plus fluides (courbes douces, durées courtes) ---------- */
+:root { --ease-out: cubic-bezier(.23, 1, .32, 1); --ease-io: cubic-bezier(.77, 0, .175, 1); }
+
+/* ouverture d'un onglet : plus rapide et plus douce */
+.panel.active:not(#home) { animation: panelIn .26s var(--ease-out); }
+.panel.active:not(#home) > .card { animation: cardIn .34s var(--ease-out) .04s backwards; }
+@keyframes cardIn { from { opacity: 0; transform: translateY(8px); } }
+
+/* retour tactile : un petit enfoncement au clic/toucher */
+.ghost-btn, .chip, .tab, .tool-card, .rq-opt, .rm-ck, .fav-btn, .fav-star { transition-timing-function: var(--ease-out); }
+.ghost-btn:active, .chip:active, .tab:active, .tool-card:active, .rq-opt:not(:disabled):active, .fav-btn:active { transform: scale(.97); transition-duration: .1s; }
+
+/* écrans tactiles : pas de survol « collé » après un toucher */
+@media (hover: none) {
+  .tool-card:hover, .rq-opt:hover:not(:disabled), .chip:hover { transform: none; }
+}
+
+/* listes : les éléments arrivent l'un après l'autre */
+.rq-opt { animation: itemIn .3s var(--ease-out) backwards; }
+.rq-opt:nth-child(2) { animation-delay: .04s; }
+.rq-opt:nth-child(3) { animation-delay: .08s; }
+.rq-opt:nth-child(n+4) { animation-delay: .12s; }
+.rm-item { animation: itemIn .3s var(--ease-out) backwards; }
+.rm-item:nth-child(2) { animation-delay: .04s; }
+.rm-item:nth-child(3) { animation-delay: .08s; }
+.rm-item:nth-child(n+4) { animation-delay: .12s; }
+@keyframes itemIn { from { opacity: 0; transform: translateY(8px); } }
+
+/* quiz : réponse juste = petit rebond, fausse = secousse légère */
+.rq-opt.right { animation: rqOk .34s var(--ease-out); }
+.rq-opt.wrong { animation: rqNo .3s var(--ease-out); }
+@keyframes rqOk { 40% { transform: scale(1.018); } }
+@keyframes rqNo { 20% { transform: translateX(-5px); } 45% { transform: translateX(4px); } 70% { transform: translateX(-2px); } }
+.rq-fb:not([hidden]) { animation: itemIn .24s var(--ease-out); }
+.rq-bar i { transition-timing-function: var(--ease-out); transition-duration: .45s; }
+.rq-final { animation: cardIn .45s var(--ease-out); }
+.rq-emoji { animation: rqPop .5s var(--ease-out) .1s backwards; }
+@keyframes rqPop { from { opacity: 0; transform: scale(.6) rotate(-8deg); } }
+
+/* menus déroulants (<details>) : le contenu glisse doucement */
+details[open] > summary ~ * { animation: itemIn .24s var(--ease-out); }
+
+/* la barre de progression et les boutons suivent la même courbe */
+.primary { transition-timing-function: var(--ease-out); }
+
+@media (prefers-reduced-motion: reduce) {
+  .panel.active:not(#home), .panel.active:not(#home) > .card, .rq-opt, .rm-item, .rq-fb, .rq-final, .rq-emoji, details[open] > summary ~ * { animation: none !important; }
+  .rq-opt.right, .rq-opt.wrong { animation: none !important; }
+  .ghost-btn:active, .chip:active, .tab:active, .tool-card:active, .rq-opt:active { transform: none; }
+}
