@@ -3577,3 +3577,27 @@ details[open] > summary ~ * { animation: itemIn .24s var(--ease-out); }
   .rq-opt.right, .rq-opt.wrong { animation: none !important; }
   .ghost-btn:active, .chip:active, .tab:active, .tool-card:active, .rq-opt:active { transform: none; }
 }
+
+/* ---------- Animations (suite) : menus, favoris, défilement ---------- */
+/* menu d'une catégorie : les onglets apparaissent en cascade */
+.subgroup:not([hidden]) .tab { animation: itemIn .28s var(--ease-out) backwards; }
+.subgroup:not([hidden]) .tab:nth-child(2) { animation-delay: .03s; }
+.subgroup:not([hidden]) .tab:nth-child(3) { animation-delay: .06s; }
+.subgroup:not([hidden]) .tab:nth-child(4) { animation-delay: .09s; }
+.subgroup:not([hidden]) .tab:nth-child(5) { animation-delay: .12s; }
+.subgroup:not([hidden]) .tab:nth-child(n+6) { animation-delay: .15s; }
+
+/* favoris : l'étoile « pop » quand on l'active */
+.tool-card > .fav-star.on, .fav-btn.on { animation: starPop .38s var(--ease-out); }
+@keyframes starPop { 0% { transform: scale(.82); } 55% { transform: scale(1.18); } 100% { transform: scale(1); } }
+.fav-star, .fav-btn { transition: transform .15s var(--ease-out), background .2s var(--ease-out), border-color .2s var(--ease-out), color .2s var(--ease-out); }
+.fav-star:active, .fav-btn:active { transform: scale(.88); }
+
+/* défilement : plus doux partout */
+html { scroll-behavior: smooth; }
+.hm-marq, .hm-grid, .tabs, .subgroup { scroll-behavior: smooth; overscroll-behavior-x: contain; }
+
+@media (prefers-reduced-motion: reduce) {
+  html, .hm-marq, .hm-grid, .tabs, .subgroup { scroll-behavior: auto; }
+  .subgroup:not([hidden]) .tab, .tool-card > .fav-star.on, .fav-btn.on { animation: none !important; }
+}
