@@ -2921,28 +2921,19 @@ Hugo</textarea>
         <div class="row rf-actions">
           <button id="rfPdf" class="primary" type="button">📄 Télécharger en PDF</button>
         </div>
-                <details id="rfSend" class="rf-send">
-          <summary>📲 Mettre mes fiches sur mon téléphone</summary>
-          <p class="gr-note">1. Ici, crée un code. 2. Envoie-le-toi (WhatsApp, mail, notes…). 3. Sur ton téléphone, ouvre le lien, ou colle le code dans « J'ai un code ».</p>
-          <div class="rf-send-row">
-            <label class="select"><span>Quelles fiches ?</span>
-              <select id="txScope"><option value="one">Cette fiche</option><option value="all">Toutes mes fiches</option></select>
-            </label>
-            <button id="txMake" class="primary" type="button">Créer mon code</button>
-          </div>
-          <div id="txOut" hidden>
-            <textarea id="txCode" readonly rows="4" aria-label="Ton code" spellcheck="false"></textarea>
-            <div class="rf-send-row">
-              <button id="txCopyCode" class="ghost-btn" type="button">📋 Copier le code</button>
-              <button id="txCopyLink" class="ghost-btn" type="button">🔗 Copier le lien</button>
-            </div>
-          </div>
-          <h4 class="rf-send-h">J'ai un code</h4>
-          <textarea id="txIn" rows="3" placeholder="Colle ici ton code (ou le lien) …" aria-label="Code à importer" spellcheck="false"></textarea>
-          <div class="rf-send-row"><button id="txImport" class="primary" type="button">Importer mes fiches</button></div>
-          <p id="txMsg" class="status" role="status"></p>
+               <p class="gr-note">Pour le PDF, une fenêtre d'impression s'ouvre : choisis « Enregistrer au format PDF » (ou « Enregistrer en PDF »), puis, si tu les vois, décoche les options « En-têtes et pieds de page » et coche « Graphiques d'arrière-plan » pour garder les couleurs. Seule la fiche est imprimée. Tes fiches sont enregistrées automatiquement dans ce navigateur.</p>
+              <p id="rfMsg" class="status" role="status"></p>
+        <div class="row rf-actions">
+          <button id="rfPdf" class="primary" type="button">📄 Télécharger en PDF</button>
+        </div>
+        <p class="gr-note">Pour le PDF, une fenêtre d'impression s'ouvre : …</p>
+
+        <details id="rfSend" class="rf-send">
+          …tout le bloc que je t'ai donné…
         </details>
-        <p class="gr-note">Pour le PDF, une fenêtre d'impression s'ouvre : choisis « Enregistrer au format PDF » (ou « Enregistrer en PDF »), puis, si tu les vois, décoche les options « En-têtes et pieds de page » et coche « Graphiques d'arrière-plan » pour garder les couleurs. Seule la fiche est imprimée. Tes fiches sont enregistrées automatiquement dans ce navigateur.</p>
+
+      </div>          <!-- ferme la carte -->
+    </section>         <!-- ferme l'onglet Fiches -->
       </div>
     </section>
               <!-- Quiz de révision -->
