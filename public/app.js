@@ -1,4 +1,5 @@
 const $ = (id) => document.getElementById(id);
+const START_HASH = location.hash; // gardé tel quel : openTab() réécrit l'adresse au démarrage (lien de fiches reçu)
 
 // ---------- Navigation : catégories et outils ----------
 const lastTool = {}; // dernier outil ouvert dans chaque catégorie
@@ -8308,6 +8309,103 @@ const HC_BY = { educatif: 0, medias: 1, createurs: 2, pratique: 3, argent: 4, je
   }).observe(panel, { attributes: true, attributeFilter: ["class"] });
   refresh();
 })();
+// ---------- Envoyer les fiches sur le téléphone ----------
+(() => {
+  const box = $("rfSend");
+  if (!box || !window.clippoSheets) return;
+  const PRE = "CLP1-", MAX_CODE = 3000000, MAX_OUT = 6000000;
+  const msg = $("txMsg"), say = (t, err) => { msg.textContent = t; msg.classList.toggle("error", !!err); };
+  const toB64 = (bytes) => {
+    let s = "";
+    for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+    return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  };
+  const fromB64 = (str) => {
+    const s = str.replace(/-/g, "+").replace(/_/g, "/");
+    const bin = atob(s + "=".repeat((4 - (s.length % 4)) % 4));
+    const out = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out;
+  };
+  async function squeeze(bytes) {
+    return new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(new CompressionStream("deflate-raw"))).arrayBuffer());
+  }
+  async function inflate(bytes) {
+    const reader = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("deflate-raw")).getReader();
+    const parts = []; let total = 0;
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.length;
+      if (total > MAX_OUT) { reader.cancel(); throw new Error("big"); }
+      parts.push(value);
+    }
+    const all = new Uint8Array(total); let o = 0;
+    parts.forEach((p) => { all.set(p, o); o += p.length; });
+    return all;
+  }
+  async function encode(sheets) {
+    const bytes = new TextEncoder().encode(JSON.stringify({ v: 1, s: sheets.map((f) => ({ t: f.title, h: f.html, b: f.bg, o: f.orient })) }));
+    if ("CompressionStream" in window) return PRE + "z" + toB64(await squeeze(bytes));
+    return PRE + "r" + toB64(bytes);
+  }
+  async function decode(code) {
+    let c = String(code).trim();
+    const k = c.indexOf("fiches=");
+    if (k >= 0) c = c.slice(k + 7);
+    c = c.replace(/\s+/g, "");
+    if (c.length > MAX_CODE || !c.startsWith(PRE)) throw new Error("fmt");
+    const kind = c[PRE.length], raw = fromB64(c.slice(PRE.length + 1));
+    let bytes;
+    if (kind === "z") { if (!("DecompressionStream" in window)) throw new Error("nodec"); bytes = await inflate(raw); }
+    else if (kind === "r") bytes = raw;
+    else throw new Error("fmt");
+    const d = JSON.parse(new TextDecoder().decode(bytes));
+    if (!d || !Array.isArray(d.s)) throw new Error("fmt");
+    return d.s.slice(0, 30).map((x) => ({ title: x && x.t, html: x && x.h, bg: x && x.b, orient: x && x.o })).filter((x) => typeof x.html === "string");
+  }
+  async function copy(text, ok) {
+    try { await navigator.clipboard.writeText(text); say(ok); }
+    catch { const t = $("txCode"); t.focus(); t.select(); say("Sélectionné : fais « Copier » sur ton téléphone ou ton clavier."); }
+  }
+
+  let link = "";
+  $("txMake").addEventListener("click", async () => {
+    try {
+      const all = window.clippoSheets.list();
+      const cur = $("rfSel").value;
+      const sheets = $("txScope").value === "all" ? all : all.filter((f) => f.id === cur);
+      if (!sheets.length) { say("Aucune fiche à envoyer.", true); return; }
+      const code = await encode(sheets);
+      link = location.origin + location.pathname + "#fiches=" + code;
+      $("txCode").value = code; $("txOut").hidden = false;
+      $("txCopyLink").hidden = link.length > 8000;
+      say(sheets.length + " fiche" + (sheets.length > 1 ? "s" : "") + " prête" + (sheets.length > 1 ? "s" : "") + " ! " + (link.length > 8000 ? "Le lien serait trop long : envoie le code." : "Copie le lien ou le code."));
+    } catch { say("Impossible de créer le code.", true); }
+  });
+  $("txCopyCode").addEventListener("click", () => copy($("txCode").value, "Code copié ✅"));
+  $("txCopyLink").addEventListener("click", () => copy(link, "Lien copié ✅"));
+
+  async function doImport(code, fromLink) {
+    try {
+      const sheets = await decode(code);
+      if (!sheets.length) throw new Error("fmt");
+      const n = window.clippoSheets.add(sheets);
+      box.open = true;
+      say(n ? "✅ " + n + " fiche" + (n > 1 ? "s ajoutées" : " ajoutée") + " sur cet appareil." : "Ces fiches sont déjà sur cet appareil.");
+      if (fromLink) openTab("revsheet");
+      return true;
+    } catch (e) {
+      box.open = true;
+      say(e && e.message === "nodec" ? "Ton navigateur est trop ancien pour lire ce code." : "Code invalide : copie-le en entier, depuis « CLP1- » jusqu'à la fin.", true);
+      return false;
+    }
+  }
+  $("txImport").addEventListener("click", async () => { if (await doImport($("txIn").value, false)) $("txIn").value = ""; });
+
+  // lien reçu : #fiches=CLP1-…
+  if (START_HASH.startsWith("#fiches=")) doImport(START_HASH.slice(1), true);
+})();
 // ---------- Chronomètre d'entraînement ----------
 (() => {
   const panel = $("workout");
@@ -9204,6 +9302,30 @@ const HC_BY = { educatif: 0, medias: 1, createurs: 2, pratique: 3, argent: 4, je
     if (!data.list.length) data.list = [blank("Ma fiche")];
     show(data.list[0]); persist(); say("Fiche supprimée.");
   });
+    // ---- Pont pour l'envoi vers le téléphone (code ou lien) ----
+  window.clippoSheets = {
+    list() { grab(); persist(); return data.list.map((f) => ({ id: f.id, title: f.title, html: f.html, bg: f.bg, orient: f.orient })); },
+    add(arr) {
+      grab();
+      const plain = (h) => { const d = document.createElement("div"); d.innerHTML = h; return d.textContent.replace(/\s+/g, " ").trim(); };
+      // la fiche d'exemple jamais modifiée laisse sa place aux fiches reçues
+      if (arr.length && data.list.length === 1 && data.list[0].title === "Ma première fiche" && plain(data.list[0].html).includes("Écris ton cours ici")) data.list = [];
+      let n = 0, last = null;
+      arr.forEach((s) => {
+        if (!s || typeof s.html !== "string" || data.list.length >= MAX) return;
+        const html = clean(s.html), title = String(s.title || "").slice(0, 80);
+        if (data.list.some((f) => f.title === title && plain(f.html) === plain(html))) return; // déjà là
+        last = {
+          id: uid(), title, html,
+          bg: ["white", "cream", "ruled", "grid", "pink", "blue", "green", "yellow", "dark"].includes(s.bg) ? s.bg : "white",
+          orient: s.orient === "landscape" ? "landscape" : "portrait"
+        };
+        data.list.push(last); n += 1;
+      });
+      if (last) { show(last); persist(); }
+      return n;
+    }
+  };
   $("rfBg").addEventListener("change", (e) => { sheet.dataset.bg = e.target.value; changed(); });
   $("rfOrient").addEventListener("change", (e) => { sheet.classList.toggle("land", e.target.value === "landscape"); pageRule(e.target.value); changed(); });
 
